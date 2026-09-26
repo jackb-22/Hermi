@@ -13,6 +13,7 @@ import {
 import type { AppContext } from './context.ts';
 import { authPlugin } from './plugins/auth.ts';
 import { registerErrorHandling } from './plugins/errors.ts';
+import { describeProviders } from './providers/index.ts';
 import { routes } from './routes/index.ts';
 import { webRoutes } from './routes/web.ts';
 
@@ -58,7 +59,7 @@ export async function buildApp(ctx: AppContext): Promise<FastifyInstance> {
         ctx.db.command({ ping: 1 }).then(() => true, () => false),
         ctx.tiger.query('select 1').then(() => true, () => false),
       ]);
-      const body = { ok: mongo && tiger, version: API_VERSION, mongo, tiger, time: ctx.clock.now().toISOString() };
+      const body = { ok: mongo && tiger, version: API_VERSION, mongo, tiger, time: ctx.clock.now().toISOString(), providers: describeProviders(ctx.providers) };
       return reply.status(body.ok ? 200 : 503).send(body);
     },
   );

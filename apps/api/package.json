@@ -15,6 +15,7 @@
     "@fastify/cors": "^11.1.0",
     "@fastify/jwt": "^10.0.0",
     "@fastify/swagger": "^9.5.0",
+    "@google/genai": "^2.24.0",
     "@itp/shared": "workspace:*",
     "@scalar/fastify-api-reference": "^1.36.0",
     "fastify": "^5.6.0",
