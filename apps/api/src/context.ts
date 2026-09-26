@@ -1,6 +1,7 @@
 import type { Db, MongoClient } from 'mongodb';
 import type pg from 'pg';
 import type { Config } from './config.ts';
+import type { Providers } from './providers/index.ts';
 
 /** A clock the dev routes can shift, so streaks and score decay are testable without waiting. */
 export class Clock {
@@ -16,6 +17,7 @@ export interface AppContext {
   db: Db;
   tiger: pg.Pool;
   clock: Clock;
+  providers: Providers;
 }
 
 declare module 'fastify' {

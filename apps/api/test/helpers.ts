@@ -38,3 +38,13 @@ export async function setupTestApp(overrides: Record<string, string> = {}) {
   };
   return { app, ctx, teardown };
 }
+
+type App = Awaited<ReturnType<typeof setupTestApp>>['app'];
+
+/** Signs in (creating if needed) a dev user; returns token, id and an auth header. */
+export async function devLogin(app: App, username: string) {
+  const res = await app.inject({ method: 'POST', url: '/v1/auth/dev', payload: { username } });
+  if (res.statusCode !== 200) throw new Error(`dev login failed: ${res.body}`);
+  const body = res.json();
+  return { token: body.token as string, id: body.user.id as string, headers: { authorization: `Bearer ${body.token}` } };
+}

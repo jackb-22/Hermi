@@ -11,6 +11,7 @@ import {
   validatorCompiler,
 } from 'fastify-type-provider-zod';
 import type { AppContext } from './context.ts';
+import { authPlugin } from './plugins/auth.ts';
 import { registerErrorHandling } from './plugins/errors.ts';
 import { routes } from './routes/index.ts';
 
@@ -28,6 +29,7 @@ export async function buildApp(ctx: AppContext): Promise<FastifyInstance> {
   app.setSerializerCompiler(serializerCompiler);
   registerErrorHandling(app);
   await app.register(cors, { origin: true });
+  await app.register(authPlugin);
 
   await app.register(swagger, {
     openapi: {

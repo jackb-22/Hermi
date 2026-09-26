@@ -12,19 +12,20 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@itp/shared": "workspace:*",
-    "fastify": "^5.6.0",
-    "fastify-type-provider-zod": "^6.0.0",
-    "@fastify/swagger": "^9.5.0",
     "@fastify/cors": "^11.1.0",
     "@fastify/jwt": "^10.0.0",
+    "@fastify/swagger": "^9.5.0",
+    "@itp/shared": "workspace:*",
     "@scalar/fastify-api-reference": "^1.36.0",
+    "fastify": "^5.6.0",
+    "fastify-plugin": "^6.0.0",
+    "fastify-type-provider-zod": "^6.0.0",
     "jose": "^6.1.0",
     "mongodb": "^6.20.0",
     "pg": "^8.16.0",
+    "tsx": "^4.20.0",
     "ulid": "^3.0.0",
-    "zod": "^4.1.0",
-    "tsx": "^4.20.0"
+    "zod": "^4.1.0"
   },
   "devDependencies": {
     "@types/node": "^22.18.0",
