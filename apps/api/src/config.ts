@@ -35,6 +35,8 @@ const Env = z.object({
   S3_SECRET: optStr,
   S3_FORCE_PATH_STYLE: bool.default(false),
   CDN_BASE_URL: optStr,
+  /** direct: app PUTs to a presigned S3 URL. api: app PUTs to the API, which stores it (use when S3 is not reachable from the phone, e.g. local dev over a tunnel). */
+  MEDIA_UPLOAD_MODE: z.enum(['direct', 'api']).default('direct'),
 
   APPLE_TEAM_ID: optStr,
   APPLE_BUNDLE_ID: optStr,

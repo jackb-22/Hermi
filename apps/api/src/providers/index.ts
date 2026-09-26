@@ -5,6 +5,7 @@ import { type EmailProvider, createEmail } from './email.ts';
 import { type EtaProvider, createEta } from './eta.ts';
 import { type HoursProvider, createHours } from './hours.ts';
 import { type Llm, createLlm } from './llm.ts';
+import { type Storage, createStorage } from './storage.ts';
 import { type WeatherProvider, createWeather } from './weather.ts';
 
 /** Every external service sits behind an interface with a fake, chosen by which keys are configured. */
@@ -16,6 +17,7 @@ export interface Providers {
   hours: HoursProvider;
   llm: Llm;
   weather: WeatherProvider;
+  storage: Storage;
 }
 
 export function createProviders(c: Config): Providers {
@@ -27,6 +29,7 @@ export function createProviders(c: Config): Providers {
     hours: createHours(c),
     llm: createLlm(c),
     weather: createWeather(c),
+    storage: createStorage(c),
   };
 }
 
