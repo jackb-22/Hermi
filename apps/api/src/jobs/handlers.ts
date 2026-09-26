@@ -1,7 +1,9 @@
+import { moderatePost } from '../services/posts.ts';
 import { finalizeSession } from './finalizeSession.ts';
 import type { JobHandler } from './queue.ts';
 
 /** Job type → handler. Each feature registers its jobs here. */
 export const handlers: Record<string, JobHandler> = {
   finalize_session: finalizeSession as JobHandler,
+  moderate_post: moderatePost as JobHandler,
 };
