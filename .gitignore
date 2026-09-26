@@ -6,3 +6,6 @@ dist
 *.log
 coverage
 apps/api/data/
+
+# Demo C2PA signing keys (scripts/make-c2pa-cert.sh)
+.c2pa/

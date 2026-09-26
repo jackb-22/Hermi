@@ -26,3 +26,13 @@ pnpm --filter @itp/api exec tsx scripts/simulate-tap.ts --base http://localhost:
 
 `--demo` takes the usernames of the demo phones' accounts (set them with `PATCH /me {username}` after signing in, then re-run).
 Everything the seed writes is marked, so `--reset` removes exactly it.
+
+## Content Credentials (C2PA)
+
+Verified captures get a signed copy of the original with a C2PA manifest (in-app capture, place, time, check-in), linked from `/verify/:hash`. To enable signing, generate a demo signer once and put the two printed lines in `.env` (and the App Platform secrets):
+
+```sh
+apps/api/scripts/make-c2pa-cert.sh .c2pa   # writes .c2pa/ (gitignored), prints C2PA_CERT_PEM=… and C2PA_KEY_PEM=…
+```
+
+The root CA is ours, so viewers report the manifest as valid but from an untrusted signer. Without these keys, captures still post; the stamp falls back to the server-verified capture record.

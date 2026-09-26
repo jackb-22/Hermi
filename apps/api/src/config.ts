@@ -53,6 +53,9 @@ const Env = z.object({
   BACKBOARD_API_KEY: optStr,
   BACKBOARD_BASE_URL: z.string().default('https://app.backboard.io/api'),
   PHOTON_API_KEY: optStr,
+  /** ES256 signer certificate chain (leaf first) and PKCS#8 key, PEM; literal \n allowed. scripts/make-c2pa-cert.sh */
+  C2PA_CERT_PEM: optStr,
+  C2PA_KEY_PEM: optStr,
   REALITY_DEFENDER_KEY: optStr,
   RESEND_API_KEY: optStr,
   EMAIL_FROM: optStr,

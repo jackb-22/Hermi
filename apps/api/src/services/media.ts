@@ -32,7 +32,8 @@ export interface MediaDoc {
   pairedWith?: string;
   ambientId?: string;
   rendition?: { key: string; posterKey?: string; contentType: string };
-  c2pa?: { manifestKey: string; signedAt: Date };
+  /** The original with a signed C2PA manifest embedded (public, unguessable key): the Content Credentials file. */
+  c2pa?: { manifestKey: string; signedAt: Date; signer: string | null };
   posted: boolean;
   createdAt: Date;
   verifiedAt?: Date;

@@ -118,7 +118,11 @@ export const webRoutes: FastifyPluginAsyncZod = async (app) => {
 <dt>Check-in</dt><dd>${info.checkin.tier === 'tag' ? 'Venue tag scan' : 'GPS, 5 min on site'} at ${esc(checkin)}${info.checkin.attested ? ' · genuine app on a real device' : ''}</dd>
 <dt>By</dt><dd>${esc(info.author.username ? `@${info.author.username}` : 'a verified user')}</dd>
 <dt>Fingerprint</dt><dd style="word-break:break-all;font-family:monospace;font-size:12px">sha256 ${info.sha256}</dd>
-<dt>Credential</dt><dd>${info.credential.c2pa && info.credential.manifestUrl ? `<a href="${esc(info.credential.manifestUrl)}">C2PA Content Credentials manifest</a>` : 'Server-verified capture record'}</dd>
+<dt>Credential</dt><dd>${
+            info.credential.c2pa && info.credential.manifestUrl
+              ? `C2PA Content Credentials${info.credential.signer ? `, signed by ${esc(info.credential.signer)}` : ''}<br><a href="${esc(info.credential.manifestUrl)}">Download with credentials</a>${info.credential.inspectUrl ? ` · <a href="${esc(info.credential.inspectUrl)}">Inspect</a>` : ''}`
+              : 'Server-verified capture record'
+          }</dd>
 </dl>
 <p class="muted">Provenance proves where and when this was captured, not that the scene is real.</p>`,
         ),

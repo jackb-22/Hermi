@@ -40,6 +40,8 @@ services:
       - { key: BACKBOARD_API_KEY, type: SECRET }
       - { key: PHOTON_API_KEY, type: SECRET }
       - { key: REALITY_DEFENDER_KEY, type: SECRET }
+      - { key: C2PA_CERT_PEM, type: SECRET }
+      - { key: C2PA_KEY_PEM, type: SECRET }
       - { key: RESEND_API_KEY, type: SECRET }
       - { key: EMAIL_FROM, type: SECRET }
 workers:

@@ -2,6 +2,7 @@ import type { Config } from '../config.ts';
 import { type AppAttestVerifier, createAppAttest } from './appAttest.ts';
 import { type AppleIdentity, createAppleIdentity } from './appleIdentity.ts';
 import { type Backboard, createBackboard } from './backboard.ts';
+import { type Credentials, createCredentials } from './c2pa.ts';
 import { createEmail, type EmailProvider } from './email.ts';
 import { createEta, type EtaProvider } from './eta.ts';
 import { createHours, type HoursProvider } from './hours.ts';
@@ -22,6 +23,7 @@ export interface Providers {
   weather: WeatherProvider;
   storage: Storage;
   push: PushProvider;
+  c2pa: Credentials;
 }
 
 export function createProviders(c: Config): Providers {
@@ -36,6 +38,7 @@ export function createProviders(c: Config): Providers {
     weather: createWeather(c),
     storage: createStorage(c),
     push: createPush(c),
+    c2pa: createCredentials(c),
   };
 }
 
