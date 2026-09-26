@@ -77,6 +77,9 @@ export const meRoutes: FastifyPluginAsyncZod = async (app) => {
           $unset: { username: '', appleSub: '', pushTokens: '' },
         },
       );
+      await db
+        .collection('posts')
+        .updateMany({ authorId: req.userId }, { $set: { status: 'removed' } });
       return { ok: true as const };
     },
   );

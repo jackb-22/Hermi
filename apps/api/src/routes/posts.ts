@@ -32,11 +32,12 @@ export const postRoutes: FastifyPluginAsyncZod = async (app) => {
   const publish = async (doc: PostDoc) => {
     await posts(db).insertOne(doc);
     await media(db).updateMany({ _id: { $in: doc.mediaIds } }, { $set: { posted: true } });
+    // Clips wait for their rendition; 8 attempts of exponential backoff give the worker several minutes.
     await enqueue(
       app.ctx,
       'moderate_post',
       { postId: doc._id },
-      { dedupeKey: `moderate:${doc._id}` },
+      { dedupeKey: `moderate:${doc._id}`, maxAttempts: 8 },
     );
     return one(doc);
   };
@@ -75,7 +76,14 @@ export const postRoutes: FastifyPluginAsyncZod = async (app) => {
           'BAD_REQUEST',
           'Ambient clips ride along with their photo; do not select them',
         );
-      if (picked.some((m) => m.posted)) throw new ApiError(409, 'CONFLICT', 'Already posted');
+      // A capture appears in at most one Clip/Photos/Recap post. Review posts only reference the visit's photo,
+      // so reviewing first (on the recap screen) never blocks posting that capture.
+      const usedIn = await posts(db).findOne({
+        mediaIds: { $in: b.mediaIds },
+        type: { $ne: 'review' },
+        status: { $in: ['pending', 'live'] },
+      });
+      if (usedIn) throw new ApiError(409, 'CONFLICT', 'Already posted');
       const ordered = b.mediaIds.map((id) => picked.find((m) => m._id === id)!);
       const now = clock.now();
 

@@ -202,7 +202,10 @@ export const planMemberRoutes: FastifyPluginAsyncZod = async (app) => {
         memberStatus(plan, req.userId) === 'declined';
       const friendsPlan =
         plan.visibility === 'friends' && (await friendIds(db, plan.hostId)).includes(req.userId);
-      const byLink = !!req.body.token && req.body.token === plan.shareToken;
+      // The share link is also the "send a friend before meeting a stranger" safety link, and open (find) plans are
+      // visible to any verified student, so a token never skips the host's approval on a find plan.
+      const byLink =
+        plan.visibility !== 'find' && !!req.body.token && req.body.token === plan.shareToken;
       if (!invited && !friendsPlan && !byLink) {
         throw new ApiError(
           403,

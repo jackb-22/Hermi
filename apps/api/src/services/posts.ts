@@ -5,6 +5,7 @@ import type { z } from 'zod';
 import type { AppContext } from '../context.ts';
 import type { PlaceDoc } from '../db/placeTypes.ts';
 import type { GeoPoint, UserDoc } from '../db/types.ts';
+import type { JobDoc } from '../jobs/queue.ts';
 import { videoFrames } from '../media/ffmpeg.ts';
 import { type MediaDoc, media } from './media.ts';
 import { places } from './places.ts';
@@ -174,7 +175,7 @@ export async function hydratePosts(
 }
 
 /** Captions, review text and images pass a Gemini safety check before a post goes live. */
-export async function moderatePost(ctx: AppContext, payload: { postId: string }) {
+export async function moderatePost(ctx: AppContext, payload: { postId: string }, job?: JobDoc) {
   const { db, providers, clock } = ctx;
   const p = await posts(db).findOne({ _id: payload.postId });
   if (p?.status !== 'pending') return;
@@ -182,8 +183,17 @@ export async function moderatePost(ctx: AppContext, payload: { postId: string })
     .find({ _id: { $in: p.mediaIds } })
     .toArray();
   // Clips are checked on three frames of the rendition; wait (job retry) until the worker has made it.
-  if (docs.some((m) => m.kind === 'video' && !m.rendition))
+  if (docs.some((m) => m.kind === 'video' && !m.rendition)) {
+    // Never leave a post pending forever: if the clip could not be processed by the last attempt, reject it.
+    if (job && job.attempts >= job.maxAttempts) {
+      await posts(db).updateOne(
+        { _id: p._id, status: 'pending' },
+        { $set: { status: 'rejected', moderationReason: 'clip could not be processed' } },
+      );
+      return;
+    }
     throw new Error('video rendition not ready yet');
+  }
   const images: { mimeType: string; data: Buffer }[] = [];
   for (const m of docs) {
     if (images.length >= 3) break;

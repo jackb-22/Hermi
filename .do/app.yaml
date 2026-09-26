@@ -17,7 +17,7 @@ services:
       - { key: ATTEST_MODE, value: log }
       - { key: DEV_ROUTES, value: "1" }
       - { key: DEV_TOKEN, type: SECRET }   # dev routes need header x-dev-token: <this>
-      - { key: FAKE_PROVIDERS, value: "1" }
+      - { key: FAKE_PROVIDERS, value: "0" }   # keyless real providers (Expo push, Open-Meteo); keyed ones switch on when their secret is set
       - { key: PUBLIC_BASE_URL, value: "${APP_URL}" }
       - { key: JWT_SECRET, type: SECRET }
       - { key: MONGO_URI, type: SECRET }
