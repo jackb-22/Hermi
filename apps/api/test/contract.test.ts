@@ -84,6 +84,7 @@ const EXPECTED = [
   'post /v1/plans/{id}/ghosts/accept',
   'post /v1/ghosts/skip',
   'post /v1/plans/{id}/ask',
+  'post /v1/me/photo',
 ];
 
 let t: Awaited<ReturnType<typeof setupTestApp>>;

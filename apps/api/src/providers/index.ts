@@ -3,6 +3,7 @@ import { type AppAttestVerifier, createAppAttest } from './appAttest.ts';
 import { type AppleIdentity, createAppleIdentity } from './appleIdentity.ts';
 import { type Backboard, createBackboard } from './backboard.ts';
 import { type Credentials, createCredentials } from './c2pa.ts';
+import { createDetector, type Detector } from './detector.ts';
 import { createEmail, type EmailProvider } from './email.ts';
 import { createEta, type EtaProvider } from './eta.ts';
 import { createHours, type HoursProvider } from './hours.ts';
@@ -24,6 +25,7 @@ export interface Providers {
   storage: Storage;
   push: PushProvider;
   c2pa: Credentials;
+  detector: Detector;
 }
 
 export function createProviders(c: Config): Providers {
@@ -39,6 +41,7 @@ export function createProviders(c: Config): Providers {
     storage: createStorage(c),
     push: createPush(c),
     c2pa: createCredentials(c),
+    detector: createDetector(c),
   };
 }
 

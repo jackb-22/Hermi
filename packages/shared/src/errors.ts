@@ -23,6 +23,7 @@ export const ERROR_CODES = [
   'MEDIA_TOO_FAR',
   'MEDIA_NOT_VERIFIED',
   'PROVIDER_UNAVAILABLE',
+  'PHOTO_REJECTED',
 ] as const;
 export type ErrorCode = (typeof ERROR_CODES)[number];
 

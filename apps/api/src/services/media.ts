@@ -99,6 +99,7 @@ export const extFor = (contentType: string) =>
     'image/jpeg': 'jpg',
     'image/heic': 'heic',
     'image/png': 'png',
+    'image/webp': 'webp',
     'video/mp4': 'mp4',
     'video/quicktime': 'mov',
     'audio/mp4': 'm4a',

@@ -94,3 +94,26 @@ if (p.backboard.enabled)
       tools: [],
     });
   });
+if (p.detector.enabled)
+  await run('reality defender', async () => {
+    const { execFileSync } = await import('node:child_process');
+    const jpg = execFileSync('ffmpeg', [
+      '-loglevel',
+      'error',
+      '-f',
+      'lavfi',
+      '-i',
+      'testsrc=size=512x512',
+      '-frames:v',
+      '1',
+      '-f',
+      'mjpeg',
+      'pipe:1',
+    ]);
+    const id = await p.detector.submit(jpg, 'smoke.jpg');
+    for (let i = 0; i < 10; i++) {
+      const r = await p.detector.result(id);
+      if (r) return r;
+    }
+    return 'still analyzing';
+  });
