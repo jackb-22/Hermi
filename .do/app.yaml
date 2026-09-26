@@ -1,0 +1,51 @@
+# DigitalOcean App Platform spec: `doctl apps create --spec .do/app.yaml` once, then every push to main redeploys.
+# Secrets are set in the App Platform UI (type: SECRET), never committed.
+name: itp
+region: nyc
+services:
+  - name: api
+    github: { repo: REPLACE_ME/itp, branch: main, deploy_on_push: true }
+    dockerfile_path: Dockerfile
+    http_port: 8080
+    instance_size_slug: apps-s-1vcpu-1gb
+    instance_count: 1
+    health_check: { http_path: /health }
+    routes: [{ path: / }]
+    envs: &envs
+      - { key: NODE_ENV, value: production }
+      - { key: RUN_WORKER, value: "off" }
+      - { key: ATTEST_MODE, value: log }
+      - { key: DEV_ROUTES, value: "1" }
+      - { key: FAKE_PROVIDERS, value: "1" }
+      - { key: PUBLIC_BASE_URL, value: "${APP_URL}" }
+      - { key: JWT_SECRET, type: SECRET }
+      - { key: MONGO_URI, type: SECRET }
+      - { key: MONGO_DB, value: itp }
+      - { key: TIGER_URL, type: SECRET }
+      - { key: S3_ENDPOINT, value: "https://nyc3.digitaloceanspaces.com" }
+      - { key: S3_REGION, value: nyc3 }
+      - { key: S3_BUCKET, value: itp-media }
+      - { key: S3_KEY, type: SECRET }
+      - { key: S3_SECRET, type: SECRET }
+      - { key: CDN_BASE_URL, value: "https://itp-media.nyc3.cdn.digitaloceanspaces.com" }
+      - { key: APPLE_TEAM_ID, type: SECRET }
+      - { key: APPLE_BUNDLE_ID, type: SECRET }
+      - { key: APPLE_MAPS_KEY_ID, type: SECRET }
+      - { key: APPLE_MAPS_PRIVATE_KEY, type: SECRET }
+      - { key: WEATHERKIT_KEY_ID, type: SECRET }
+      - { key: WEATHERKIT_PRIVATE_KEY, type: SECRET }
+      - { key: GEMINI_API_KEY, type: SECRET }
+      - { key: GOOGLE_MAPS_KEY, type: SECRET }
+      - { key: BACKBOARD_API_KEY, type: SECRET }
+      - { key: PHOTON_API_KEY, type: SECRET }
+      - { key: REALITY_DEFENDER_KEY, type: SECRET }
+      - { key: RESEND_API_KEY, type: SECRET }
+      - { key: EMAIL_FROM, type: SECRET }
+workers:
+  - name: worker
+    github: { repo: REPLACE_ME/itp, branch: main, deploy_on_push: true }
+    dockerfile_path: Dockerfile
+    run_command: pnpm --filter @itp/api worker
+    instance_size_slug: apps-s-1vcpu-1gb
+    instance_count: 1
+    envs: *envs

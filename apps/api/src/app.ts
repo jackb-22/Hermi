@@ -14,6 +14,7 @@ import type { AppContext } from './context.ts';
 import { authPlugin } from './plugins/auth.ts';
 import { registerErrorHandling } from './plugins/errors.ts';
 import { routes } from './routes/index.ts';
+import { webRoutes } from './routes/web.ts';
 
 export const API_VERSION = '0.1.0';
 
@@ -71,6 +72,7 @@ export async function buildApp(ctx: AppContext): Promise<FastifyInstance> {
     }
     for (const plugin of routes) await scope.register(plugin);
   };
+  await app.register(webRoutes);
   await app.register(mount(false), { prefix: '/v1' });
   await app.register(mount(true), { prefix: '' });
 
