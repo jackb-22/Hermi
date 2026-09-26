@@ -1,0 +1,25 @@
+services:
+  mongo:
+    image: mongodb/mongodb-atlas-local:8.0
+    ports: ["27017:27017"]
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand({ping:1})"]
+      interval: 5s
+      retries: 30
+  tiger:
+    image: timescale/timescaledb-ha:pg17
+    ports: ["5432:5432"]
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: itp
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 5s
+      retries: 30
+  s3:
+    image: rustfs/rustfs:latest
+    ports: ["9000:9000", "9001:9001"]
+    environment:
+      RUSTFS_ACCESS_KEY: s3dev
+      RUSTFS_SECRET_KEY: s3dev12345
+      RUSTFS_CONSOLE_ENABLE: "true"

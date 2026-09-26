@@ -1,0 +1,8 @@
+node_modules
+dist
+.env
+.env.local
+*.p8
+*.log
+coverage
+apps/api/data/
