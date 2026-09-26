@@ -36,6 +36,9 @@ const INDEXES: Record<string, IndexDescription[]> = {
   edu_codes: [{ key: { expiresAt: 1 }, expireAfterSeconds: 0 }],
   feed_seen: [{ key: { userId: 1, day: 1 }, unique: true }, { key: { createdAt: 1 }, expireAfterSeconds: 3 * 86400 }],
   blocks: [{ key: { blocker: 1, blocked: 1 }, unique: true }, { key: { blocked: 1 } }],
+  attest_keys: [{ key: { userId: 1 } }],
+  attest_challenges: [{ key: { expiresAt: 1 }, expireAfterSeconds: 0 }],
+  rate_limits: [{ key: { expiresAt: 1 }, expireAfterSeconds: 0 }],
   reports: [{ key: { postId: 1 } }, { key: { reporterId: 1 } }],
 };
 

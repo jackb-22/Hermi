@@ -23,6 +23,7 @@
     "fastify-type-provider-zod": "^6.0.0",
     "jose": "^6.1.0",
     "mongodb": "^6.20.0",
+    "node-app-attest": "^1.0.1",
     "pg": "^8.16.0",
     "tsx": "^4.20.0",
     "ulid": "^3.0.0",

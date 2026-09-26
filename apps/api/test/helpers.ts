@@ -7,7 +7,7 @@ import { loadConfig } from '../src/config.ts';
 import type { AppContext } from '../src/context.ts';
 
 /** Isolated Mongo database + Postgres schema per test file, against the docker compose infra. */
-export async function setupTestApp(overrides: Record<string, string> = {}) {
+export async function setupTestApp(overrides: Record<string, string> = {}, extend?: (app: FastifyInstance) => void) {
   const suffix = randomBytes(4).toString('hex');
   const schema = `t_${suffix}`;
   const config = loadConfig({
@@ -28,6 +28,7 @@ export async function setupTestApp(overrides: Record<string, string> = {}) {
   const ctx: AppContext = await createContext(config);
   await ensureSchema(ctx);
   const app: FastifyInstance = await buildApp(ctx);
+  extend?.(app);
   await app.ready();
 
   const teardown = async () => {

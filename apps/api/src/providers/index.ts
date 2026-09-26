@@ -1,4 +1,5 @@
 import type { Config } from '../config.ts';
+import { type AppAttestVerifier, createAppAttest } from './appAttest.ts';
 import { type AppleIdentity, createAppleIdentity } from './appleIdentity.ts';
 import { type EmailProvider, createEmail } from './email.ts';
 import { type EtaProvider, createEta } from './eta.ts';
@@ -10,6 +11,7 @@ import { type WeatherProvider, createWeather } from './weather.ts';
 export interface Providers {
   email: EmailProvider;
   appleIdentity: AppleIdentity;
+  appAttest: AppAttestVerifier;
   eta: EtaProvider;
   hours: HoursProvider;
   llm: Llm;
@@ -20,6 +22,7 @@ export function createProviders(c: Config): Providers {
   return {
     email: createEmail(c),
     appleIdentity: createAppleIdentity(c),
+    appAttest: createAppAttest(c),
     eta: createEta(c),
     hours: createHours(c),
     llm: createLlm(c),

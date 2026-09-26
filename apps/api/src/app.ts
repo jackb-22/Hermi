@@ -11,6 +11,7 @@ import {
   validatorCompiler,
 } from 'fastify-type-provider-zod';
 import type { AppContext } from './context.ts';
+import { rawBodyPlugin } from './plugins/attest.ts';
 import { authPlugin } from './plugins/auth.ts';
 import { registerErrorHandling } from './plugins/errors.ts';
 import { describeProviders } from './providers/index.ts';
@@ -32,6 +33,7 @@ export async function buildApp(ctx: AppContext): Promise<FastifyInstance> {
   registerErrorHandling(app);
   await app.register(cors, { origin: true });
   await app.register(authPlugin);
+  await app.register(rawBodyPlugin);
 
   await app.register(swagger, {
     openapi: {
