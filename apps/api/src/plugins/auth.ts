@@ -36,3 +36,14 @@ export async function requireAuth(req: FastifyRequest) {
 /** Route option fragment for authenticated routes (adds the OpenAPI security marker too). */
 export const authed = { preHandler: requireAuth } as const;
 export const bearer = [{ bearer: [] }];
+
+/** preHandler: sets req.userId when a valid token is present, otherwise continues anonymously. */
+export async function optionalAuth(req: FastifyRequest) {
+  if (!req.headers.authorization) return;
+  try {
+    const p = await req.jwtVerify<{ sub: string }>();
+    req.userId = p.sub;
+  } catch {
+    throw new ApiError(401, 'UNAUTHORIZED', 'Invalid bearer token');
+  }
+}
