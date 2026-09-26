@@ -1,5 +1,6 @@
 import { ApiError, newId } from '@itp/shared';
-import { ActiveSessionResponse, PointsBody, PointsResponse, StartSessionBody, StartSessionResponse } from '@itp/shared/api';
+import { ActiveSessionResponse, EndSessionBody, EndSessionResponse, PointsBody, PointsResponse, RecapResponse, StartSessionBody, StartSessionResponse } from '@itp/shared/api';
+import { enqueue } from '../jobs/queue.ts';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { filterTrace } from '../domain/plausibility.ts';
@@ -76,6 +77,48 @@ export const sessionRoutes: FastifyPluginAsyncZod = async (app) => {
       const nRejected = Object.values(rejected).reduce((a, b) => a + b, 0);
       await sessions(db).updateOne({ _id: s._id }, { $set: { lastPoint: last }, $inc: { pointsAccepted: accepted.length, pointsRejected: nRejected } });
       return { accepted: accepted.length, rejected };
+    },
+  );
+
+  app.post(
+    '/sessions/:id/end',
+    {
+      ...authed,
+      schema: {
+        tags: ['action'],
+        summary: 'End: the worker builds segments, tiles, distance XP and the recap',
+        description: 'Idempotent. Then poll GET /sessions/:id/recap until status is ready (usually a second or two).',
+        security: bearer,
+        params: z.object({ id: z.string() }),
+        body: EndSessionBody,
+        response: { 200: EndSessionResponse, ...errs(401, 404) },
+      },
+    },
+    async (req) => {
+      const s = await getOwnSession(db, req.params.id, req.userId);
+      if (s.status === 'active') {
+        await sessions(db).updateOne({ _id: s._id, status: 'active' }, { $set: { status: 'ending', endedAt: clock.now(), steps: req.body.steps } });
+        await enqueue(app.ctx, 'finalize_session', { sessionId: s._id }, { dedupeKey: `finalize:${s._id}` });
+      }
+      return { session: toSession((await sessions(db).findOne({ _id: s._id }))!) };
+    },
+  );
+
+  app.get(
+    '/sessions/:id/recap',
+    {
+      ...authed,
+      schema: {
+        tags: ['action'],
+        summary: 'The recap: route replay, tiles that flip, XP breakdown, best capture per stop, review prompts',
+        security: bearer,
+        params: z.object({ id: z.string() }),
+        response: { 200: RecapResponse, ...errs(401, 404) },
+      },
+    },
+    async (req) => {
+      const s = await getOwnSession(db, req.params.id, req.userId);
+      return s.recap ? { status: 'ready' as const, recap: s.recap } : { status: 'pending' as const, recap: null };
     },
   );
 };

@@ -1,5 +1,5 @@
 import { ApiError, fromGeoJSONPoint } from '@itp/shared';
-import type { SessionSchema } from '@itp/shared/api';
+import type { RecapSchema, SessionSchema } from '@itp/shared/api';
 import type { Db } from 'mongodb';
 import type pg from 'pg';
 import type { z } from 'zod';
@@ -19,7 +19,8 @@ export interface SessionDoc {
   lastPoint?: TracePoint;
   pointsAccepted: number;
   pointsRejected: number;
-  recap?: unknown;
+  steps?: number;
+  recap?: z.infer<typeof RecapSchema>;
 }
 
 export const sessions = (db: Db) => db.collection<SessionDoc>('sessions');
