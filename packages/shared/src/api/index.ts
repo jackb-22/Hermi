@@ -12,4 +12,5 @@ export * from './profile.ts';
 export * from './score.ts';
 export * from './sessions.ts';
 export * from './social.ts';
+export * from './socialMap.ts';
 export * from './taste.ts';

@@ -146,3 +146,25 @@ export const PlansListQuery = z.object({
 export const ApplyChangesBody = z.object({
   ids: z.array(z.string()).optional().describe('Ghost change ids; omit to act on all of them'),
 });
+
+export const SavePlanBody = z.object({
+  name: z
+    .string()
+    .min(1)
+    .max(80)
+    .optional()
+    .describe('Defaults to a name suggested from the stops'),
+  visibility: VisibilitySchema.describe(
+    'just_me · invite (friends you pick) · friends (every friend can join) · find (matched verified students can request)',
+  ),
+  inviteeIds: z
+    .array(IdSchema)
+    .max(20)
+    .default([])
+    .describe('Friends to invite (push + link); each taps Join or Can’t'),
+});
+export const InviteBody = z.object({ userIds: z.array(IdSchema).min(1).max(20) });
+export const JoinBody = z.object({
+  token: z.string().optional().describe('Share-link token, for people invited by link'),
+});
+export const NameSuggestionResponse = z.object({ name: z.string() });

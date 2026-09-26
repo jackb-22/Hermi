@@ -1,5 +1,7 @@
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { z } from 'zod';
+import { loadPlaces, plans } from '../services/plans.ts';
+import { users } from '../services/users.ts';
 import { verifyInfo } from '../services/verify.ts';
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
@@ -119,6 +121,52 @@ export const webRoutes: FastifyPluginAsyncZod = async (app) => {
 <dt>Credential</dt><dd>${info.credential.c2pa && info.credential.manifestUrl ? `<a href="${esc(info.credential.manifestUrl)}">C2PA Content Credentials manifest</a>` : 'Server-verified capture record'}</dd>
 </dl>
 <p class="muted">Provenance proves where and when this was captured, not that the scene is real.</p>`,
+        ),
+      );
+    },
+  );
+
+  // Shared plan link (/p/:token): opens the app via universal link, or this page in Safari.
+  app.get(
+    '/p/:token',
+    { schema: { hide: true, params: z.object({ token: z.string().max(40) }) } },
+    async (req, reply) => {
+      const plan = await plans(db).findOne({
+        shareToken: req.params.token,
+        status: { $ne: 'cancelled' },
+      });
+      if (!plan)
+        return reply
+          .status(404)
+          .type('text/html')
+          .send(page('Plan not found', '<h1>Link expired</h1>'));
+      const [host, byId] = await Promise.all([
+        users(db).findOne({ _id: plan.hostId }),
+        loadPlaces(
+          db,
+          plan.stops.map((s) => s.placeId),
+        ),
+      ]);
+      const fmt = (d: Date) =>
+        d.toLocaleString('en-US', {
+          timeZone: 'America/New_York',
+          weekday: 'short',
+          hour: 'numeric',
+          minute: '2-digit',
+        });
+      const stops = plan.stops
+        .map((s, i) => {
+          const p = s.placeId ? byId.get(s.placeId) : undefined;
+          return `<dt>${i + 1}. ${esc(fmt(s.arriveAt))}</dt><dd>${esc(p ? `${p.name}${p.address ? ` · ${p.address}` : ''}` : 'Spot to be picked')}</dd>`;
+        })
+        .join('');
+      return reply.type('text/html').send(
+        page(
+          plan.name,
+          `<h1>${esc(plan.name)}</h1><p class="muted">Hosted by ${esc(host?.name ?? 'someone')}${host?.username ? ` (@${esc(host.username)})` : ''}${host?.verifiedAt ? ` · verified ${esc(host.campus ?? '')} student` : ''}</p>
+<dl>${stops}</dl>
+<p class="muted">Public venues only. Share this page with a friend before you meet someone new.</p>
+<a class="btn" href="https://apps.apple.com/">Open in the app</a>`,
         ),
       );
     },

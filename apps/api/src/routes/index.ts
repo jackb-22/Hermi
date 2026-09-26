@@ -7,12 +7,14 @@ import { feedRoutes } from './feed.ts';
 import { meRoutes } from './me.ts';
 import { mediaRoutes } from './media.ts';
 import { placesRoutes } from './places.ts';
+import { planMemberRoutes } from './planMembers.ts';
 import { planRoutes } from './plans.ts';
 import { postRoutes } from './posts.ts';
 import { profileRoutes } from './profile.ts';
 import { saveRoutes } from './saves.ts';
 import { scoreRoutes } from './score.ts';
 import { sessionRoutes } from './sessions.ts';
+import { socialMapRoutes } from './socialMap.ts';
 import { tapRoutes } from './taps.ts';
 import { tasteRoutes } from './taste.ts';
 
@@ -33,5 +35,7 @@ export const routes: FastifyPluginAsync[] = [
   feedRoutes,
   profileRoutes,
   saveRoutes,
+  planMemberRoutes,
+  socialMapRoutes,
   devRoutes,
 ];

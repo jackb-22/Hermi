@@ -5,6 +5,7 @@ import { createEmail, type EmailProvider } from './email.ts';
 import { createEta, type EtaProvider } from './eta.ts';
 import { createHours, type HoursProvider } from './hours.ts';
 import { createLlm, type Llm } from './llm.ts';
+import { createPush, type PushProvider } from './push.ts';
 import { createStorage, type Storage } from './storage.ts';
 import { createWeather, type WeatherProvider } from './weather.ts';
 
@@ -18,6 +19,7 @@ export interface Providers {
   llm: Llm;
   weather: WeatherProvider;
   storage: Storage;
+  push: PushProvider;
 }
 
 export function createProviders(c: Config): Providers {
@@ -30,6 +32,7 @@ export function createProviders(c: Config): Providers {
     llm: createLlm(c),
     weather: createWeather(c),
     storage: createStorage(c),
+    push: createPush(c),
   };
 }
 
