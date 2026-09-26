@@ -47,6 +47,7 @@ Open when running locally. On a deployment every dev affordance needs the header
 - **v0.12.0** — friends and IRL streaks: `POST /taps {url, lat, lng, accuracy}` (venue tag → check-in; personal tag → `waiting` then `friends`/`hangout`/`already_today`), `GET /taps/pending?friendId=` (poll during the 2-minute timer), `POST /me/tag {url}` (bind your sticker). Streak object: `{weeks, lit, endsThisWeek, hangouts, since}`. Check-in responses now list venue co-check-in `hangouts`.
 - **v0.13.0** — score: `GET /score?userId=` (30-day Score, `delta7d`, 30-bar `sparkline`, `expiring`, friend and campus `ranks`), `GET /leaderboard?scope=friends|campus`, `GET /tiles?userId=` (you or a friend: zoom-18 tiles, bounds, `manhattanPct`, per-borough), `GET /stats` (your stats sheet only).
 - **v0.14.0** — posts: `POST /posts {sessionId?, mediaIds, includeRoute, caption?}` (type inferred: recap / clip / photos; `status:'pending'` until the safety check), `GET /posts?authorId=&cursor=`, `GET/DELETE /posts/:id`, `POST /reviews {checkinId, again, text?}` (text → Review post), `POST /reports {postId|userId, reason}`, `POST /blocks {userId}`, `DELETE /blocks/:userId`. Post cards carry `stamp` (Verified IRL), `counts {been, going}`, media with `ambientUrl`.
+- **v0.14.1** — media renditions: after commit the worker makes a 720p H.264 clip + poster, a ≤1440 px JPEG, or an AAC ambient clip on the CDN; `renditionUrl`/`posterUrl` and post media `url` switch to it. Clip posts stay `pending` until their rendition exists (a few seconds).
 
 ## Additions beyond the plan's data model
 

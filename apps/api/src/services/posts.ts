@@ -5,6 +5,7 @@ import type { z } from 'zod';
 import type { AppContext } from '../context.ts';
 import type { PlaceDoc } from '../db/placeTypes.ts';
 import type { GeoPoint, UserDoc } from '../db/types.ts';
+import { videoFrames } from '../media/ffmpeg.ts';
 import { type MediaDoc, media } from './media.ts';
 import { places } from './places.ts';
 import { toUserCard } from './social.ts';
@@ -180,16 +181,21 @@ export async function moderatePost(ctx: AppContext, payload: { postId: string })
   const docs = await media(db)
     .find({ _id: { $in: p.mediaIds } })
     .toArray();
+  // Clips are checked on three frames of the rendition; wait (job retry) until the worker has made it.
+  if (docs.some((m) => m.kind === 'video' && !m.rendition))
+    throw new Error('video rendition not ready yet');
   const images: { mimeType: string; data: Buffer }[] = [];
   for (const m of docs) {
     if (images.length >= 3) break;
-    const key = m.kind === 'photo' ? (m.rendition?.key ?? m.key) : m.rendition?.posterKey;
-    const data = key ? await providers.storage.get(key) : null;
-    if (data)
-      images.push({
-        mimeType: m.kind === 'photo' && !m.rendition ? m.contentType : 'image/jpeg',
-        data,
-      });
+    if (m.kind === 'video') {
+      const clip = await providers.storage.get(m.rendition!.key);
+      if (clip)
+        for (const f of await videoFrames(clip, 'mp4'))
+          images.push({ mimeType: 'image/jpeg', data: f });
+    } else if (m.kind === 'photo') {
+      const data = await providers.storage.get(m.rendition?.key ?? m.key);
+      if (data) images.push({ mimeType: m.rendition ? 'image/jpeg' : m.contentType, data });
+    }
   }
   const verdict = await providers.llm.moderate({ text: p.text, images });
   await posts(db).updateOne(
