@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { ApiError, newId } from '@itp/shared';
-import { CreatePlanBody, OkSchema, Paged, PatchPlanBody, PlanSchema, PlansListQuery, PutStopsBody } from '@itp/shared/api';
+import { ApplyChangesBody, CreatePlanBody, OkSchema, Paged, PatchPlanBody, PlanSchema, PlansListQuery, PutStopsBody } from '@itp/shared/api';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import type { Filter } from 'mongodb';
 import { z } from 'zod';
@@ -17,6 +17,7 @@ import {
   recompute,
   toPlanView,
 } from '../services/plans.ts';
+import { applyGhostChange, schedulePlan } from '../services/scheduler.ts';
 import { friendIds } from '../services/social.ts';
 import { getUser } from '../services/users.ts';
 import { errs } from './_util.ts';
@@ -186,6 +187,75 @@ export const planRoutes: FastifyPluginAsyncZod = async (app) => {
       assertHost(plan, req.userId);
       await plans(db).updateOne({ _id: plan._id }, { $set: { status: 'cancelled', updatedAt: clock.now() } });
       return { ok: true as const };
+    },
+  );
+
+  app.post(
+    '/plans/:id/schedule',
+    {
+      ...authed,
+      schema: {
+        tags: ['plans'],
+        summary: 'AI button (tap): schedule it',
+        description:
+          'Legs from Apple Maps ETAs (Google fallback), opening hours from Google Places, stay lengths from Gemini (5–240 min), ' +
+          'then code assembles and validates. Failing rows come back in issues[] with one proposed fix in ghostChanges[].',
+        security: bearer,
+        params: IdParams,
+        response: { 200: PlanSchema, ...errs(401, 403, 404) },
+      },
+    },
+    async (req) => {
+      const plan = await getPlan(db, req.params.id);
+      assertHost(plan, req.userId);
+      const { issues, byId } = await schedulePlan(app.ctx, plan);
+      if (plan.nameIsDefault) plan.name = defaultName(plan.stops, byId);
+      plan.updatedAt = clock.now();
+      await plans(db).replaceOne({ _id: plan._id }, plan);
+      const me = await getUser(db, req.userId);
+      return toPlanView(db, config, plan, req.userId, { byId, issues, pref: me.prefVector });
+    },
+  );
+
+  app.post(
+    '/plans/:id/changes/apply',
+    {
+      ...authed,
+      schema: {
+        tags: ['plans'],
+        summary: 'Accept ghost changes: all of them, or the listed ids one at a time',
+        security: bearer,
+        params: IdParams,
+        body: ApplyChangesBody,
+        response: { 200: PlanSchema, ...errs(400, 401, 403, 404) },
+      },
+    },
+    async (req) => {
+      const plan = await getPlan(db, req.params.id);
+      assertHost(plan, req.userId);
+      const ids = req.body.ids ?? plan.ghostChanges.map((g) => g.id);
+      for (const id of ids) {
+        const g = plan.ghostChanges.find((x) => x.id === id);
+        if (!g) throw new ApiError(400, 'BAD_REQUEST', `No pending change ${id}`);
+        await applyGhostChange(app.ctx, plan, g);
+      }
+      plan.ghostChanges = plan.ghostChanges.filter((g) => !ids.includes(g.id));
+      return saveAndView(plan, req.userId);
+    },
+  );
+
+  app.post(
+    '/plans/:id/changes/dismiss',
+    {
+      ...authed,
+      schema: { tags: ['plans'], summary: 'Dismiss ghost changes (all, or the listed ids)', security: bearer, params: IdParams, body: ApplyChangesBody, response: { 200: PlanSchema, ...errs(401, 403, 404) } },
+    },
+    async (req) => {
+      const plan = await getPlan(db, req.params.id);
+      assertHost(plan, req.userId);
+      const ids = req.body.ids;
+      plan.ghostChanges = ids ? plan.ghostChanges.filter((g) => !ids.includes(g.id)) : [];
+      return saveAndView(plan, req.userId);
     },
   );
 };

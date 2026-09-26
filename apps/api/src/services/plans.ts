@@ -137,6 +137,7 @@ export function normalizeStops(input: z.infer<typeof StopInput>[], existing: Sto
 }
 
 const locKey = (l: { lat: number; lng: number }) => `${l.lat.toFixed(5)},${l.lng.toFixed(5)}`;
+export const legKeyFor = (a: { lat: number; lng: number }, b: { lat: number; lng: number }, mode: Mode) => `${locKey(a)}->${locKey(b)}:${mode}`;
 
 export function toSchedStops(stops: StopDoc[], byId: PlacesById): SchedStop[] {
   return stops.map((s) => {
@@ -168,7 +169,7 @@ export function recompute(plan: PlanDoc, byId: PlacesById): { plan: PlanDoc; iss
       s.legKey = undefined;
       return;
     }
-    const key = `${locKey(sched[i - 1]!.loc)}->${locKey(sched[i]!.loc)}:${s.legMode}`;
+    const key = legKeyFor(sched[i - 1]!.loc, sched[i]!.loc, s.legMode);
     if (s.legKey !== key) {
       s.legMin = estimateLegMin(sched[i - 1]!.loc, sched[i]!.loc, s.legMode);
       s.legSource = 'estimate';

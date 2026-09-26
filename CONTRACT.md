@@ -34,6 +34,7 @@ The backend owns this contract. The **live, always-current reference** is the Op
 - **v0.2.0** — places: `GET /places?bbox=w,s,e,n&cat=&limit=` (top-N per category), `GET /places/near?lat&lng&cat&r` (zoom-sized radius, widened to ≥5 results, 1200 m cap), `GET /places/:id` (place sheet with hereNow / friendsBeen / going / wouldGoAgainPct). Auth optional on all three; signed-in adds `tasteMatch` and the 21+ filter.
 - **v0.3.0** — onboarding: `GET /onboarding/deck` (public), `POST /me/taste { is21, swipes:[{cardId, liked}] }` (also Retune taste).
 - **v0.4.0** — plans: `POST /plans`, `GET /plans?scope=upcoming|drafts|completed|all`, `GET/PATCH/DELETE /plans/:id`, `PUT /plans/:id/stops` (whole ordered list; each stop is `{placeId}` or `{slot:{category,near}}`, optional `id` to keep it, `legMode`, `stayMin`). Every response is fully timed (`arriveAt`/`departAt`), with `totals.xpPreview`, red-row `issues[]` and `ghostChanges[]`.
+- **v0.5.0** — `POST /plans/:id/schedule` (AI button tap: real ETAs, hours, AI stays, validate, one ghost fix), `POST /plans/:id/changes/apply { ids? }`, `POST /plans/:id/changes/dismiss { ids? }`. Ghost change kinds: swap, move, add_stop, remove_stop, set_mode, set_start, set_stay.
 
 ## Additions beyond the plan's data model
 

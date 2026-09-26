@@ -122,3 +122,7 @@ export const PlansListQuery = z.object({
   scope: z.enum(['upcoming', 'drafts', 'completed', 'all']).default('all'),
   userId: IdSchema.optional().describe('Another user (public plans only); defaults to you'),
 });
+
+export const ApplyChangesBody = z.object({
+  ids: z.array(z.string()).optional().describe('Ghost change ids; omit to act on all of them'),
+});
