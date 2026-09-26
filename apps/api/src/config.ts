@@ -19,6 +19,8 @@ const Env = z.object({
   ATTEST_MODE: z.enum(['off', 'log', 'enforce']).default('off'),
   FAKE_PROVIDERS: bool.default(true),
   RUN_WORKER: z.enum(['inline', 'off']).default('inline'),
+  /** Apply Tiger migrations and Mongo indexes on boot (idempotent). */
+  AUTO_MIGRATE: bool.default(true),
 
   MONGO_URI: z.string().default('mongodb://localhost:27017/?directConnection=true'),
   MONGO_DB: z.string().default('itp'),

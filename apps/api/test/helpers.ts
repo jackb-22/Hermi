@@ -2,7 +2,7 @@ import { randomBytes } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import pg from 'pg';
 import { buildApp } from '../src/app.ts';
-import { closeContext, createContext } from '../src/boot.ts';
+import { closeContext, createContext, ensureSchema } from '../src/boot.ts';
 import { loadConfig } from '../src/config.ts';
 import type { AppContext } from '../src/context.ts';
 
@@ -26,6 +26,7 @@ export async function setupTestApp(overrides: Record<string, string> = {}) {
   await admin.end();
 
   const ctx: AppContext = await createContext(config);
+  await ensureSchema(ctx);
   const app: FastifyInstance = await buildApp(ctx);
   await app.ready();
 

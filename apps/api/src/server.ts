@@ -1,7 +1,8 @@
 import { buildApp } from './app.ts';
-import { closeContext, createContext } from './boot.ts';
+import { closeContext, createContext, ensureSchema } from './boot.ts';
 
 const ctx = await createContext();
+if (ctx.config.AUTO_MIGRATE) await ensureSchema(ctx, console.log);
 const app = await buildApp(ctx);
 
 const shutdown = async () => {
