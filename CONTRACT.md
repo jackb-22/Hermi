@@ -40,6 +40,7 @@ The backend owns this contract. The **live, always-current reference** is the Op
 - **v0.8.0** — `POST /checkins` — GPS tier `{tier:'gps', placeId, sessionId, lat, lng, accuracy}` (needs 5 min of session trace inside 100 m, walked in, accuracy ≤ 50 m) or tag tier `{tier:'tag', tagUrl, lat, lng, accuracy}` (within 150 m). Returns XP breakdown, first-visit flag and the completed plan stop. Error codes: `TAG_INVALID`, `CHECKIN_TOO_FAR`, `CHECKIN_NO_DWELL`, `CHECKIN_LOW_ACCURACY`, `CHECKIN_RATE_LIMITED` (one per venue per 6 h), `SESSION_NOT_ACTIVE`.
 - **v0.9.0** — verified media: `POST /media/presign {checkinId, kind, contentType, sha256, bytes, capturedAt, lat, lng, durationS?, pairedWith?}` → `{media, upload:{url, method:'PUT', headers}}`; PUT the bytes with exactly those headers; `POST /media/:id/commit` re-hashes and checks window (check-in → departure + 10 min) and 150 m. `GET /media?checkinId|sessionId`. Codes: `MEDIA_HASH_MISMATCH`, `MEDIA_OUT_OF_WINDOW`, `MEDIA_TOO_FAR`.
 - **v0.10.0** — `POST /sessions/:id/end { steps? }` then poll `GET /sessions/:id/recap` → `{status:'pending'|'ready', recap}`. Recap: thinned `route`, `segments` (walk/bike/vehicle/subway), `newTiles` in route order, `footKm`, `stops` with best capture and review state, `xp.items` breakdown, `planCompleted`, `fullParty`.
+- **v0.11.0** — dev only: `GET/POST /dev/clock` (shift server time), `POST /dev/tags {kind, placeId?}` → a working tag URL (render as a QR to test scanning without stickers).
 
 ## Additions beyond the plan's data model
 
