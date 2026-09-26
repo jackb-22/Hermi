@@ -7,4 +7,5 @@ export * from './media.ts';
 export * from './places.ts';
 export * from './plans.ts';
 export * from './sessions.ts';
+export * from './social.ts';
 export * from './taste.ts';

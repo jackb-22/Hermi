@@ -44,6 +44,7 @@ Open when running locally. On a deployment every dev affordance needs the header
 - **v0.10.0** — `POST /sessions/:id/end { steps? }` then poll `GET /sessions/:id/recap` → `{status:'pending'|'ready', recap}`. Recap: thinned `route`, `segments` (walk/bike/vehicle/subway), `newTiles` in route order, `footKm`, `stops` with best capture and review state, `xp.items` breakdown, `planCompleted`, `fullParty`.
 - **v0.11.0** — dev only: `GET/POST /dev/clock` (shift server time), `POST /dev/tags {kind, placeId?}` → a working tag URL (render as a QR to test scanning without stickers).
 - **v0.11.1** — dev affordances require `x-dev-token` on deployments.
+- **v0.12.0** — friends and IRL streaks: `POST /taps {url, lat, lng, accuracy}` (venue tag → check-in; personal tag → `waiting` then `friends`/`hangout`/`already_today`), `GET /taps/pending?friendId=` (poll during the 2-minute timer), `POST /me/tag {url}` (bind your sticker). Streak object: `{weeks, lit, endsThisWeek, hangouts, since}`. Check-in responses now list venue co-check-in `hangouts`.
 
 ## Additions beyond the plan's data model
 

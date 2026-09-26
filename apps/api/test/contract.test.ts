@@ -1,0 +1,59 @@
+import { afterAll, beforeAll, expect, test } from 'vitest';
+import { setupTestApp } from './helpers.ts';
+
+/** Every endpoint promised in CONTRACT.md must be in the published OpenAPI document (catches unregistered route plugins). */
+const EXPECTED = [
+  'post /v1/auth/apple',
+  'post /v1/auth/dev',
+  'post /v1/auth/edu',
+  'post /v1/auth/edu/verify',
+  'get /v1/me',
+  'patch /v1/me',
+  'delete /v1/me',
+  'post /v1/me/push-token',
+  'get /v1/attest/challenge',
+  'post /v1/attest/register',
+  'get /v1/onboarding/deck',
+  'post /v1/me/taste',
+  'get /v1/places',
+  'get /v1/places/near',
+  'get /v1/places/{id}',
+  'post /v1/plans',
+  'get /v1/plans',
+  'get /v1/plans/{id}',
+  'patch /v1/plans/{id}',
+  'delete /v1/plans/{id}',
+  'put /v1/plans/{id}/stops',
+  'post /v1/plans/{id}/schedule',
+  'post /v1/plans/{id}/changes/apply',
+  'post /v1/plans/{id}/changes/dismiss',
+  'post /v1/sessions',
+  'get /v1/sessions/active',
+  'post /v1/sessions/{id}/points',
+  'post /v1/sessions/{id}/end',
+  'get /v1/sessions/{id}/recap',
+  'post /v1/checkins',
+  'post /v1/media/presign',
+  'post /v1/media/{id}/commit',
+  'get /v1/media',
+  'post /v1/taps',
+  'get /v1/taps/pending',
+  'post /v1/me/tag',
+  'get /v1/dev/clock',
+  'post /v1/dev/clock',
+  'post /v1/dev/tags',
+];
+
+let t: Awaited<ReturnType<typeof setupTestApp>>;
+beforeAll(async () => {
+  t = await setupTestApp();
+});
+afterAll(() => t.teardown());
+
+test('all contract endpoints are published', async () => {
+  const doc = (await t.app.inject('/openapi.json')).json();
+  const have = Object.entries(doc.paths as Record<string, object>).flatMap(([p, ops]) =>
+    Object.keys(ops).map((m) => `${m} ${p}`),
+  );
+  expect(EXPECTED.filter((e) => !have.includes(e))).toEqual([]);
+});

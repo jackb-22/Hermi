@@ -8,6 +8,7 @@ import { mediaRoutes } from './media.ts';
 import { placesRoutes } from './places.ts';
 import { planRoutes } from './plans.ts';
 import { sessionRoutes } from './sessions.ts';
+import { tapRoutes } from './taps.ts';
 import { tasteRoutes } from './taste.ts';
 
 /** Route plugins, registered once under /v1 and once at the bare path. */
@@ -21,5 +22,6 @@ export const routes: FastifyPluginAsync[] = [
   sessionRoutes,
   checkinRoutes,
   mediaRoutes,
+  tapRoutes,
   devRoutes,
 ];
