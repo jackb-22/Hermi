@@ -6,3 +6,9 @@ dist
 *.log
 coverage
 apps/api/data/
+
+# Native frontend build products and per-user settings
+apps/ios/.build/
+apps/ios/.preview/
+apps/ios/.swiftpm/
+**/xcuserdata/
