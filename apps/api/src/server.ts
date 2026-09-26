@@ -1,12 +1,18 @@
 import { buildApp } from './app.ts';
 import { closeContext, createContext, ensureSchema } from './boot.ts';
+import { handlers } from './jobs/handlers.ts';
+import { Worker } from './jobs/queue.ts';
 
 const ctx = await createContext();
 if (ctx.config.AUTO_MIGRATE) await ensureSchema(ctx, console.log);
 const app = await buildApp(ctx);
+// Dev convenience: one process runs API and worker. Production runs the worker as its own component.
+const worker = ctx.config.RUN_WORKER === 'inline' ? new Worker(ctx, handlers) : null;
+worker?.start();
 
 const shutdown = async () => {
   await app.close();
+  await worker?.stop();
   await closeContext(ctx);
   process.exit(0);
 };

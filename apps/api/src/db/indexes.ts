@@ -27,7 +27,10 @@ const INDEXES: Record<string, IndexDescription[]> = {
   friendships: [{ key: { a: 1 } }, { key: { b: 1 } }],
   tags: [{ key: { ownerId: 1 } }, { key: { placeId: 1 } }],
   user_tiles: [{ key: { userId: 1, x: 1, y: 1 }, unique: true }],
-  jobs: [{ key: { status: 1, runAt: 1 } }],
+  jobs: [
+    { key: { status: 1, runAt: 1 } },
+    { key: { dedupeKey: 1 }, unique: true, partialFilterExpression: { status: { $in: ['pending', 'running'] }, dedupeKey: { $type: 'string' } } },
+  ],
   sessions: [{ key: { userId: 1, status: 1 } }],
   media: [{ key: { checkinId: 1 } }, { key: { sha256: 1 } }, { key: { userId: 1, createdAt: -1 } }],
   edu_codes: [{ key: { expiresAt: 1 }, expireAfterSeconds: 0 }],

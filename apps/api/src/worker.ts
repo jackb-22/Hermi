@@ -1,14 +1,17 @@
 import { closeContext, createContext, ensureSchema } from './boot.ts';
+import { handlers } from './jobs/handlers.ts';
+import { Worker } from './jobs/queue.ts';
 
-// Standalone worker component. The job loop lands with the queue (B12); until then it only keeps the schema current.
+// Standalone worker component (App Platform "worker"): media, matching, notifications, session finalize.
 const ctx = await createContext();
 if (ctx.config.AUTO_MIGRATE) await ensureSchema(ctx, console.log);
-console.log('[worker] up; no job handlers registered yet');
+const worker = new Worker(ctx, handlers);
+worker.start();
 
 const stop = async () => {
+  await worker.stop();
   await closeContext(ctx);
   process.exit(0);
 };
 process.on('SIGINT', stop);
 process.on('SIGTERM', stop);
-setInterval(() => {}, 1 << 30);
