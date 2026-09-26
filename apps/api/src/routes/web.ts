@@ -1,5 +1,6 @@
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { z } from 'zod';
+import { verifyInfo } from '../services/verify.ts';
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
@@ -75,4 +76,51 @@ export const webRoutes: FastifyPluginAsyncZod = async (app) => {
   const Params = z.object({ id: z.string().max(64) });
   app.get('/c/:id', { schema: { hide: true, params: Params } }, fallback('venue'));
   app.get('/t/:id', { schema: { hide: true, params: Params } }, fallback('personal'));
+
+  // Verified IRL credential page: what the pixel stamp on a post opens.
+  app.get(
+    '/verify/:hash',
+    { schema: { hide: true, params: z.object({ hash: z.string().max(64) }) } },
+    async (req, reply) => {
+      const info = /^[a-f0-9]{64}$/.test(req.params.hash)
+        ? await verifyInfo(app.ctx, req.params.hash)
+        : null;
+      if (!info) {
+        return reply
+          .status(404)
+          .type('text/html')
+          .send(
+            page(
+              'Not verified',
+              '<h1>Not found</h1><p>No published capture has this fingerprint.</p>',
+            ),
+          );
+      }
+      const when = new Date(info.capturedAt).toLocaleString('en-US', {
+        timeZone: 'America/New_York',
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      });
+      const checkin = new Date(info.checkin.at).toLocaleString('en-US', {
+        timeZone: 'America/New_York',
+        timeStyle: 'short',
+      });
+      return reply.type('text/html').send(
+        page(
+          `Verified IRL · ${info.place.name}`,
+          `<div class="stamp">VERIFIED IRL</div>
+<h1>${esc(info.place.name)}</h1>
+<p class="muted">This ${info.kind} was captured in the app, at the place, during a verified check-in.</p>
+<dl>
+<dt>Captured</dt><dd>${esc(when)}</dd>
+<dt>Check-in</dt><dd>${info.checkin.tier === 'tag' ? 'Venue tag scan' : 'GPS, 5 min on site'} at ${esc(checkin)}${info.checkin.attested ? ' · genuine app on a real device' : ''}</dd>
+<dt>By</dt><dd>${esc(info.author.username ? `@${info.author.username}` : 'a verified user')}</dd>
+<dt>Fingerprint</dt><dd style="word-break:break-all;font-family:monospace;font-size:12px">sha256 ${info.sha256}</dd>
+<dt>Credential</dt><dd>${info.credential.c2pa && info.credential.manifestUrl ? `<a href="${esc(info.credential.manifestUrl)}">C2PA Content Credentials manifest</a>` : 'Server-verified capture record'}</dd>
+</dl>
+<p class="muted">Provenance proves where and when this was captured, not that the scene is real.</p>`,
+        ),
+      );
+    },
+  );
 };

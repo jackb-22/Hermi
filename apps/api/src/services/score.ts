@@ -1,5 +1,10 @@
 import { SCORE_WINDOW_DAYS } from '@itp/shared';
+import type { ScoreSchema } from '@itp/shared/api';
 import type pg from 'pg';
+import type { z } from 'zod';
+import type { AppContext } from '../context.ts';
+import type { UserDoc } from '../db/types.ts';
+import { friendIds } from './social.ts';
 
 const DAY = 86_400_000;
 const utcDay = (d: Date) => d.toISOString().slice(0, 10);
@@ -51,4 +56,43 @@ export function expiring(spark: { day: string; xp: number }[]) {
   const xp = spark.slice(0, 7).reduce((a, b) => a + b.xp, 0);
   const by = utcDay(new Date(Date.parse(`${spark[6]!.day}T00:00:00Z`) + SCORE_WINDOW_DAYS * DAY));
   return { xp, by };
+}
+
+/** The profile Score row for any user. */
+export async function computeScore(
+  ctx: AppContext,
+  u: UserDoc,
+): Promise<z.infer<typeof ScoreSchema>> {
+  const { db, tiger, clock } = ctx;
+  const now = clock.now();
+  const circle = [u._id, ...(await friendIds(db, u._id))];
+  const [nowScores, weekAgo, spark] = await Promise.all([
+    scoreAt(tiger, circle, now),
+    scoreAt(tiger, [u._id], new Date(now.getTime() - 7 * DAY)),
+    daily(tiger, u._id, now),
+  ]);
+  const score = nowScores.get(u._id) ?? 0;
+  let campus = null;
+  if (u.campus && u.verifiedAt) {
+    const list = (await campusScores(tiger, u.campus, now)).map((r) => ({
+      id: r.user_id,
+      score: r.xp,
+    }));
+    if (!list.some((r) => r.id === u._id)) list.push({ id: u._id, score });
+    campus = { ...rankOf(list, u._id), campus: u.campus };
+  }
+  return {
+    userId: u._id,
+    score,
+    delta7d: score - (weekAgo.get(u._id) ?? 0),
+    sparkline: spark,
+    expiring: expiring(spark),
+    ranks: {
+      friends: rankOf(
+        circle.map((id) => ({ id, score: nowScores.get(id) ?? 0 })),
+        u._id,
+      ),
+      campus,
+    },
+  };
 }

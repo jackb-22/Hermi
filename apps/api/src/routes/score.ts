@@ -13,12 +13,10 @@ import { displayStreak } from '../domain/streak.ts';
 import { authed, bearer } from '../plugins/auth.ts';
 import { boroughStats } from '../services/boroughs.ts';
 import { places } from '../services/places.ts';
-import { campusScores, daily, expiring, rankOf, scoreAt } from '../services/score.ts';
+import { campusScores, computeScore, rankOf, scoreAt } from '../services/score.ts';
 import { friendIds, friendships, toUserCard } from '../services/social.ts';
 import { getUser, users } from '../services/users.ts';
 import { errs } from './_util.ts';
-
-const DAY = 86_400_000;
 
 export const scoreRoutes: FastifyPluginAsyncZod = async (app) => {
   const { db, tiger, config, clock } = app.ctx;
@@ -43,40 +41,11 @@ export const scoreRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (req) => {
-      const now = clock.now();
       const u = req.query.userId
         ? await users(db).findOne({ _id: req.query.userId })
         : await getUser(db, req.userId);
       if (!u) throw new ApiError(404, 'NOT_FOUND', 'No such user');
-      const friends = await friendIds(db, u._id);
-      const circle = [u._id, ...friends];
-      const [nowScores, weekAgo, spark] = await Promise.all([
-        scoreAt(tiger, circle, now),
-        scoreAt(tiger, [u._id], new Date(now.getTime() - 7 * DAY)),
-        daily(tiger, u._id, now),
-      ]);
-      const score = nowScores.get(u._id) ?? 0;
-      let campus = null;
-      if (u.campus && u.verifiedAt) {
-        const rows = await campusScores(tiger, u.campus, now);
-        const list = rows.map((r) => ({ id: r.user_id, score: r.xp }));
-        if (!list.some((r) => r.id === u._id)) list.push({ id: u._id, score });
-        campus = { ...rankOf(list, u._id), campus: u.campus };
-      }
-      return {
-        userId: u._id,
-        score,
-        delta7d: score - (weekAgo.get(u._id) ?? 0),
-        sparkline: spark,
-        expiring: expiring(spark),
-        ranks: {
-          friends: rankOf(
-            circle.map((id) => ({ id, score: nowScores.get(id) ?? 0 })),
-            u._id,
-          ),
-          campus,
-        },
-      };
+      return computeScore(app.ctx, u);
     },
   );
 

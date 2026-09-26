@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { newId, toGeoJSONPoint } from '@itp/shared';
 import type { AppContext } from '../../src/context.ts';
 import { createCheckin } from '../../src/services/checkins.ts';
@@ -29,7 +30,7 @@ export async function checkinWithMedia(
     placeId,
     kind,
     contentType: kind === 'photo' ? 'image/jpeg' : kind === 'video' ? 'video/mp4' : 'audio/m4a',
-    sha256: newId().toLowerCase().padEnd(64, '0'),
+    sha256: createHash('sha256').update(newId()).digest('hex'),
     bytes: 10,
     key: `orig/${userId}/${newId()}`,
     status: 'verified',
@@ -39,7 +40,7 @@ export async function checkinWithMedia(
     posted: false,
     createdAt: ctx.clock.now(),
   }));
-  await ctx.db.collection<MediaDoc>('media').insertMany(docs);
+  if (docs.length) await ctx.db.collection<MediaDoc>('media').insertMany(docs);
   for (const d of docs)
     await ctx.providers.storage.put(d.key, Buffer.from('fake-bytes'), d.contentType);
   return { checkin: c.checkin, media: docs };

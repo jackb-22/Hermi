@@ -1,8 +1,9 @@
 import { randomBytes } from 'node:crypto';
-import { ApiError, newId } from '@itp/shared';
+import { ApiError, fromGeoJSONPoint, haversineM, newId } from '@itp/shared';
 import {
   ApplyChangesBody,
   CreatePlanBody,
+  FromSavedBody,
   OkSchema,
   Paged,
   PatchPlanBody,
@@ -14,6 +15,7 @@ import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import type { Filter } from 'mongodb';
 import { z } from 'zod';
 import { authed, bearer } from '../plugins/auth.ts';
+import { places } from '../services/places.ts';
 import {
   assertHost,
   defaultName,
@@ -309,6 +311,92 @@ export const planRoutes: FastifyPluginAsyncZod = async (app) => {
       const ids = req.body.ids;
       plan.ghostChanges = ids ? plan.ghostChanges.filter((g) => !ids.includes(g.id)) : [];
       return saveAndView(plan, req.userId);
+    },
+  );
+
+  app.post(
+    '/plans/from-saved',
+    {
+      ...authed,
+      schema: {
+        tags: ['plans'],
+        summary:
+          'The feed end card button: builds a plan from your saved places nearby and schedules it',
+        description:
+          'Up to 4 saved places within 1.5 km, in nearest-neighbour walking order, through the same AI scheduling as any plan.',
+        security: bearer,
+        body: FromSavedBody,
+        response: { 200: PlanSchema, ...errs(401, 404) },
+      },
+    },
+    async (req) => {
+      const saved = await db
+        .collection<{ userId: string; type: string; refId: string }>('saves')
+        .find({ userId: req.userId, type: 'place' })
+        .toArray();
+      const near = await places(db)
+        .find({
+          _id: { $in: saved.map((s) => s.refId) },
+          loc: {
+            $nearSphere: {
+              $geometry: { type: 'Point', coordinates: [req.body.lng, req.body.lat] },
+              $maxDistance: 1500,
+            },
+          },
+        })
+        .limit(12)
+        .toArray();
+      if (!near.length)
+        throw new ApiError(
+          404,
+          'NOT_FOUND',
+          'No saved places nearby; save a few from the map or feed first',
+        );
+      // Nearest-neighbour order from where you are.
+      const order: typeof near = [];
+      let here = { lat: req.body.lat, lng: req.body.lng };
+      const left = [...near];
+      while (left.length && order.length < 4) {
+        left.sort(
+          (a, b) =>
+            haversineM(here, fromGeoJSONPoint(a.loc)) - haversineM(here, fromGeoJSONPoint(b.loc)),
+        );
+        const next = left.shift()!;
+        order.push(next);
+        here = fromGeoJSONPoint(next.loc);
+      }
+      const now = clock.now();
+      const byId = await loadPlaces(
+        db,
+        order.map((p) => p._id),
+      );
+      const plan: PlanDoc = {
+        _id: newId(),
+        hostId: req.userId,
+        name: 'New plan',
+        nameIsDefault: true,
+        startAt: req.body.startAt ? new Date(req.body.startAt) : nextQuarterHour(now),
+        mode: 'walk',
+        visibility: 'just_me',
+        status: 'draft',
+        stops: normalizeStops(
+          order.map((p) => ({ placeId: p._id })),
+          [],
+          'walk',
+          byId,
+          now,
+        ),
+        members: [],
+        ghostChanges: [],
+        shareToken: randomBytes(9).toString('base64url'),
+        createdAt: now,
+        updatedAt: now,
+      };
+      const { issues } = await schedulePlan(app.ctx, plan);
+      plan.name = defaultName(plan.stops, byId);
+      await plans(db).insertOne(plan);
+      const me = await getUser(db, req.userId);
+      return toPlanView(db, config, plan, req.userId, { issues, pref: me.prefVector });
     },
   );
 };
