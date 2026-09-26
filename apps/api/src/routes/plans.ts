@@ -25,7 +25,7 @@ import {
   normalizeStops,
   type PlanDoc,
   plans,
-  recompute,
+  saveAndView as savePlanAndView,
   toPlanView,
 } from '../services/plans.ts';
 import { applyGhostChange, schedulePlan } from '../services/scheduler.ts';
@@ -52,19 +52,7 @@ export const planRoutes: FastifyPluginAsyncZod = async (app) => {
     return toPlanView(db, config, plan, userId, { pref: me.prefVector });
   };
 
-  /** Recompute, persist and return the hydrated view in one go. */
-  const saveAndView = async (plan: PlanDoc, userId: string) => {
-    const byId = await loadPlaces(
-      db,
-      plan.stops.map((s) => s.placeId),
-    );
-    const { issues } = recompute(plan, byId);
-    if (plan.nameIsDefault) plan.name = defaultName(plan.stops, byId);
-    plan.updatedAt = clock.now();
-    await plans(db).replaceOne({ _id: plan._id }, plan, { upsert: true });
-    const me = await getUser(db, userId);
-    return toPlanView(db, config, plan, userId, { byId, issues, pref: me.prefVector });
-  };
+  const saveAndView = (plan: PlanDoc, userId: string) => savePlanAndView(app.ctx, plan, userId);
 
   app.post(
     '/plans',

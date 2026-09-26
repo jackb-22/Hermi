@@ -27,7 +27,9 @@ const INDEXES: Record<string, IndexDescription[]> = {
     { key: { 'members.userId': 1 } },
     { key: { visibility: 1, startAt: 1 } },
     { key: { shareToken: 1 }, sparse: true },
+    { key: { status: 1, completedAt: -1 } },
   ],
+  behavior_events: [{ key: { userId: 1, at: -1 } }],
   posts: [
     { key: { authorId: 1, createdAt: -1 } },
     { key: { loc: '2dsphere' } },

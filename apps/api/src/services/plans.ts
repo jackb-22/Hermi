@@ -3,6 +3,7 @@ import type { PlanSchema, StopInput } from '@itp/shared/api';
 import type { Db } from 'mongodb';
 import type { z } from 'zod';
 import type { Config } from '../config.ts';
+import type { AppContext } from '../context.ts';
 import type { PlaceDoc } from '../db/placeTypes.ts';
 import type { GeoPoint, UserDoc } from '../db/types.ts';
 import {
@@ -17,7 +18,7 @@ import {
   validate,
 } from '../domain/schedule.ts';
 import { places, toPlace } from './places.ts';
-import { publicUrl, users } from './users.ts';
+import { getUser, publicUrl, users } from './users.ts';
 
 export type Visibility = 'just_me' | 'invite' | 'friends' | 'find';
 export type PlanStatus = 'draft' | 'planned' | 'active' | 'completed' | 'cancelled';
@@ -302,4 +303,19 @@ export async function toPlanView(
     createdAt: plan.createdAt.toISOString(),
     updatedAt: plan.updatedAt.toISOString(),
   };
+}
+
+/** Recompute, persist and return the hydrated view in one go (every manual edit ends here). */
+export async function saveAndView(ctx: AppContext, plan: PlanDoc, userId: string) {
+  const { db, config, clock } = ctx;
+  const byId = await loadPlaces(
+    db,
+    plan.stops.map((s) => s.placeId),
+  );
+  const { issues } = recompute(plan, byId);
+  if (plan.nameIsDefault) plan.name = defaultName(plan.stops, byId);
+  plan.updatedAt = clock.now();
+  await plans(db).replaceOne({ _id: plan._id }, plan, { upsert: true });
+  const me = await getUser(db, userId);
+  return toPlanView(db, config, plan, userId, { byId, issues, pref: me.prefVector });
 }

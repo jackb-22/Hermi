@@ -79,6 +79,10 @@ const EXPECTED = [
   'get /v1/dev/clock',
   'post /v1/dev/clock',
   'post /v1/dev/tags',
+  'get /v1/ghosts',
+  'get /v1/plans/{id}/ghosts',
+  'post /v1/plans/{id}/ghosts/accept',
+  'post /v1/ghosts/skip',
 ];
 
 let t: Awaited<ReturnType<typeof setupTestApp>>;

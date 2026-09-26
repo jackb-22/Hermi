@@ -17,6 +17,16 @@ export interface StayEstimate {
   reason: string;
 }
 
+export interface GhostCandidate {
+  id: string;
+  name: string;
+  category: PinType;
+  tags: string[];
+  walkMin: number;
+  /** Code's label, used when the model gives none. */
+  fallbackLabel: string;
+}
+
 export interface ModerationResult {
   allowed: boolean;
   reason: string;
@@ -32,6 +42,11 @@ export interface Llm {
   /** Six words or fewer, e.g. "Sunset at Pier 45". */
   label(o: { placeName: string; category: PinType; context: string }): Promise<string>;
   planName(stopNames: string[]): Promise<string>;
+  /**
+   * Re-ranks code's top candidates with context (weather, sunset, the plan so far) and labels each in six words
+   * or fewer. Returns candidate ids only: unknown ids are dropped and missing ones keep code's order.
+   */
+  rerankGhosts(cands: GhostCandidate[], context: string): Promise<{ id: string; label: string }[]>;
   moderate(o: {
     text?: string;
     images?: { mimeType: string; data: Buffer }[];
@@ -58,6 +73,9 @@ export class FakeLlm implements Llm {
     return names.length
       ? sixWords(names.length > 1 ? `${names[0]} and more` : names[0]!)
       : 'New plan';
+  }
+  async rerankGhosts(cands: GhostCandidate[]) {
+    return cands.map((c) => ({ id: c.id, label: c.fallbackLabel }));
   }
   async moderate(o: { text?: string }) {
     const bad = /\b(kill yourself|nazi)\b/i.test(o.text ?? '');
@@ -156,6 +174,36 @@ ${stops.map((s) => `- id=${s.id} "${s.name}" (${s.category}) arriving ${s.arriva
     }
   }
 
+  async rerankGhosts(cands: GhostCandidate[], context: string) {
+    try {
+      const out = await this.json<{ picks: { id: string; label: string }[] }>(
+        `You suggest the next stop of a city outing in New York. Re-rank these candidates, best first, for this moment and
+write each a label of six words or fewer, like "Sunset at Pier 45". Only use the given ids.
+Context: ${context}
+Candidates:
+${cands.map((c) => `- id=${c.id} "${c.name}" (${c.category}; ${c.tags.join(', ') || 'no tags'}) ${c.walkMin} min walk`).join('\n')}`,
+        {
+          type: 'object',
+          properties: {
+            picks: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: { id: { type: 'string' }, label: { type: 'string' } },
+                required: ['id', 'label'],
+              },
+            },
+          },
+          required: ['picks'],
+        },
+      );
+      return mergeRerank(cands, out.picks);
+    } catch (e) {
+      console.warn(`[gemini] rerankGhosts failed: ${(e as Error).message}`);
+      return this.fallback.rerankGhosts(cands);
+    }
+  }
+
   async moderate(o: { text?: string; images?: { mimeType: string; data: Buffer }[] }) {
     try {
       const parts = (o.images ?? []).map((i) => ({
@@ -177,6 +225,21 @@ Text: ${JSON.stringify(o.text ?? '')}`,
       return { allowed: true, reason: `moderation unavailable: ${(e as Error).message}` };
     }
   }
+}
+
+/** Code checks the model: only known ids, each once, then any it left out in code's order; labels trimmed. */
+export function mergeRerank(
+  cands: GhostCandidate[],
+  picks: { id: string; label: string }[],
+): { id: string; label: string }[] {
+  const byId = new Map(cands.map((c) => [c.id, c]));
+  const out = new Map<string, string>();
+  for (const p of picks) {
+    const c = byId.get(p.id);
+    if (c && !out.has(p.id)) out.set(p.id, sixWords(p.label ?? '') || c.fallbackLabel);
+  }
+  for (const c of cands) if (!out.has(c.id)) out.set(c.id, c.fallbackLabel);
+  return [...out].map(([id, label]) => ({ id, label }));
 }
 
 export function createLlm(c: Config): Llm {
