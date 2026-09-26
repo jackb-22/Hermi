@@ -1,5 +1,6 @@
 import { SCORE_WINDOW_DAYS } from '@itp/shared';
 import type { ScoreSchema } from '@itp/shared/api';
+import type { Db } from 'mongodb';
 import type pg from 'pg';
 import type { z } from 'zod';
 import type { AppContext } from '../context.ts';
@@ -22,12 +23,27 @@ export async function scoreAt(
   return new Map(rows.map((r) => [r.user_id, r.xp]));
 }
 
-export async function campusScores(tiger: pg.Pool, campus: string, at: Date) {
-  const { rows } = await tiger.query<{ user_id: string; xp: number }>(
-    `select user_id, sum(xp)::int as xp from xp_daily where campus = $1 and day > $2 and day <= $3 group by user_id order by xp desc`,
-    [campus, new Date(at.getTime() - SCORE_WINDOW_DAYS * DAY), at],
-  );
-  return rows;
+/**
+ * Campus board: every verified user on the campus, with all of their XP. Membership comes from the user's
+ * verified campus (not the campus stamped on each XP row), so XP earned before verifying still counts.
+ */
+export async function campusScores(
+  db: Db,
+  tiger: pg.Pool,
+  campus: string,
+  at: Date,
+): Promise<{ id: string; score: number }[]> {
+  const ids = (
+    await db
+      .collection<UserDoc>('users')
+      .find(
+        { campus, verifiedAt: { $exists: true }, deletedAt: { $exists: false } },
+        { projection: { _id: 1 } },
+      )
+      .toArray()
+  ).map((u) => u._id);
+  const scores = await scoreAt(tiger, ids, at);
+  return ids.map((id) => ({ id, score: scores.get(id) ?? 0 })).sort((a, b) => b.score - a.score);
 }
 
 export async function daily(tiger: pg.Pool, userId: string, at: Date) {
@@ -74,12 +90,7 @@ export async function computeScore(
   const score = nowScores.get(u._id) ?? 0;
   let campus = null;
   if (u.campus && u.verifiedAt) {
-    const list = (await campusScores(tiger, u.campus, now)).map((r) => ({
-      id: r.user_id,
-      score: r.xp,
-    }));
-    if (!list.some((r) => r.id === u._id)) list.push({ id: u._id, score });
-    campus = { ...rankOf(list, u._id), campus: u.campus };
+    campus = { ...rankOf(await campusScores(db, tiger, u.campus, now), u._id), campus: u.campus };
   }
   return {
     userId: u._id,

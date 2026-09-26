@@ -56,7 +56,9 @@ describe('score, ranks, tiles, stats', () => {
     await xp(f1.id, 0, 200);
     await xp(f2.id, 1, 50);
     await xp(c1.id, 2, 500);
-    await t.ctx.tiger.query(`call refresh_continuous_aggregate('xp_daily', null, null)`);
+    await t.ctx.tiger.query(
+      `call refresh_continuous_aggregate('xp_daily', null, date_trunc('day', now()))`,
+    );
 
     const [p] = await insertPlaces(t.ctx.db, [
       placeDoc({ name: 'Cafe', category: 'food', at: ORIGIN }),
@@ -96,6 +98,28 @@ describe('score, ranks, tiles, stats', () => {
       friends: { rank: 2, of: 3 },
       campus: { rank: 3, of: 4, campus: 'Columbia' },
     });
+  });
+
+  test('campus rank counts XP earned before verifying (XP rows without a campus)', async () => {
+    const late = await devLogin(t.app, 'lateverifier');
+    await t.ctx.tiger.query(
+      `insert into xp_events (time, user_id, campus, kind, xp) values (now(), $1, null, 'checkin_tag', 1000)`,
+      [late.id],
+    );
+    await t.ctx.db.collection('users').updateOne({ _id: late.id } as never, {
+      $set: { campus: 'Columbia', verifiedAt: new Date() },
+    });
+    const r = (
+      await t.app.inject({
+        url: '/v1/leaderboard',
+        query: { scope: 'campus' },
+        headers: late.headers,
+      })
+    ).json();
+    expect(r.me).toEqual({ rank: 1, score: 1000 });
+    await t.ctx.db
+      .collection('users')
+      .updateOne({ _id: late.id } as never, { $unset: { campus: '', verifiedAt: '' } });
   });
 
   test('leaderboards: friends and campus', async () => {

@@ -67,11 +67,9 @@ export const scoreRoutes: FastifyPluginAsyncZod = async (app) => {
       let list: { id: string; score: number }[];
       if (req.query.scope === 'campus') {
         if (!me.campus) return { scope: 'campus' as const, campus: null, items: [], me: null };
-        list = (await campusScores(tiger, me.campus, now)).map((r) => ({
-          id: r.user_id,
-          score: r.xp,
-        }));
-        if (!list.some((r) => r.id === me._id)) list.push({ id: me._id, score: 0 });
+        list = await campusScores(db, tiger, me.campus, now);
+        if (!list.some((r) => r.id === me._id))
+          list.push({ id: me._id, score: (await scoreAt(tiger, [me._id], now)).get(me._id) ?? 0 });
       } else {
         const circle = [me._id, ...(await friendIds(db, me._id))];
         const s = await scoreAt(tiger, circle, now);
