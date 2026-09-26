@@ -10,7 +10,7 @@ import { extFor, type MediaDoc, media } from '../services/media.ts';
 export async function processMedia(ctx: AppContext, payload: { mediaId: string }) {
   const { db, providers } = ctx;
   const m = await media(db).findOne({ _id: payload.mediaId });
-  if (!m || m.status !== 'verified' || m.rendition) return;
+  if (m?.status !== 'verified' || m.rendition) return;
   const original = await providers.storage.get(m.key);
   if (!original) throw new Error(`original missing for ${m._id}`);
   const ext = extFor(m.contentType);

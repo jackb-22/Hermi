@@ -3,6 +3,7 @@ import { attestRoutes } from './attest.ts';
 import { authRoutes } from './auth.ts';
 import { checkinRoutes } from './checkins.ts';
 import { devRoutes } from './dev.ts';
+import { feedRoutes } from './feed.ts';
 import { meRoutes } from './me.ts';
 import { mediaRoutes } from './media.ts';
 import { placesRoutes } from './places.ts';
@@ -27,5 +28,6 @@ export const routes: FastifyPluginAsync[] = [
   tapRoutes,
   scoreRoutes,
   postRoutes,
+  feedRoutes,
   devRoutes,
 ];

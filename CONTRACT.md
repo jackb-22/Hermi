@@ -48,6 +48,7 @@ Open when running locally. On a deployment every dev affordance needs the header
 - **v0.13.0** — score: `GET /score?userId=` (30-day Score, `delta7d`, 30-bar `sparkline`, `expiring`, friend and campus `ranks`), `GET /leaderboard?scope=friends|campus`, `GET /tiles?userId=` (you or a friend: zoom-18 tiles, bounds, `manhattanPct`, per-borough), `GET /stats` (your stats sheet only).
 - **v0.14.0** — posts: `POST /posts {sessionId?, mediaIds, includeRoute, caption?}` (type inferred: recap / clip / photos; `status:'pending'` until the safety check), `GET /posts?authorId=&cursor=`, `GET/DELETE /posts/:id`, `POST /reviews {checkinId, again, text?}` (text → Review post), `POST /reports {postId|userId, reason}`, `POST /blocks {userId}`, `DELETE /blocks/:userId`. Post cards carry `stamp` (Verified IRL), `counts {been, going}`, media with `ambientUrl`.
 - **v0.14.1** — media renditions: after commit the worker makes a 720p H.264 clip + poster, a ≤1440 px JPEG, or an AAC ambient clip on the CDN; `renditionUrl`/`posterUrl` and post media `url` switch to it. Clip posts stay `pending` until their rendition exists (a few seconds).
+- **v0.15.0** — feed: `GET /feed?lat&lng` → `{cards, unseenLeftToday}`; cards are `{kind:'post', post}`, `{kind:'plan', plan, action:'join'|'request'}` (every fifth card) and a final `{kind:'end', title, action:{type:'plan_from_saved'}}`. `POST /feed/seen {postIds}` as cards become visible (30 unseen a day).
 
 ## Additions beyond the plan's data model
 

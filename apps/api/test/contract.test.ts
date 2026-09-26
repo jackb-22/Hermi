@@ -51,6 +51,8 @@ const EXPECTED = [
   'post /v1/reports',
   'post /v1/blocks',
   'delete /v1/blocks/{id}',
+  'get /v1/feed',
+  'post /v1/feed/seen',
   'get /v1/dev/clock',
   'post /v1/dev/clock',
   'post /v1/dev/tags',
