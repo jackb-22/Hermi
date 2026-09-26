@@ -32,6 +32,7 @@ The backend owns this contract. The **live, always-current reference** is the Op
 
 - **v0.1.0** — `/health`, auth (`/auth/apple`, `/auth/dev`, `/auth/edu`, `/auth/edu/verify`), `/me` (GET, PATCH, DELETE), `/me/push-token`, universal-link fallbacks `/c/:id`, `/t/:id`, AASA.
 - **v0.2.0** — places: `GET /places?bbox=w,s,e,n&cat=&limit=` (top-N per category), `GET /places/near?lat&lng&cat&r` (zoom-sized radius, widened to ≥5 results, 1200 m cap), `GET /places/:id` (place sheet with hereNow / friendsBeen / going / wouldGoAgainPct). Auth optional on all three; signed-in adds `tasteMatch` and the 21+ filter.
+- **v0.3.0** — onboarding: `GET /onboarding/deck` (public), `POST /me/taste { is21, swipes:[{cardId, liked}] }` (also Retune taste).
 
 ## Additions beyond the plan's data model
 
