@@ -115,6 +115,11 @@ export const PlanSchema = z
     }),
     issues: z.array(IssueSchema).describe('Rows to show red'),
     ghostChanges: z.array(GhostChangeSchema),
+    matchCount: z
+      .number()
+      .int()
+      .nullable()
+      .describe('Find someone: verified students matched so far (host only; null otherwise)'),
     shareUrl: z.string(),
     createdAt: z.string(),
     updatedAt: z.string(),

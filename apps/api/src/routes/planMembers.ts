@@ -9,9 +9,11 @@ import {
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { authed, bearer } from '../plugins/auth.ts';
+import { openPlansFor } from '../services/matching.ts';
 import { notify } from '../services/notify.ts';
 import {
   assertHost,
+  enqueueMatch,
   getPlan,
   loadPlaces,
   type MemberStatus,
@@ -133,6 +135,8 @@ export const planMemberRoutes: FastifyPluginAsyncZod = async (app) => {
       );
       for (const id of req.body.inviteeIds)
         if (!memberStatus(plan, id)) await setMember(plan._id, id, 'invited');
+      // Find someone: match verified students now and push the ones who fit ("!" on their map).
+      if (req.body.visibility === 'find') await enqueueMatch(app.ctx, plan._id);
       await db
         .collection('saves')
         .updateOne(
@@ -270,6 +274,12 @@ export const planMemberRoutes: FastifyPluginAsyncZod = async (app) => {
         throw new ApiError(403, 'FORBIDDEN', 'Verify your school email to join open plans');
       if (memberStatus(plan, req.userId))
         throw new ApiError(409, 'CONFLICT', 'Already requested or on this plan');
+      if (!(await openPlansFor(app.ctx, me, [plan])).length)
+        throw new ApiError(
+          403,
+          'FORBIDDEN',
+          'This open plan is for matched students (Open to plans on, nearby, free then)',
+        );
       await setMember(plan._id, req.userId, 'requested');
       await notify(app.ctx, [plan.hostId], {
         title: `${me.name ?? 'A student'} wants to join`,

@@ -1,3 +1,4 @@
+import { TAG_DIMS } from '@itp/shared';
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { handlers } from '../src/jobs/handlers.ts';
 import { Worker } from '../src/jobs/queue.ts';
@@ -27,7 +28,7 @@ const befriend = async (x: string, y: string) => {
     lastHangoutWeek: 0,
   } as never);
 };
-const newPlan = async (name?: string) =>
+const newPlan = async (name?: string, days = 1) =>
   (
     await t.app.inject({
       method: 'POST',
@@ -35,7 +36,7 @@ const newPlan = async (name?: string) =>
       headers: host.headers,
       payload: {
         name,
-        startAt: new Date(Date.now() + 86_400_000).toISOString(),
+        startAt: new Date(Date.now() + days * 86_400_000).toISOString(),
         stops: placeIds.map((placeId) => ({ placeId })),
       },
     })
@@ -61,6 +62,10 @@ beforeAll(async () => {
   await befriend(host.id, pal2.id);
   await t.ctx.db.collection('users').updateMany({ _id: { $in: [host.id, student.id] } } as never, {
     $set: { verifiedAt: new Date(), campus: 'Columbia' },
+  });
+  // Find someone shows open plans only to matched students: Open to plans on, with a taste that overlaps.
+  await t.ctx.db.collection('users').updateOne({ _id: student.id } as never, {
+    $set: { openToPlans: true, prefVector: new Array(TAG_DIMS).fill(1 / Math.sqrt(TAG_DIMS)) },
   });
   await call(pal, 'POST', '/v1/me/push-token', { token: 'ExponentPushToken[pal-device]' });
   await call(host, 'POST', '/v1/me/push-token', { token: 'ExponentPushToken[host-device]' });
@@ -185,7 +190,8 @@ describe('social layer', () => {
         f.action,
       ]),
     ).toEqual(expect.arrayContaining([['Open to friends', 'joined']]));
-    const second = await newPlan('Second open plan');
+    // The student joined the first open plan, so they are busy then; this one is the next day.
+    const second = await newPlan('Second open plan', 2);
     await call(host, 'POST', `/v1/plans/${second.id}/save`, { visibility: 'find' });
     const forStudent = (await call(student, 'GET', '/v1/social')).json();
     expect(

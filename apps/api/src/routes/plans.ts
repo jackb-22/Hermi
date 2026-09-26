@@ -15,6 +15,7 @@ import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import type { Filter } from 'mongodb';
 import { z } from 'zod';
 import { authed, bearer } from '../plugins/auth.ts';
+import { openPlansFor } from '../services/matching.ts';
 import { places } from '../services/places.ts';
 import {
   assertHost,
@@ -38,11 +39,18 @@ const IdParams = z.object({ id: z.string() });
 export const planRoutes: FastifyPluginAsyncZod = async (app) => {
   const { db, config, clock } = app.ctx;
 
-  /** Host and anyone on the member list; friends of the host for friends-visible plans; anyone for open (find) plans. */
+  /** Host and anyone on the member list; friends of the host for friends-visible and open plans; matched students for open (find) plans. */
   const assertCanView = async (plan: PlanDoc, userId: string) => {
     if (plan.hostId === userId || plan.members.some((m) => m.userId === userId)) return;
-    if (plan.visibility === 'find') return;
-    if (plan.visibility === 'friends' && (await friendIds(db, plan.hostId)).includes(userId))
+    if (
+      (plan.visibility === 'friends' || plan.visibility === 'find') &&
+      (await friendIds(db, plan.hostId)).includes(userId)
+    )
+      return;
+    if (
+      plan.visibility === 'find' &&
+      (await openPlansFor(app.ctx, await getUser(db, userId), [plan])).length
+    )
       return;
     throw new ApiError(404, 'NOT_FOUND', 'No such plan');
   };

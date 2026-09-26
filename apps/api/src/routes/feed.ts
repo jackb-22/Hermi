@@ -4,6 +4,7 @@ import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { FEED_DAILY_CAP, feedRank, interleave } from '../domain/feedRank.ts';
 import { tasteMatch } from '../domain/taste.ts';
 import { authed, bearer } from '../plugins/auth.ts';
+import { openPlansFor } from '../services/matching.ts';
 import { places } from '../services/places.ts';
 import { type PlanDoc, plans, toPlanView } from '../services/plans.ts';
 import { hydratePosts, type PostDoc, posts } from '../services/posts.ts';
@@ -141,12 +142,13 @@ export const feedRoutes: FastifyPluginAsyncZod = async (app) => {
           .sort({ startAt: 1 })
           .limit(10)
           .toArray(),
-        me.verifiedAt && me.campus
+        me.verifiedAt
           ? plans(db)
               .find({ ...planQuery, visibility: 'find' })
               .sort({ startAt: 1 })
-              .limit(10)
+              .limit(40)
               .toArray()
+              .then(async (list) => (await openPlansFor(app.ctx, me, list)).slice(0, 10))
           : Promise.resolve([] as PlanDoc[]),
       ]);
       const joinable = [

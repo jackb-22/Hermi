@@ -17,6 +17,7 @@ import {
   totals,
   validate,
 } from '../domain/schedule.ts';
+import { enqueue } from '../jobs/queue.ts';
 import { places, toPlace } from './places.ts';
 import { getUser, publicUrl, users } from './users.ts';
 
@@ -74,6 +75,10 @@ export interface PlanDoc {
   imessageThreadId?: string;
   /** Backboard thread of the AI planner for this plan, so follow-up asks keep context. */
   aiThreadId?: string;
+  /** Find someone: students matched by the last match run, and everyone already pushed about it. */
+  matchCount?: number;
+  matchedAt?: Date;
+  notifiedMatchIds?: string[];
   createdAt: Date;
   updatedAt: Date;
   completedAt?: Date;
@@ -301,6 +306,8 @@ export async function toPlanView(
     },
     issues,
     ghostChanges: plan.ghostChanges,
+    matchCount:
+      plan.visibility === 'find' && plan.hostId === viewerId ? (plan.matchCount ?? 0) : null,
     shareUrl: `${config.PUBLIC_BASE_URL.replace(/\/$/, '')}/p/${plan.shareToken}`,
     createdAt: plan.createdAt.toISOString(),
     updatedAt: plan.updatedAt.toISOString(),
@@ -318,6 +325,12 @@ export async function saveAndView(ctx: AppContext, plan: PlanDoc, userId: string
   if (plan.nameIsDefault) plan.name = defaultName(plan.stops, byId);
   plan.updatedAt = clock.now();
   await plans(db).replaceOne({ _id: plan._id }, plan, { upsert: true });
+  // An open plan's stops or time changed: match again (new matches get a push).
+  if (plan.visibility === 'find' && ['planned', 'active'].includes(plan.status))
+    await enqueueMatch(ctx, plan._id);
   const me = await getUser(db, userId);
   return toPlanView(db, config, plan, userId, { byId, issues, pref: me.prefVector });
 }
+
+export const enqueueMatch = (ctx: AppContext, planId: string) =>
+  enqueue(ctx, 'match_notify', { planId }, { dedupeKey: `match:${planId}` });

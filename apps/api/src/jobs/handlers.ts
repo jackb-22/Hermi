@@ -1,3 +1,4 @@
+import { matchNotify } from '../services/matching.ts';
 import { syncMemory } from '../services/memory.ts';
 import { sendPush } from '../services/notify.ts';
 import { moderatePost } from '../services/posts.ts';
@@ -12,4 +13,5 @@ export const handlers: Record<string, JobHandler> = {
   process_media: processMedia as JobHandler,
   push: sendPush as JobHandler,
   remember: syncMemory as JobHandler,
+  match_notify: matchNotify as JobHandler,
 };

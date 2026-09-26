@@ -2,6 +2,7 @@ import { fromGeoJSONPoint } from '@itp/shared';
 import { SocialQuery, SocialResponse } from '@itp/shared/api';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { authed, bearer } from '../plugins/auth.ts';
+import { openPlansFor } from '../services/matching.ts';
 import { places } from '../services/places.ts';
 import { type PlanDoc, plans, toPlanView } from '../services/plans.ts';
 import { blockedIds, friendIds, toUserCard } from '../services/social.ts';
@@ -93,7 +94,10 @@ export const socialMapRoutes: FastifyPluginAsyncZod = async (app) => {
             ...upcoming,
             $or: [
               { visibility: 'friends', hostId: { $in: friends } },
-              { 'members.userId': me._id },
+              // Invited or joined; a pending request to an open plan stays under openPlans as "requested".
+              {
+                members: { $elemMatch: { userId: me._id, status: { $in: ['invited', 'joined'] } } },
+              },
             ],
           })
           .sort({ startAt: 1 })
@@ -103,8 +107,9 @@ export const socialMapRoutes: FastifyPluginAsyncZod = async (app) => {
           ? plans(db)
               .find({ ...upcoming, visibility: 'find' })
               .sort({ startAt: 1 })
-              .limit(20)
+              .limit(60)
               .toArray()
+              .then(async (list) => (await openPlansFor(app.ctx, me, list)).slice(0, 20))
           : Promise.resolve([] as PlanDoc[]),
       ]);
       const status = (p: PlanDoc) => p.members.find((m) => m.userId === me._id)?.status;
