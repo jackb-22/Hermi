@@ -5,3 +5,4 @@ export * from './taste.ts';
 export * from './plans.ts';
 export * from './sessions.ts';
 export * from './attest.ts';
+export * from './checkins.ts';

@@ -37,6 +37,7 @@ The backend owns this contract. The **live, always-current reference** is the Op
 - **v0.5.0** — `POST /plans/:id/schedule` (AI button tap: real ETAs, hours, AI stays, validate, one ghost fix), `POST /plans/:id/changes/apply { ids? }`, `POST /plans/:id/changes/dismiss { ids? }`. Ghost change kinds: swap, move, add_stop, remove_stop, set_mode, set_start, set_stay.
 - **v0.6.0** — Action mode: `POST /sessions { planId? }` (returns 100 m geofences + plan), `GET /sessions/active`, `POST /sessions/:id/points { points:[{lat,lng,accuracy,speed?,time}] }` (≤500 per batch; implausible points dropped and counted).
 - **v0.7.0** — App Attest: `GET /attest/challenge`, `POST /attest/register { keyId, attestation, challenge }`. Check-ins, taps and captures accept header `x-app-attest: base64(JSON{keyId, assertion})` where the assertion signs sha256(raw JSON body). Enforcement is off on dev and `log` on the demo deployment, so the Simulator keeps working.
+- **v0.8.0** — `POST /checkins` — GPS tier `{tier:'gps', placeId, sessionId, lat, lng, accuracy}` (needs 5 min of session trace inside 100 m, walked in, accuracy ≤ 50 m) or tag tier `{tier:'tag', tagUrl, lat, lng, accuracy}` (within 150 m). Returns XP breakdown, first-visit flag and the completed plan stop. Error codes: `TAG_INVALID`, `CHECKIN_TOO_FAR`, `CHECKIN_NO_DWELL`, `CHECKIN_LOW_ACCURACY`, `CHECKIN_RATE_LIMITED` (one per venue per 6 h), `SESSION_NOT_ACTIVE`.
 
 ## Additions beyond the plan's data model
 
