@@ -1,6 +1,7 @@
 import type { Config } from '../config.ts';
 import { type AppAttestVerifier, createAppAttest } from './appAttest.ts';
 import { type AppleIdentity, createAppleIdentity } from './appleIdentity.ts';
+import { type Backboard, createBackboard } from './backboard.ts';
 import { createEmail, type EmailProvider } from './email.ts';
 import { createEta, type EtaProvider } from './eta.ts';
 import { createHours, type HoursProvider } from './hours.ts';
@@ -17,6 +18,7 @@ export interface Providers {
   eta: EtaProvider;
   hours: HoursProvider;
   llm: Llm;
+  backboard: Backboard;
   weather: WeatherProvider;
   storage: Storage;
   push: PushProvider;
@@ -30,6 +32,7 @@ export function createProviders(c: Config): Providers {
     eta: createEta(c),
     hours: createHours(c),
     llm: createLlm(c),
+    backboard: createBackboard(c),
     weather: createWeather(c),
     storage: createStorage(c),
     push: createPush(c),

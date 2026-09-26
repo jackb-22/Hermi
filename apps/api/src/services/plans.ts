@@ -72,6 +72,8 @@ export interface PlanDoc {
   shareToken: string;
   sourcePlanId?: string;
   imessageThreadId?: string;
+  /** Backboard thread of the AI planner for this plan, so follow-up asks keep context. */
+  aiThreadId?: string;
   createdAt: Date;
   updatedAt: Date;
   completedAt?: Date;

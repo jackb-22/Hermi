@@ -1,4 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify';
+import { askRoutes } from './ask.ts';
 import { attestRoutes } from './attest.ts';
 import { authRoutes } from './auth.ts';
 import { checkinRoutes } from './checkins.ts';
@@ -28,6 +29,7 @@ export const routes: FastifyPluginAsync[] = [
   placesRoutes,
   planRoutes,
   ghostRoutes,
+  askRoutes,
   sessionRoutes,
   checkinRoutes,
   mediaRoutes,

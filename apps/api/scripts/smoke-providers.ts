@@ -45,3 +45,52 @@ await run('label', () =>
   }),
 );
 await run('moderate', () => p.llm.moderate({ text: 'Best pierogi in the city, would go again' }));
+await run('ghost rerank', () =>
+  p.llm.rerankGhosts(
+    [
+      {
+        id: 'a',
+        name: 'Pier 45',
+        category: 'nature',
+        tags: ['waterfront'],
+        walkMin: 9,
+        fallbackLabel: 'Stroll through Pier 45',
+      },
+      {
+        id: 'b',
+        name: 'Joe’s Pizza',
+        category: 'food',
+        tags: ['pizza'],
+        walkMin: 4,
+        fallbackLabel: 'Dinner at Joe’s Pizza',
+      },
+    ],
+    'Leaving at Sat 6:10 PM; sunset Sat 6:45 PM; 68°F high, 10% chance of rain. Plan so far: Stonewall Inn (culture).',
+  ),
+);
+await run('ask maps', () => p.llm.askMaps('Which cafes near here have outdoor seating?', from));
+await run('function calling', () =>
+  p.llm.runTools({
+    system: 'Use the tool, then answer in one sentence.',
+    prompt: 'What time is it in New York?',
+    tools: [
+      {
+        name: 'now',
+        description: 'Current New York time',
+        parameters: { type: 'object', properties: {} },
+      },
+    ],
+    exec: async () => new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }),
+  }),
+);
+if (p.backboard.enabled)
+  await run('backboard', async () => {
+    const assistantId = await p.backboard.createAssistant('itp-smoke', 'Answer briefly.');
+    await p.backboard.addMemory(assistantId, 'Prefers no museums before noon');
+    return p.backboard.send({
+      assistantId,
+      content: 'What should I avoid scheduling?',
+      systemPrompt: 'Answer briefly.',
+      tools: [],
+    });
+  });

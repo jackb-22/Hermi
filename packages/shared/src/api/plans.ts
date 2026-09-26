@@ -168,3 +168,31 @@ export const JoinBody = z.object({
   token: z.string().optional().describe('Share-link token, for people invited by link'),
 });
 export const NameSuggestionResponse = z.object({ name: z.string() });
+
+export const ASK_CHIPS = ['add_dinner', 'rain_proof', 'best_weather_day', 'cheaper'] as const;
+export const AskBody = z
+  .object({
+    prompt: z
+      .string()
+      .trim()
+      .min(1)
+      .max(300)
+      .optional()
+      .describe(
+        'Free text, e.g. "somewhere with outdoor seating near stop 2" (Maps answers are English only)',
+      ),
+    chip: z
+      .enum(ASK_CHIPS)
+      .optional()
+      .describe('Add dinner · Rain-proof it · Best weather day · Make it cheaper'),
+  })
+  .refine((b) => !!b.prompt !== !!b.chip, { message: 'Send exactly one of prompt or chip' });
+
+export const AskResponse = z.object({
+  plan: PlanSchema.describe('plan.ghostChanges holds the diff: accept all or tap one at a time'),
+  message: z.string().describe('One line from the planner'),
+  sources: z
+    .array(z.object({ title: z.string(), uri: z.string() }))
+    .describe('Google Maps source links; must be shown right under message'),
+  via: z.enum(['backboard', 'gemini', 'code']),
+});

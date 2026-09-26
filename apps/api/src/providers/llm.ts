@@ -1,7 +1,15 @@
-import { GoogleGenAI } from '@google/genai';
-import { DEFAULT_STAY_MIN, type PinType } from '@itp/shared';
+import { type Content, GoogleGenAI } from '@google/genai';
+import { DEFAULT_STAY_MIN, type LatLng, type PinType } from '@itp/shared';
 import type { Config } from '../config.ts';
 import { clampStay } from '../domain/schedule.ts';
+import type { ToolSpec } from './backboard.ts';
+
+export type ToolExec = (name: string, args: Record<string, unknown>) => Promise<string>;
+export interface MapsAnswer {
+  text: string;
+  /** Google Maps source links; must be shown right under the text. */
+  sources: { title: string; uri: string }[];
+}
 
 export interface StayInput {
   id: string;
@@ -51,6 +59,16 @@ export interface Llm {
     text?: string;
     images?: { mimeType: string; data: Buffer }[];
   }): Promise<ModerationResult>;
+  /** Function calling loop: the model calls our tools until it answers in text. Throws when no model. */
+  runTools(o: {
+    system: string;
+    prompt: string;
+    tools: ToolSpec[];
+    exec: ToolExec;
+    maxRounds?: number;
+  }): Promise<string>;
+  /** A question answered with Grounding with Google Maps near a point (English only). */
+  askMaps(question: string, near: LatLng): Promise<MapsAnswer>;
   /** Structured call with a JSON schema; used by features that need custom output. */
   json<T>(prompt: string, schema: object): Promise<T>;
 }
@@ -84,6 +102,12 @@ export class FakeLlm implements Llm {
   async json<T>(): Promise<T> {
     throw new Error('fake llm has no free-form json');
   }
+  async runTools(): Promise<string> {
+    throw new Error('fake llm has no function calling');
+  }
+  async askMaps(): Promise<MapsAnswer> {
+    return { text: 'Google Maps answers need Gemini, which is not configured.', sources: [] };
+  }
 }
 
 export class GeminiLlm implements Llm {
@@ -108,6 +132,68 @@ export class GeminiLlm implements Llm {
       },
     });
     return JSON.parse(res.text ?? 'null') as T;
+  }
+
+  async runTools(o: {
+    system: string;
+    prompt: string;
+    tools: ToolSpec[];
+    exec: ToolExec;
+    maxRounds?: number;
+  }): Promise<string> {
+    const contents: Content[] = [{ role: 'user', parts: [{ text: o.prompt }] }];
+    const functionDeclarations = o.tools.map((t) => ({
+      name: t.name,
+      description: t.description,
+      parametersJsonSchema: t.parameters,
+    }));
+    for (let round = 0; round < (o.maxRounds ?? 8); round++) {
+      const res = await this.ai.models.generateContent({
+        model: this.model,
+        contents,
+        config: {
+          systemInstruction: o.system,
+          tools: [{ functionDeclarations }],
+          temperature: 0.2,
+        },
+      });
+      const calls = res.functionCalls ?? [];
+      if (!calls.length) return res.text ?? '';
+      const turn = res.candidates?.[0]?.content;
+      if (turn) contents.push(turn);
+      const parts = [];
+      for (const c of calls) {
+        const output = await o.exec(c.name ?? '', c.args ?? {});
+        parts.push({ functionResponse: { id: c.id, name: c.name, response: { output } } });
+      }
+      contents.push({ role: 'user', parts });
+    }
+    return 'I made the changes I could.';
+  }
+
+  async askMaps(question: string, near: LatLng): Promise<MapsAnswer> {
+    try {
+      const res = await this.ai.models.generateContent({
+        model: this.model,
+        contents: [{ role: 'user', parts: [{ text: question }] }],
+        config: {
+          tools: [{ googleMaps: {} }],
+          toolConfig: { retrievalConfig: { latLng: { latitude: near.lat, longitude: near.lng } } },
+        },
+      });
+      const chunks = res.candidates?.[0]?.groundingMetadata?.groundingChunks ?? [];
+      const seen = new Set<string>();
+      const sources = chunks.flatMap((c) => {
+        const m = c.maps;
+        if (!m?.uri || seen.has(m.uri)) return [];
+        seen.add(m.uri);
+        return [{ title: m.title ?? 'Google Maps', uri: m.uri }];
+      });
+      return { text: res.text ?? '', sources };
+    } catch (e) {
+      console.warn(`[gemini] askMaps failed: ${(e as Error).message}`);
+      return { text: 'Google Maps could not answer that right now.', sources: [] };
+    }
   }
 
   async stayLengths(stops: StayInput[], ctx: { pace?: string; notes?: string }) {

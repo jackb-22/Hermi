@@ -16,6 +16,7 @@ import { z } from 'zod';
 import { enqueue } from '../jobs/queue.ts';
 import { authed, bearer } from '../plugins/auth.ts';
 import { getCheckin, media } from '../services/media.ts';
+import { remember } from '../services/memory.ts';
 import { places } from '../services/places.ts';
 import { hydratePosts, type PostDoc, posts } from '../services/posts.ts';
 import { sessions } from '../services/sessions.ts';
@@ -209,6 +210,14 @@ export const postRoutes: FastifyPluginAsyncZod = async (app) => {
         { $inc: { 'wouldGoAgain.total': 1, 'wouldGoAgain.yes': req.body.again ? 1 : 0 } },
         { returnDocument: 'after' },
       );
+      // "Would go again: No" is something the planner should remember.
+      if (!req.body.again && place)
+        await remember(
+          app.ctx,
+          req.userId,
+          `Would not go again to ${place.name} (${place.category})${req.body.text?.trim() ? `: "${req.body.text.trim().slice(0, 200)}"` : ''}`,
+          'review',
+        );
       await sessions(db).updateOne(
         { userId: req.userId, 'recap.stops.checkinId': c.id },
         { $set: { 'recap.stops.$.reviewed': true } },

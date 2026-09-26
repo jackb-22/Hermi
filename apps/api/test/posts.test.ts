@@ -186,6 +186,10 @@ describe('reviews', () => {
       post: { type: 'review', again: false, text: 'Too loud to talk' },
     });
     expect(withText.json().post.media).toHaveLength(1);
+    // "Would go again: No" is remembered for the AI planner.
+    expect(
+      await t.ctx.db.collection('ai_memories').findOne({ userId: ben.id, source: 'review' }),
+    ).toMatchObject({ text: expect.stringMatching(/^Would not go again to .*Too loud to talk/) });
     expect(
       (
         await t.app.inject({

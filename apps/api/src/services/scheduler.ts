@@ -160,9 +160,15 @@ export async function applyGhostChange(
     case 'move':
       plan.stops = moveItem(plan.stops, idx(g.fromIndex), idx(g.toIndex));
       break;
-    case 'set_start':
-      plan.startAt = new Date(g.startAt!);
+    case 'set_start': {
+      const next = new Date(g.startAt!);
+      // Moving the plan to another day carries its end-by time along; same-day fixes leave it alone.
+      const day = (d: Date) => d.toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+      if (plan.endBy && day(next) !== day(plan.startAt))
+        plan.endBy = new Date(plan.endBy.getTime() + next.getTime() - plan.startAt.getTime());
+      plan.startAt = next;
       break;
+    }
     case 'set_mode':
       if (g.stopId) byStop(g.stopId).legMode = g.mode!;
       else {

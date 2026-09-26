@@ -12,6 +12,7 @@ import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { authed, bearer } from '../plugins/auth.ts';
 import { suggestGhosts } from '../services/ghosts.ts';
+import { remember } from '../services/memory.ts';
 import { places } from '../services/places.ts';
 import {
   assertHost,
@@ -173,7 +174,7 @@ export const ghostRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     async (req) => {
       const docs = await places(db)
-        .find({ _id: { $in: req.body.placeIds } }, { projection: { category: 1 } })
+        .find({ _id: { $in: req.body.placeIds } }, { projection: { category: 1, name: 1 } })
         .toArray();
       if (docs.length)
         await behavior().insertMany(
@@ -186,6 +187,13 @@ export const ghostRoutes: FastifyPluginAsyncZod = async (app) => {
             planId: req.body.planId,
             at: clock.now(),
           })),
+        );
+      if (docs.length)
+        await remember(
+          app.ctx,
+          req.userId,
+          `Passed on suggested next stops: ${docs.map((p) => `${p.name} (${p.category})`).join(', ')}`,
+          'ghost_skip',
         );
       return { ok: true as const };
     },

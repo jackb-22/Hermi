@@ -1,3 +1,4 @@
+import { syncMemory } from '../services/memory.ts';
 import { sendPush } from '../services/notify.ts';
 import { moderatePost } from '../services/posts.ts';
 import { finalizeSession } from './finalizeSession.ts';
@@ -10,4 +11,5 @@ export const handlers: Record<string, JobHandler> = {
   moderate_post: moderatePost as JobHandler,
   process_media: processMedia as JobHandler,
   push: sendPush as JobHandler,
+  remember: syncMemory as JobHandler,
 };

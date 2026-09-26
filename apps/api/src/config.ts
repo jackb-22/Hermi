@@ -51,6 +51,7 @@ const Env = z.object({
   GEMINI_MODEL: z.string().default('gemini-3.8-flash'),
   GOOGLE_MAPS_KEY: optStr,
   BACKBOARD_API_KEY: optStr,
+  BACKBOARD_BASE_URL: z.string().default('https://app.backboard.io/api'),
   PHOTON_API_KEY: optStr,
   REALITY_DEFENDER_KEY: optStr,
   RESEND_API_KEY: optStr,
