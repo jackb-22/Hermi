@@ -1,18 +1,27 @@
 import { randomBytes } from 'node:crypto';
 import { ApiError, newId } from '@itp/shared';
-import { ApplyChangesBody, CreatePlanBody, OkSchema, Paged, PatchPlanBody, PlanSchema, PlansListQuery, PutStopsBody } from '@itp/shared/api';
+import {
+  ApplyChangesBody,
+  CreatePlanBody,
+  OkSchema,
+  Paged,
+  PatchPlanBody,
+  PlanSchema,
+  PlansListQuery,
+  PutStopsBody,
+} from '@itp/shared/api';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import type { Filter } from 'mongodb';
 import { z } from 'zod';
 import { authed, bearer } from '../plugins/auth.ts';
 import {
-  type PlanDoc,
   assertHost,
   defaultName,
   getPlan,
   loadPlaces,
   nextQuarterHour,
   normalizeStops,
+  type PlanDoc,
   plans,
   recompute,
   toPlanView,
@@ -31,7 +40,8 @@ export const planRoutes: FastifyPluginAsyncZod = async (app) => {
   const assertCanView = async (plan: PlanDoc, userId: string) => {
     if (plan.hostId === userId || plan.members.some((m) => m.userId === userId)) return;
     if (plan.visibility === 'find') return;
-    if (plan.visibility === 'friends' && (await friendIds(db, plan.hostId)).includes(userId)) return;
+    if (plan.visibility === 'friends' && (await friendIds(db, plan.hostId)).includes(userId))
+      return;
     throw new ApiError(404, 'NOT_FOUND', 'No such plan');
   };
 
@@ -42,7 +52,10 @@ export const planRoutes: FastifyPluginAsyncZod = async (app) => {
 
   /** Recompute, persist and return the hydrated view in one go. */
   const saveAndView = async (plan: PlanDoc, userId: string) => {
-    const byId = await loadPlaces(db, plan.stops.map((s) => s.placeId));
+    const byId = await loadPlaces(
+      db,
+      plan.stops.map((s) => s.placeId),
+    );
     const { issues } = recompute(plan, byId);
     if (plan.nameIsDefault) plan.name = defaultName(plan.stops, byId);
     plan.updatedAt = clock.now();
@@ -57,7 +70,8 @@ export const planRoutes: FastifyPluginAsyncZod = async (app) => {
       ...authed,
       schema: {
         tags: ['plans'],
-        summary: 'Create a plan (draft) from dropped pins; it is scheduled immediately with default stays and estimated legs',
+        summary:
+          'Create a plan (draft) from dropped pins; it is scheduled immediately with default stays and estimated legs',
         security: bearer,
         body: CreatePlanBody,
         response: { 200: PlanSchema, ...errs(400, 401) },
@@ -65,7 +79,10 @@ export const planRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     async (req) => {
       const now = clock.now();
-      const byId = await loadPlaces(db, req.body.stops.map((s) => s.placeId));
+      const byId = await loadPlaces(
+        db,
+        req.body.stops.map((s) => s.placeId),
+      );
       const plan: PlanDoc = {
         _id: newId(),
         hostId: req.userId,
@@ -110,17 +127,31 @@ export const planRoutes: FastifyPluginAsyncZod = async (app) => {
       const now = clock.now();
       if (req.query.scope === 'drafts') q.status = 'draft';
       if (req.query.scope === 'completed') q.status = 'completed';
-      if (req.query.scope === 'upcoming') Object.assign(q, { status: { $in: ['planned', 'active'] }, startAt: { $gte: new Date(now.getTime() - 12 * 3600_000) } });
+      if (req.query.scope === 'upcoming')
+        Object.assign(q, {
+          status: { $in: ['planned', 'active'] },
+          startAt: { $gte: new Date(now.getTime() - 12 * 3600_000) },
+        });
       const docs = await plans(db).find(q).sort({ startAt: -1 }).limit(50).toArray();
       const me = await getUser(db, req.userId);
-      const items = await Promise.all(docs.map((p) => toPlanView(db, config, p, req.userId, { pref: me.prefVector })));
+      const items = await Promise.all(
+        docs.map((p) => toPlanView(db, config, p, req.userId, { pref: me.prefVector })),
+      );
       return { items, nextCursor: null };
     },
   );
 
   app.get(
     '/plans/:id',
-    { ...authed, schema: { tags: ['plans'], security: bearer, params: IdParams, response: { 200: PlanSchema, ...errs(401, 404) } } },
+    {
+      ...authed,
+      schema: {
+        tags: ['plans'],
+        security: bearer,
+        params: IdParams,
+        response: { 200: PlanSchema, ...errs(401, 404) },
+      },
+    },
     async (req) => {
       const plan = await getPlan(db, req.params.id);
       await assertCanView(plan, req.userId);
@@ -162,7 +193,8 @@ export const planRoutes: FastifyPluginAsyncZod = async (app) => {
       ...authed,
       schema: {
         tags: ['plans'],
-        summary: 'Replace the ordered stop list (drop, fill, reorder, delete, per-leg mode); times recompute instantly',
+        summary:
+          'Replace the ordered stop list (drop, fill, reorder, delete, per-leg mode); times recompute instantly',
         security: bearer,
         params: IdParams,
         body: PutStopsBody,
@@ -172,7 +204,10 @@ export const planRoutes: FastifyPluginAsyncZod = async (app) => {
     async (req) => {
       const plan = await getPlan(db, req.params.id);
       assertHost(plan, req.userId);
-      const byId = await loadPlaces(db, req.body.stops.map((s) => s.placeId));
+      const byId = await loadPlaces(
+        db,
+        req.body.stops.map((s) => s.placeId),
+      );
       plan.stops = normalizeStops(req.body.stops, plan.stops, plan.mode, byId, clock.now());
       plan.ghostChanges = [];
       return saveAndView(plan, req.userId);
@@ -181,11 +216,22 @@ export const planRoutes: FastifyPluginAsyncZod = async (app) => {
 
   app.delete(
     '/plans/:id',
-    { ...authed, schema: { tags: ['plans'], security: bearer, params: IdParams, response: { 200: OkSchema, ...errs(401, 403, 404) } } },
+    {
+      ...authed,
+      schema: {
+        tags: ['plans'],
+        security: bearer,
+        params: IdParams,
+        response: { 200: OkSchema, ...errs(401, 403, 404) },
+      },
+    },
     async (req) => {
       const plan = await getPlan(db, req.params.id);
       assertHost(plan, req.userId);
-      await plans(db).updateOne({ _id: plan._id }, { $set: { status: 'cancelled', updatedAt: clock.now() } });
+      await plans(db).updateOne(
+        { _id: plan._id },
+        { $set: { status: 'cancelled', updatedAt: clock.now() } },
+      );
       return { ok: true as const };
     },
   );
@@ -248,7 +294,14 @@ export const planRoutes: FastifyPluginAsyncZod = async (app) => {
     '/plans/:id/changes/dismiss',
     {
       ...authed,
-      schema: { tags: ['plans'], summary: 'Dismiss ghost changes (all, or the listed ids)', security: bearer, params: IdParams, body: ApplyChangesBody, response: { 200: PlanSchema, ...errs(401, 403, 404) } },
+      schema: {
+        tags: ['plans'],
+        summary: 'Dismiss ghost changes (all, or the listed ids)',
+        security: bearer,
+        params: IdParams,
+        body: ApplyChangesBody,
+        response: { 200: PlanSchema, ...errs(401, 403, 404) },
+      },
     },
     async (req) => {
       const plan = await getPlan(db, req.params.id);

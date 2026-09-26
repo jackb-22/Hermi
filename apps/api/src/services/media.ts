@@ -52,7 +52,10 @@ export interface CheckinRow {
 }
 
 export async function getCheckin(tiger: pg.Pool, id: string): Promise<CheckinRow | null> {
-  const { rows } = await tiger.query<CheckinRow>('select id, time, user_id, place_id, tier, session_id, plan_id, attested from checkins where id = $1 limit 1', [id]);
+  const { rows } = await tiger.query<CheckinRow>(
+    'select id, time, user_id, place_id, tier, session_id, plan_id, attested from checkins where id = $1 limit 1',
+    [id],
+  );
   return rows[0] ?? null;
 }
 
@@ -60,21 +63,55 @@ export async function getCheckin(tiger: pg.Pool, id: string): Promise<CheckinRow
  * A capture counts for a check-in from check-in time until departure + 10 minutes. Departure is the next
  * check-in, else the session end, capped at 4 hours after arrival.
  */
-export async function captureWindow(db: Db, tiger: pg.Pool, c: CheckinRow): Promise<{ from: Date; to: Date }> {
-  const { rows } = await tiger.query<{ time: Date }>('select time from checkins where user_id = $1 and time > $2 order by time limit 1', [c.user_id, c.time]);
+export async function captureWindow(
+  db: Db,
+  tiger: pg.Pool,
+  c: CheckinRow,
+): Promise<{ from: Date; to: Date }> {
+  const { rows } = await tiger.query<{ time: Date }>(
+    'select time from checkins where user_id = $1 and time > $2 order by time limit 1',
+    [c.user_id, c.time],
+  );
   const s = c.session_id ? await sessions(db).findOne({ _id: c.session_id }) : null;
-  const candidates = [c.time.getTime() + MAX_STAY_MS, rows[0]?.time.getTime(), s?.endedAt?.getTime()].filter((x): x is number => typeof x === 'number');
-  return { from: new Date(c.time.getTime() - EARLY_SLACK_MS), to: new Date(Math.min(...candidates) + AFTER_DEPARTURE_MS) };
+  const candidates = [
+    c.time.getTime() + MAX_STAY_MS,
+    rows[0]?.time.getTime(),
+    s?.endedAt?.getTime(),
+  ].filter((x): x is number => typeof x === 'number');
+  return {
+    from: new Date(c.time.getTime() - EARLY_SLACK_MS),
+    to: new Date(Math.min(...candidates) + AFTER_DEPARTURE_MS),
+  };
 }
 
 export function assertInWindow(w: { from: Date; to: Date }, t: Date) {
-  if (t < w.from || t > w.to) throw new ApiError(400, 'MEDIA_OUT_OF_WINDOW', 'Captures only count while you are checked in (until 10 minutes after you leave)');
+  if (t < w.from || t > w.to)
+    throw new ApiError(
+      400,
+      'MEDIA_OUT_OF_WINDOW',
+      'Captures only count while you are checked in (until 10 minutes after you leave)',
+    );
 }
 
 export const extFor = (contentType: string) =>
-  ({ 'image/jpeg': 'jpg', 'image/heic': 'heic', 'image/png': 'png', 'video/mp4': 'mp4', 'video/quicktime': 'mov', 'audio/mp4': 'm4a', 'audio/m4a': 'm4a', 'audio/aac': 'aac', 'audio/mpeg': 'mp3' })[contentType] ?? 'bin';
+  ({
+    'image/jpeg': 'jpg',
+    'image/heic': 'heic',
+    'image/png': 'png',
+    'video/mp4': 'mp4',
+    'video/quicktime': 'mov',
+    'audio/mp4': 'm4a',
+    'audio/m4a': 'm4a',
+    'audio/aac': 'aac',
+    'audio/mpeg': 'mp3',
+  })[contentType] ?? 'bin';
 
-export async function toMedia(m: MediaDoc, storage: Storage, config: Config, viewerId?: string): Promise<z.infer<typeof MediaSchema>> {
+export async function toMedia(
+  m: MediaDoc,
+  storage: Storage,
+  config: Config,
+  viewerId?: string,
+): Promise<z.infer<typeof MediaSchema>> {
   const own = viewerId === m.userId;
   return {
     id: m._id,
@@ -93,4 +130,3 @@ export async function toMedia(m: MediaDoc, storage: Storage, config: Config, vie
     rejectReason: m.rejectReason ?? null,
   };
 }
-

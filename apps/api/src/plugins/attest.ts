@@ -45,18 +45,30 @@ export async function attestGuard(req: FastifyRequest) {
   if (config.ATTEST_MODE === 'off') return;
   const header = req.headers[ATTEST_HEADER];
   const fail = (why: string) => {
-    if (config.ATTEST_MODE === 'enforce') throw new ApiError(403, 'ATTEST_FAILED', `App attestation failed: ${why}`);
+    if (config.ATTEST_MODE === 'enforce')
+      throw new ApiError(403, 'ATTEST_FAILED', `App attestation failed: ${why}`);
     req.log.warn({ why, userId: req.userId }, 'unattested request (log mode)');
   };
   if (typeof header !== 'string') return fail('missing header');
   try {
-    const { keyId, assertion } = JSON.parse(Buffer.from(header, 'base64').toString('utf8')) as { keyId: string; assertion: string };
+    const { keyId, assertion } = JSON.parse(Buffer.from(header, 'base64').toString('utf8')) as {
+      keyId: string;
+      assertion: string;
+    };
     const keys = db.collection<AttestKeyDoc>('attest_keys');
     const key = await keys.findOne({ _id: keyId });
     if (!key || key.userId !== req.userId) return fail('unknown key');
-    const { signCount } = providers.appAttest.assertion({ assertion: Buffer.from(assertion, 'base64'), payload: req.rawBody ?? '', publicKey: key.publicKey, signCount: key.signCount });
+    const { signCount } = providers.appAttest.assertion({
+      assertion: Buffer.from(assertion, 'base64'),
+      payload: req.rawBody ?? '',
+      publicKey: key.publicKey,
+      signCount: key.signCount,
+    });
     // Counter must move forward: a replayed assertion loses the race here.
-    const moved = await keys.updateOne({ _id: keyId, signCount: { $lt: signCount } }, { $set: { signCount } });
+    const moved = await keys.updateOne(
+      { _id: keyId, signCount: { $lt: signCount } },
+      { $set: { signCount } },
+    );
     if (!moved.modifiedCount) return fail('replayed assertion');
     req.attested = true;
   } catch (e) {

@@ -11,6 +11,7 @@ import {
 } from '@itp/shared/api';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { authed, bearer } from '../plugins/auth.ts';
+import { devGuard, hasDevAccess } from '../plugins/devGuard.ts';
 import { getUser, newUser, toMe, users } from '../services/users.ts';
 import { errs } from './_util.ts';
 
@@ -62,14 +63,24 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (req) => {
+      if (providers.appleIdentity.name === 'fake') await devGuard(req);
       let sub: string;
       try {
         ({ sub } = await providers.appleIdentity.verify(req.body.identityToken));
       } catch (e) {
-        throw new ApiError(401, 'UNAUTHORIZED', `Apple identity token rejected: ${(e as Error).message}`);
+        throw new ApiError(
+          401,
+          'UNAUTHORIZED',
+          `Apple identity token rejected: ${(e as Error).message}`,
+        );
       }
       const existing = await users(db).findOne({ appleSub: sub, deletedAt: { $exists: false } });
-      if (existing) return { token: sign(existing._id), isNew: false, user: toMe(existing, config, clock.now()) };
+      if (existing)
+        return {
+          token: sign(existing._id),
+          isNew: false,
+          user: toMe(existing, config, clock.now()),
+        };
       const u = newUser(clock.now(), { appleSub: sub, name: req.body.name });
       await users(db).insertOne(u);
       return { token: sign(u._id), isNew: true, user: toMe(u, config, clock.now()) };
@@ -80,17 +91,26 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
     app.post(
       '/auth/dev',
       {
+        preHandler: devGuard,
         schema: {
           tags: ['dev'],
-          summary: 'Dev-only sign in by username (creates the user if needed)',
+          summary:
+            'Dev-only sign in by username (creates the user if needed). Needs x-dev-token on deployments.',
           body: DevAuthBody,
           response: { 200: AuthResponse },
         },
       },
       async (req) => {
-        const found = await users(db).findOne({ username: req.body.username, deletedAt: { $exists: false } });
-        if (found) return { token: sign(found._id), isNew: false, user: toMe(found, config, clock.now()) };
-        const u = newUser(clock.now(), { username: req.body.username, name: req.body.name ?? req.body.username });
+        const found = await users(db).findOne({
+          username: req.body.username,
+          deletedAt: { $exists: false },
+        });
+        if (found)
+          return { token: sign(found._id), isNew: false, user: toMe(found, config, clock.now()) };
+        const u = newUser(clock.now(), {
+          username: req.body.username,
+          name: req.body.name ?? req.body.username,
+        });
         await users(db).insertOne(u);
         return { token: sign(u._id), isNew: true, user: toMe(u, config, clock.now()) };
       },
@@ -111,7 +131,8 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     async (req) => {
       const campus = campusFor(req.body.email);
-      if (!campus) throw new ApiError(400, 'EDU_DOMAIN_NOT_ALLOWED', 'Use your school (.edu) email');
+      if (!campus)
+        throw new ApiError(400, 'EDU_DOMAIN_NOT_ALLOWED', 'Use your school (.edu) email');
       const code = String(randomInt(0, 1_000_000)).padStart(6, '0');
       const expiresAt = new Date(clock.now().getTime() + CODE_TTL_MS);
       await db.collection<EduCodeDoc>('edu_codes').replaceOne(
@@ -126,8 +147,17 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
         },
         { upsert: true },
       );
-      await providers.email.send(req.body.email, 'Your verification code', `Your code is ${code}. It expires in 10 minutes.`);
-      return { sent: true as const, campus, expiresAt: expiresAt.toISOString(), devCode: config.devRoutes ? code : undefined };
+      await providers.email.send(
+        req.body.email,
+        'Your verification code',
+        `Your code is ${code}. It expires in 10 minutes.`,
+      );
+      return {
+        sent: true as const,
+        campus,
+        expiresAt: expiresAt.toISOString(),
+        devCode: providers.email.name === 'console' && hasDevAccess(req) ? code : undefined,
+      };
     },
   );
 
@@ -160,10 +190,16 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
       await codes.deleteOne({ _id: req.userId });
       await users(db).updateOne(
         { _id: req.userId },
-        { $set: { verifiedAt: clock.now(), campus: pending.campus, gradYear: pending.gradYear, eduEmailHash: pending.emailHash } },
+        {
+          $set: {
+            verifiedAt: clock.now(),
+            campus: pending.campus,
+            gradYear: pending.gradYear,
+            eduEmailHash: pending.emailHash,
+          },
+        },
       );
       return toMe(await getUser(db, req.userId), config, clock.now());
     },
   );
 };
-

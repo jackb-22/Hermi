@@ -1,4 +1,4 @@
-import { type LatLng, type Tile, haversineM, tileKey, tilesAlongPath } from '@itp/shared';
+import { haversineM, type LatLng, type Tile, tileKey, tilesAlongPath } from '@itp/shared';
 import type { TracePoint } from './plausibility.ts';
 
 export type MoveMode = 'walk' | 'bike' | 'vehicle' | 'subway' | 'still';
@@ -28,11 +28,14 @@ const SMOOTH_S = 45;
 /** Groups consecutive same-mode pairs; blips shorter than 45 s take their neighbours' mode. */
 export function segmentTrace(trace: TracePoint[]): Segment[] {
   if (trace.length < 2) return [];
-  const pairs = trace.slice(1).map((b, i) => ({ a: trace[i]!, b, mode: classifyPair(trace[i]!, b) }));
+  const pairs = trace
+    .slice(1)
+    .map((b, i) => ({ a: trace[i]!, b, mode: classifyPair(trace[i]!, b) }));
   for (let i = 1; i < pairs.length - 1; i++) {
     const p = pairs[i]!;
     const dur = (p.b.time.getTime() - p.a.time.getTime()) / 1000;
-    if (dur < SMOOTH_S && pairs[i - 1]!.mode === pairs[i + 1]!.mode && p.mode !== 'subway') p.mode = pairs[i - 1]!.mode;
+    if (dur < SMOOTH_S && pairs[i - 1]!.mode === pairs[i + 1]!.mode && p.mode !== 'subway')
+      p.mode = pairs[i - 1]!.mode;
   }
   const segs: Segment[] = [];
   for (const p of pairs) {
@@ -42,7 +45,14 @@ export function segmentTrace(trace: TracePoint[]): Segment[] {
       last.end = p.b.time;
       last.meters += haversineM(p.a, p.b);
       last.points.push(p.b);
-    } else segs.push({ mode, start: p.a.time, end: p.b.time, meters: haversineM(p.a, p.b), points: [p.a, p.b] });
+    } else
+      segs.push({
+        mode,
+        start: p.a.time,
+        end: p.b.time,
+        meters: haversineM(p.a, p.b),
+        points: [p.a, p.b],
+      });
   }
   return segs;
 }
@@ -52,7 +62,8 @@ export const onFoot = (m: MoveMode) => m === 'walk' || m === 'bike';
 /** Tiles color only on foot or bike, never by car or subway; interpolated so gaps between fixes still color. */
 export function tilesFromSegments(segs: Segment[]): Tile[] {
   const seen = new Map<string, Tile>();
-  for (const s of segs) if (onFoot(s.mode)) for (const t of tilesAlongPath(s.points)) seen.set(tileKey(t), t);
+  for (const s of segs)
+    if (onFoot(s.mode)) for (const t of tilesAlongPath(s.points)) seen.set(tileKey(t), t);
   return [...seen.values()];
 }
 
@@ -83,7 +94,11 @@ export function detectStays(trace: TracePoint[], minMin = 8, radiusM = 75): Stay
     }
     const n = j - i + 1;
     if (trace[j]!.time.getTime() - trace[i]!.time.getTime() >= minMin * 60_000) {
-      stays.push({ center: { lat: lat / n, lng: lng / n }, start: trace[i]!.time, end: trace[j]!.time });
+      stays.push({
+        center: { lat: lat / n, lng: lng / n },
+        start: trace[i]!.time,
+        end: trace[j]!.time,
+      });
       i = j + 1;
     } else i++;
   }

@@ -1,12 +1,12 @@
 import type { Config } from '../config.ts';
 import { type AppAttestVerifier, createAppAttest } from './appAttest.ts';
 import { type AppleIdentity, createAppleIdentity } from './appleIdentity.ts';
-import { type EmailProvider, createEmail } from './email.ts';
-import { type EtaProvider, createEta } from './eta.ts';
-import { type HoursProvider, createHours } from './hours.ts';
-import { type Llm, createLlm } from './llm.ts';
-import { type Storage, createStorage } from './storage.ts';
-import { type WeatherProvider, createWeather } from './weather.ts';
+import { createEmail, type EmailProvider } from './email.ts';
+import { createEta, type EtaProvider } from './eta.ts';
+import { createHours, type HoursProvider } from './hours.ts';
+import { createLlm, type Llm } from './llm.ts';
+import { createStorage, type Storage } from './storage.ts';
+import { createWeather, type WeatherProvider } from './weather.ts';
 
 /** Every external service sits behind an interface with a fake, chosen by which keys are configured. */
 export interface Providers {

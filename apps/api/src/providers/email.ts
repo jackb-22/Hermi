@@ -32,5 +32,7 @@ export class ResendEmail implements EmailProvider {
 }
 
 export function createEmail(c: Config): EmailProvider {
-  return c.RESEND_API_KEY && c.EMAIL_FROM ? new ResendEmail(c.RESEND_API_KEY, c.EMAIL_FROM) : new ConsoleEmail();
+  return c.RESEND_API_KEY && c.EMAIL_FROM
+    ? new ResendEmail(c.RESEND_API_KEY, c.EMAIL_FROM)
+    : new ConsoleEmail();
 }

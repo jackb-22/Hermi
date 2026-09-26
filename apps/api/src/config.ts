@@ -16,6 +16,8 @@ const Env = z.object({
   PUBLIC_BASE_URL: z.string().url().default('http://localhost:3000'),
   JWT_SECRET: z.string().min(16).default('dev-secret-change-me-please-32chars!!'),
   DEV_ROUTES: bool.default(false),
+  /** Required (as header x-dev-token) for dev routes on any deployment; share it only with the team. */
+  DEV_TOKEN: optStr,
   ATTEST_MODE: z.enum(['off', 'log', 'enforce']).default('off'),
   FAKE_PROVIDERS: bool.default(true),
   RUN_WORKER: z.enum(['inline', 'off']).default('inline'),

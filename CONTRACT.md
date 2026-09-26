@@ -21,11 +21,13 @@ The backend owns this contract. The **live, always-current reference** is the Op
 | Lists | `{ "items": [...], "nextCursor": string \| null }`. |
 | Realtime | None. Poll the social layer every 30 s while the map is open; everything else arrives by push. |
 
-## Dev affordances (non-production deployments)
+## Dev affordances
+
+Open when running locally. On a deployment every dev affordance needs the header `x-dev-token: <DEV_TOKEN>` (ask Jack for the value), otherwise it returns 403.
 
 - `POST /v1/auth/dev { "username": "maya" }` → token, creates the user if needed.
 - `POST /v1/auth/apple { "identityToken": "fake:<anything>" }` works until real Sign in with Apple is configured.
-- `POST /v1/auth/edu` returns `devCode` so you can finish verification without an inbox.
+- `POST /v1/auth/edu` returns `devCode` (with the dev token, while no email provider is configured) so you can finish verification without an inbox.
 - App Attest is not enforced (`ATTEST_MODE=off|log`), so the Simulator works.
 
 ## Changelog (additive only; nothing is renamed once listed here)
@@ -41,6 +43,7 @@ The backend owns this contract. The **live, always-current reference** is the Op
 - **v0.9.0** — verified media: `POST /media/presign {checkinId, kind, contentType, sha256, bytes, capturedAt, lat, lng, durationS?, pairedWith?}` → `{media, upload:{url, method:'PUT', headers}}`; PUT the bytes with exactly those headers; `POST /media/:id/commit` re-hashes and checks window (check-in → departure + 10 min) and 150 m. `GET /media?checkinId|sessionId`. Codes: `MEDIA_HASH_MISMATCH`, `MEDIA_OUT_OF_WINDOW`, `MEDIA_TOO_FAR`.
 - **v0.10.0** — `POST /sessions/:id/end { steps? }` then poll `GET /sessions/:id/recap` → `{status:'pending'|'ready', recap}`. Recap: thinned `route`, `segments` (walk/bike/vehicle/subway), `newTiles` in route order, `footKm`, `stops` with best capture and review state, `xp.items` breakdown, `planCompleted`, `fullParty`.
 - **v0.11.0** — dev only: `GET/POST /dev/clock` (shift server time), `POST /dev/tags {kind, placeId?}` → a working tag URL (render as a QR to test scanning without stickers).
+- **v0.11.1** — dev affordances require `x-dev-token` on deployments.
 
 ## Additions beyond the plan's data model
 

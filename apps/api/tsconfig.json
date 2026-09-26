@@ -1,1 +1,5 @@
-{ "extends": "../../tsconfig.base.json", "compilerOptions": { "noEmit": true, "allowImportingTsExtensions": true }, "include": ["src", "scripts", "test"] }
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": { "noEmit": true, "allowImportingTsExtensions": true },
+  "include": ["src", "scripts", "test"]
+}

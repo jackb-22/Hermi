@@ -1,4 +1,4 @@
-import { type PinType, TAGS, TAG_DIMS, TASTE_DECK, type Tag, tagIndex } from '@itp/shared';
+import { type PinType, TAG_DIMS, TAGS, TASTE_DECK, type Tag, tagIndex } from '@itp/shared';
 import { norm } from './taste.ts';
 
 /** Vibe tags are too broad to act as hard filters: disliking one outdoor card must not ban all outdoor places. */

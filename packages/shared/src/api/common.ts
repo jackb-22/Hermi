@@ -32,5 +32,7 @@ export const HealthSchema = z.object({
   mongo: z.boolean(),
   tiger: z.boolean(),
   time: z.string(),
-  providers: z.record(z.string(), z.string()).describe('Which implementation backs each external service (fake/real)'),
+  providers: z
+    .record(z.string(), z.string())
+    .describe('Which implementation backs each external service (fake/real)'),
 });

@@ -1,6 +1,6 @@
 import type { LatLng } from '@itp/shared';
 import type { Config } from '../config.ts';
-import { type Mode, estimateLegMin } from '../domain/schedule.ts';
+import { estimateLegMin, type Mode } from '../domain/schedule.ts';
 import { appleDevToken } from './appleJwt.ts';
 
 export interface Eta {
@@ -21,7 +21,12 @@ export class EstimateEta implements EtaProvider {
   }
 }
 
-const APPLE_TYPE: Record<Mode, string> = { walk: 'Walking', bike: 'Cycling', transit: 'Transit', car: 'Automobile' };
+const APPLE_TYPE: Record<Mode, string> = {
+  walk: 'Walking',
+  bike: 'Cycling',
+  transit: 'Transit',
+  car: 'Automobile',
+};
 
 /** Apple Maps Server API: developer JWT → short-lived access token → /v1/etas, one leg at a time. */
 export class AppleMapsEta implements EtaProvider {
@@ -32,7 +37,9 @@ export class AppleMapsEta implements EtaProvider {
   private async accessToken(): Promise<string> {
     if (this.access && this.access.exp > Date.now() + 60_000) return this.access.token;
     const dev = await appleDevToken(this.c);
-    const res = await fetch('https://maps-api.apple.com/v1/token', { headers: { Authorization: `Bearer ${dev}` } });
+    const res = await fetch('https://maps-api.apple.com/v1/token', {
+      headers: { Authorization: `Bearer ${dev}` },
+    });
     if (!res.ok) throw new Error(`apple token ${res.status}`);
     const b = (await res.json()) as { accessToken: string; expiresInSeconds: number };
     this.access = { token: b.accessToken, exp: Date.now() + b.expiresInSeconds * 1000 };
@@ -46,16 +53,29 @@ export class AppleMapsEta implements EtaProvider {
       transportType: APPLE_TYPE[mode],
       departureDate: departAt.toISOString(),
     });
-    const res = await fetch(`https://maps-api.apple.com/v1/etas?${q}`, { headers: { Authorization: `Bearer ${await this.accessToken()}` } });
+    const res = await fetch(`https://maps-api.apple.com/v1/etas?${q}`, {
+      headers: { Authorization: `Bearer ${await this.accessToken()}` },
+    });
     if (!res.ok) throw new Error(`apple etas ${res.status}`);
-    const b = (await res.json()) as { etas?: { expectedTravelTimeSeconds: number; distanceMeters: number }[] };
+    const b = (await res.json()) as {
+      etas?: { expectedTravelTimeSeconds: number; distanceMeters: number }[];
+    };
     const e = b.etas?.[0];
     if (!e) throw new Error('apple etas: empty');
-    return { minutes: Math.max(1, Math.round(e.expectedTravelTimeSeconds / 60)), meters: e.distanceMeters, source: 'apple' };
+    return {
+      minutes: Math.max(1, Math.round(e.expectedTravelTimeSeconds / 60)),
+      meters: e.distanceMeters,
+      source: 'apple',
+    };
   }
 }
 
-const GOOGLE_MODE: Record<Mode, string> = { walk: 'WALK', bike: 'BICYCLE', transit: 'TRANSIT', car: 'DRIVE' };
+const GOOGLE_MODE: Record<Mode, string> = {
+  walk: 'WALK',
+  bike: 'BICYCLE',
+  transit: 'TRANSIT',
+  car: 'DRIVE',
+};
 
 export class GoogleRoutesEta implements EtaProvider {
   readonly name = 'google';
@@ -63,7 +83,11 @@ export class GoogleRoutesEta implements EtaProvider {
   async eta(o: LatLng, d: LatLng, mode: Mode, departAt: Date): Promise<Eta> {
     const res = await fetch('https://routes.googleapis.com/directions/v2:computeRoutes', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': this.key, 'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters' },
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': this.key,
+        'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters',
+      },
       body: JSON.stringify({
         origin: { location: { latLng: { latitude: o.lat, longitude: o.lng } } },
         destination: { location: { latLng: { latitude: d.lat, longitude: d.lng } } },
@@ -75,7 +99,11 @@ export class GoogleRoutesEta implements EtaProvider {
     const b = (await res.json()) as { routes?: { duration: string; distanceMeters: number }[] };
     const r = b.routes?.[0];
     if (!r) throw new Error('google routes: empty');
-    return { minutes: Math.max(1, Math.round(Number.parseInt(r.duration, 10) / 60)), meters: r.distanceMeters, source: 'google' };
+    return {
+      minutes: Math.max(1, Math.round(Number.parseInt(r.duration, 10) / 60)),
+      meters: r.distanceMeters,
+      source: 'google',
+    };
   }
 }
 
@@ -103,7 +131,13 @@ export class ChainEta implements EtaProvider {
 export function createEta(c: Config): EtaProvider {
   const chain: EtaProvider[] = [];
   if (c.APPLE_TEAM_ID && c.APPLE_MAPS_KEY_ID && c.APPLE_MAPS_PRIVATE_KEY) {
-    chain.push(new AppleMapsEta({ teamId: c.APPLE_TEAM_ID, keyId: c.APPLE_MAPS_KEY_ID, privateKey: c.APPLE_MAPS_PRIVATE_KEY }));
+    chain.push(
+      new AppleMapsEta({
+        teamId: c.APPLE_TEAM_ID,
+        keyId: c.APPLE_MAPS_KEY_ID,
+        privateKey: c.APPLE_MAPS_PRIVATE_KEY,
+      }),
+    );
   }
   if (c.GOOGLE_MAPS_KEY) chain.push(new GoogleRoutesEta(c.GOOGLE_MAPS_KEY));
   chain.push(new EstimateEta());

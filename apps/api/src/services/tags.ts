@@ -1,5 +1,5 @@
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
-import { ApiError, type TagKind, type TagRef, parseTagUrl } from '@itp/shared';
+import { ApiError, parseTagUrl, type TagKind, type TagRef } from '@itp/shared';
 import type { Db } from 'mongodb';
 
 export interface TagDoc {
@@ -22,13 +22,23 @@ export const newTagId = () => {
 };
 
 /** Resolves a scanned tag, rejecting unknown tags and wrong secrets before any GPS check. */
-export async function verifyTag(db: Db, input: { tagUrl?: string; tagId?: string; k?: string }, expect?: TagKind): Promise<TagDoc> {
-  const ref: TagRef | null = input.tagUrl ? parseTagUrl(input.tagUrl) : input.tagId && input.k ? { kind: expect ?? 'venue', id: input.tagId, k: input.k } : null;
+export async function verifyTag(
+  db: Db,
+  input: { tagUrl?: string; tagId?: string; k?: string },
+  expect?: TagKind,
+): Promise<TagDoc> {
+  const ref: TagRef | null = input.tagUrl
+    ? parseTagUrl(input.tagUrl)
+    : input.tagId && input.k
+      ? { kind: expect ?? 'venue', id: input.tagId, k: input.k }
+      : null;
   if (!ref) throw new ApiError(400, 'TAG_INVALID', 'Not a tag URL');
   const tag = await tags(db).findOne({ _id: ref.id });
   const a = Buffer.from(hashSecret(ref.k), 'hex');
   const b = Buffer.from(tag?.secretHash ?? '0'.repeat(64), 'hex');
-  if (!tag || !timingSafeEqual(a, b)) throw new ApiError(400, 'TAG_INVALID', 'Unknown tag or wrong secret');
-  if (expect && tag.kind !== expect) throw new ApiError(400, 'TAG_INVALID', `Expected a ${expect} tag`);
+  if (!tag || !timingSafeEqual(a, b))
+    throw new ApiError(400, 'TAG_INVALID', 'Unknown tag or wrong secret');
+  if (expect && tag.kind !== expect)
+    throw new ApiError(400, 'TAG_INVALID', `Expected a ${expect} tag`);
   return tag;
 }

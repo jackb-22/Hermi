@@ -13,7 +13,10 @@ export function publicUrl(c: Config, key?: string): string | null {
 }
 
 /** Current until the end of May of the grad year, then Alumni automatically. */
-export function studentStatus(u: Pick<UserDoc, 'verifiedAt' | 'gradYear'>, now: Date): 'current' | 'alumni' | null {
+export function studentStatus(
+  u: Pick<UserDoc, 'verifiedAt' | 'gradYear'>,
+  now: Date,
+): 'current' | 'alumni' | null {
   if (!u.verifiedAt || !u.gradYear) return null;
   return now < new Date(Date.UTC(u.gradYear, 5, 1, 4)) ? 'current' : 'alumni';
 }
@@ -39,7 +42,15 @@ export function toMe(u: UserDoc, c: Config, now: Date): z.infer<typeof MeSchema>
 }
 
 export function newUser(now: Date, fields: Partial<UserDoc> = {}): UserDoc {
-  return { _id: newId(), is21: false, openToPlans: false, ghostMode: false, tasteDone: false, createdAt: now, ...fields };
+  return {
+    _id: newId(),
+    is21: false,
+    openToPlans: false,
+    ghostMode: false,
+    tasteDone: false,
+    createdAt: now,
+    ...fields,
+  };
 }
 
 export async function getUser(db: Db, id: string): Promise<UserDoc> {

@@ -7,7 +7,10 @@ import { loadConfig } from '../src/config.ts';
 import type { AppContext } from '../src/context.ts';
 
 /** Isolated Mongo database + Postgres schema per test file, against the docker compose infra. */
-export async function setupTestApp(overrides: Record<string, string> = {}, extend?: (app: FastifyInstance) => void) {
+export async function setupTestApp(
+  overrides: Record<string, string> = {},
+  extend?: (app: FastifyInstance) => void,
+) {
   const suffix = randomBytes(4).toString('hex');
   const schema = `t_${suffix}`;
   const config = loadConfig({
@@ -47,5 +50,9 @@ export async function devLogin(app: App, username: string) {
   const res = await app.inject({ method: 'POST', url: '/v1/auth/dev', payload: { username } });
   if (res.statusCode !== 200) throw new Error(`dev login failed: ${res.body}`);
   const body = res.json();
-  return { token: body.token as string, id: body.user.id as string, headers: { authorization: `Bearer ${body.token}` } };
+  return {
+    token: body.token as string,
+    id: body.user.id as string,
+    headers: { authorization: `Bearer ${body.token}` },
+  };
 }

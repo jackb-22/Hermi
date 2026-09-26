@@ -1,7 +1,8 @@
 packages:
   - "apps/*"
   - "packages/*"
+# pnpm 12 fails installs on unreviewed build scripts. esbuild needs its binary; the others are not needed at runtime.
 allowBuilds:
-  '@google/genai': set this to true or false
   esbuild: true
-  protobufjs: set this to true or false
+  '@google/genai': false
+  protobufjs: false

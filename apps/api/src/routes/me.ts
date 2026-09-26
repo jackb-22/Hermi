@@ -10,7 +10,10 @@ export const meRoutes: FastifyPluginAsyncZod = async (app) => {
 
   app.get(
     '/me',
-    { ...authed, schema: { tags: ['me'], security: bearer, response: { 200: MeSchema, ...errs(401) } } },
+    {
+      ...authed,
+      schema: { tags: ['me'], security: bearer, response: { 200: MeSchema, ...errs(401) } },
+    },
     async (req) => toMe(await getUser(db, req.userId), config, clock.now()),
   );
 
@@ -41,7 +44,13 @@ export const meRoutes: FastifyPluginAsyncZod = async (app) => {
     '/me/push-token',
     {
       ...authed,
-      schema: { tags: ['me'], summary: 'Register an Expo push token', security: bearer, body: PushTokenBody, response: { 200: OkSchema } },
+      schema: {
+        tags: ['me'],
+        summary: 'Register an Expo push token',
+        security: bearer,
+        body: PushTokenBody,
+        response: { 200: OkSchema },
+      },
     },
     async (req) => {
       await users(db).updateOne({ _id: req.userId }, { $addToSet: { pushTokens: req.body.token } });
@@ -51,11 +60,22 @@ export const meRoutes: FastifyPluginAsyncZod = async (app) => {
 
   app.delete(
     '/me',
-    { ...authed, schema: { tags: ['me'], summary: 'Delete account', security: bearer, response: { 200: OkSchema } } },
+    {
+      ...authed,
+      schema: {
+        tags: ['me'],
+        summary: 'Delete account',
+        security: bearer,
+        response: { 200: OkSchema },
+      },
+    },
     async (req) => {
       await users(db).updateOne(
         { _id: req.userId },
-        { $set: { deletedAt: clock.now(), openToPlans: false, ghostMode: true }, $unset: { username: '', appleSub: '', pushTokens: '' } },
+        {
+          $set: { deletedAt: clock.now(), openToPlans: false, ghostMode: true },
+          $unset: { username: '', appleSub: '', pushTokens: '' },
+        },
       );
       return { ok: true as const };
     },

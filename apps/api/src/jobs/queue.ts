@@ -54,14 +54,23 @@ export async function enqueue<P>(
 }
 
 /** Atomically claims the next due job (or one whose lease expired). */
-export async function claim(ctx: Pick<AppContext, 'db' | 'clock'>, types: string[]): Promise<JobDoc | null> {
+export async function claim(
+  ctx: Pick<AppContext, 'db' | 'clock'>,
+  types: string[],
+): Promise<JobDoc | null> {
   const now = ctx.clock.now();
   return jobs(ctx.db).findOneAndUpdate(
     {
       type: { $in: types },
-      $or: [{ status: 'pending', runAt: { $lte: now } }, { status: 'running', lockedUntil: { $lt: now } }],
+      $or: [
+        { status: 'pending', runAt: { $lte: now } },
+        { status: 'running', lockedUntil: { $lt: now } },
+      ],
     },
-    { $set: { status: 'running', lockedUntil: new Date(now.getTime() + LEASE_MS) }, $inc: { attempts: 1 } },
+    {
+      $set: { status: 'running', lockedUntil: new Date(now.getTime() + LEASE_MS) },
+      $inc: { attempts: 1 },
+    },
     { sort: { runAt: 1 }, returnDocument: 'after' },
   );
 }
@@ -69,7 +78,10 @@ export async function claim(ctx: Pick<AppContext, 'db' | 'clock'>, types: string
 async function finish(ctx: AppContext, job: JobDoc, err?: unknown) {
   const now = ctx.clock.now();
   if (!err) {
-    await jobs(ctx.db).updateOne({ _id: job._id }, { $set: { status: 'done', doneAt: now }, $unset: { lockedUntil: '' } });
+    await jobs(ctx.db).updateOne(
+      { _id: job._id },
+      { $set: { status: 'done', doneAt: now }, $unset: { lockedUntil: '' } },
+    );
     return;
   }
   const dead = job.attempts >= job.maxAttempts;
@@ -77,7 +89,11 @@ async function finish(ctx: AppContext, job: JobDoc, err?: unknown) {
   await jobs(ctx.db).updateOne(
     { _id: job._id },
     {
-      $set: { status: dead ? 'dead' : 'pending', runAt: new Date(now.getTime() + backoffMs), lastError: String((err as Error)?.stack ?? err).slice(0, 2000) },
+      $set: {
+        status: dead ? 'dead' : 'pending',
+        runAt: new Date(now.getTime() + backoffMs),
+        lastError: String((err as Error)?.stack ?? err).slice(0, 2000),
+      },
       $unset: { lockedUntil: '' },
     },
   );
@@ -89,7 +105,10 @@ export class Worker {
   constructor(
     private ctx: AppContext,
     private handlers: Record<string, JobHandler>,
-    private log: { info: (m: string) => void; error: (o: object, m: string) => void } = { info: console.log, error: (o, m) => console.error(m, o) },
+    private log: { info: (m: string) => void; error: (o: object, m: string) => void } = {
+      info: console.log,
+      error: (o, m) => console.error(m, o),
+    },
   ) {}
 
   /** Runs one due job if any; returns whether it did. */

@@ -16,13 +16,25 @@ export const SlotSchema = z.object({
 /** A stop is a chosen place, or a slot ("some food, around here") until a place fills it. */
 export const StopInput = z
   .object({
-    id: IdSchema.optional().describe('Keep the id of an existing stop to preserve its AI stay length'),
+    id: IdSchema.optional().describe(
+      'Keep the id of an existing stop to preserve its AI stay length',
+    ),
     placeId: IdSchema.optional(),
     slot: SlotSchema.optional(),
-    legMode: ModeSchema.optional().describe('Mode of the leg arriving at this stop; defaults to the plan mode'),
-    stayMin: z.number().int().min(5).max(240).optional().describe('User override of the stay length'),
+    legMode: ModeSchema.optional().describe(
+      'Mode of the leg arriving at this stop; defaults to the plan mode',
+    ),
+    stayMin: z
+      .number()
+      .int()
+      .min(5)
+      .max(240)
+      .optional()
+      .describe('User override of the stay length'),
   })
-  .refine((s) => !!s.placeId !== !!s.slot, { message: 'Each stop needs exactly one of placeId or slot' });
+  .refine((s) => !!s.placeId !== !!s.slot, {
+    message: 'Each stop needs exactly one of placeId or slot',
+  });
 
 export const StopSchema = z
   .object({
@@ -46,7 +58,12 @@ export const StopSchema = z
 
 export const IssueSchema = z.object({
   stopId: IdSchema,
-  code: z.enum(['CLOSES_BEFORE_STAY_ENDS', 'OPENS_AFTER_ARRIVAL', 'ENDS_AFTER_END_TIME', 'UNFILLED_SLOT']),
+  code: z.enum([
+    'CLOSES_BEFORE_STAY_ENDS',
+    'OPENS_AFTER_ARRIVAL',
+    'ENDS_AFTER_END_TIME',
+    'UNFILLED_SLOT',
+  ]),
   message: z.string(),
 });
 
@@ -62,7 +79,10 @@ export const GhostChangeSchema = z.object({
   mode: ModeSchema.optional(),
   startAt: z.string().optional(),
   stayMin: z.number().int().optional(),
-  sources: z.array(z.object({ title: z.string(), uri: z.string() })).optional().describe('Google Maps source links; must be shown under the text'),
+  sources: z
+    .array(z.object({ title: z.string(), uri: z.string() }))
+    .optional()
+    .describe('Google Maps source links; must be shown under the text'),
 });
 
 export const MemberSchema = z.object({

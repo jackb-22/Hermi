@@ -1,5 +1,11 @@
 import { describe, expect, test } from 'vitest';
-import { type SchedStop, assemble, estimateLegMin, totals, validate } from '../src/domain/schedule.ts';
+import {
+  assemble,
+  estimateLegMin,
+  type SchedStop,
+  totals,
+  validate,
+} from '../src/domain/schedule.ts';
 import { ORIGIN, offset } from './fixtures/places.ts';
 
 const stop = (id: string, northM: number, o: Partial<SchedStop> = {}): SchedStop => ({
@@ -23,7 +29,10 @@ describe('schedule', () => {
 
   test('assemble: arrival = previous departure + leg; first leg ignored', () => {
     const start = new Date('2026-09-26T18:00:00Z');
-    const t = assemble(start, [stop('a', 0, { legMin: 99 }), stop('b', 500, { stayMin: 30, legMin: 12 })]);
+    const t = assemble(start, [
+      stop('a', 0, { legMin: 99 }),
+      stop('b', 500, { stayMin: 30, legMin: 12 }),
+    ]);
     expect(t[0]!.arriveAt.toISOString()).toBe('2026-09-26T18:00:00.000Z');
     expect(t[0]!.departAt.toISOString()).toBe('2026-09-26T19:00:00.000Z');
     expect(t[1]!.arriveAt.toISOString()).toBe('2026-09-26T19:12:00.000Z');

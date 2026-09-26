@@ -1,4 +1,12 @@
-export const PIN_TYPES = ['food', 'shopping', 'nature', 'culture', 'drinks', 'sports', 'music'] as const;
+export const PIN_TYPES = [
+  'food',
+  'shopping',
+  'nature',
+  'culture',
+  'drinks',
+  'sports',
+  'music',
+] as const;
 export type PinType = (typeof PIN_TYPES)[number];
 
 /**
@@ -7,21 +15,61 @@ export type PinType = (typeof PIN_TYPES)[number];
  */
 export const TAGS = [
   // food
-  'coffee', 'bakery', 'brunch', 'pizza', 'ramen', 'tacos', 'late_night_food', 'food_market', 'dessert', 'fine_dining',
+  'coffee',
+  'bakery',
+  'brunch',
+  'pizza',
+  'ramen',
+  'tacos',
+  'late_night_food',
+  'food_market',
+  'dessert',
+  'fine_dining',
   // shopping
-  'thrift', 'vintage', 'bookstore', 'record_store', 'fashion', 'flea_market',
+  'thrift',
+  'vintage',
+  'bookstore',
+  'record_store',
+  'fashion',
+  'flea_market',
   // nature
-  'park', 'garden', 'waterfront', 'beach', 'trail', 'picnic',
+  'park',
+  'garden',
+  'waterfront',
+  'beach',
+  'trail',
+  'picnic',
   // culture
-  'museum', 'gallery', 'library', 'history', 'street_art', 'theater',
+  'museum',
+  'gallery',
+  'library',
+  'history',
+  'street_art',
+  'theater',
   // drinks
-  'rooftop_bar', 'cocktails', 'brewery', 'wine_bar', 'dive_bar', 'club',
+  'rooftop_bar',
+  'cocktails',
+  'brewery',
+  'wine_bar',
+  'dive_bar',
+  'club',
   // sports
-  'basketball', 'climbing', 'bowling', 'stadium', 'running', 'cycling',
+  'basketball',
+  'climbing',
+  'bowling',
+  'stadium',
+  'running',
+  'cycling',
   // music
-  'live_jazz', 'concert', 'karaoke', 'open_mic',
+  'live_jazz',
+  'concert',
+  'karaoke',
+  'open_mic',
   // vibe
-  'outdoor', 'indoor', 'cheap', 'splurge',
+  'outdoor',
+  'indoor',
+  'cheap',
+  'splurge',
 ] as const;
 export type Tag = (typeof TAGS)[number];
 export const TAG_DIMS = TAGS.length; // 48
@@ -58,20 +106,81 @@ export interface TasteCard {
 }
 
 export const TASTE_DECK: TasteCard[] = [
-  { id: 'live_jazz', title: 'Live jazz', category: 'music', tags: ['live_jazz', 'concert', 'indoor'] },
-  { id: 'rooftop_bars', title: 'Rooftop bars', category: 'drinks', tags: ['rooftop_bar', 'cocktails', 'outdoor'], requires21: true },
-  { id: 'thrift_stores', title: 'Thrift stores', category: 'shopping', tags: ['thrift', 'vintage', 'cheap'] },
+  {
+    id: 'live_jazz',
+    title: 'Live jazz',
+    category: 'music',
+    tags: ['live_jazz', 'concert', 'indoor'],
+  },
+  {
+    id: 'rooftop_bars',
+    title: 'Rooftop bars',
+    category: 'drinks',
+    tags: ['rooftop_bar', 'cocktails', 'outdoor'],
+    requires21: true,
+  },
+  {
+    id: 'thrift_stores',
+    title: 'Thrift stores',
+    category: 'shopping',
+    tags: ['thrift', 'vintage', 'cheap'],
+  },
   { id: 'galleries', title: 'Galleries', category: 'culture', tags: ['gallery', 'street_art'] },
-  { id: 'pickup_basketball', title: 'Pickup basketball', category: 'sports', tags: ['basketball', 'outdoor', 'cheap'] },
-  { id: 'late_night_food', title: 'Late-night food', category: 'food', tags: ['late_night_food', 'pizza', 'tacos', 'cheap'] },
-  { id: 'botanical_gardens', title: 'Botanical gardens', category: 'nature', tags: ['garden', 'park', 'outdoor'] },
+  {
+    id: 'pickup_basketball',
+    title: 'Pickup basketball',
+    category: 'sports',
+    tags: ['basketball', 'outdoor', 'cheap'],
+  },
+  {
+    id: 'late_night_food',
+    title: 'Late-night food',
+    category: 'food',
+    tags: ['late_night_food', 'pizza', 'tacos', 'cheap'],
+  },
+  {
+    id: 'botanical_gardens',
+    title: 'Botanical gardens',
+    category: 'nature',
+    tags: ['garden', 'park', 'outdoor'],
+  },
   { id: 'karaoke', title: 'Karaoke', category: 'music', tags: ['karaoke', 'indoor'] },
-  { id: 'coffee_mornings', title: 'Coffee mornings', category: 'food', tags: ['coffee', 'bakery', 'brunch'] },
-  { id: 'bookstores', title: 'Bookstores', category: 'shopping', tags: ['bookstore', 'library', 'indoor'] },
-  { id: 'waterfront_walks', title: 'Waterfront walks', category: 'nature', tags: ['waterfront', 'running', 'outdoor'] },
+  {
+    id: 'coffee_mornings',
+    title: 'Coffee mornings',
+    category: 'food',
+    tags: ['coffee', 'bakery', 'brunch'],
+  },
+  {
+    id: 'bookstores',
+    title: 'Bookstores',
+    category: 'shopping',
+    tags: ['bookstore', 'library', 'indoor'],
+  },
+  {
+    id: 'waterfront_walks',
+    title: 'Waterfront walks',
+    category: 'nature',
+    tags: ['waterfront', 'running', 'outdoor'],
+  },
   { id: 'museums', title: 'Museums', category: 'culture', tags: ['museum', 'history', 'indoor'] },
   { id: 'climbing_gyms', title: 'Climbing gyms', category: 'sports', tags: ['climbing', 'indoor'] },
-  { id: 'food_markets', title: 'Food markets', category: 'food', tags: ['food_market', 'flea_market', 'outdoor'] },
-  { id: 'record_stores', title: 'Record stores', category: 'shopping', tags: ['record_store', 'vintage'] },
-  { id: 'open_mics', title: 'Open mics', category: 'music', tags: ['open_mic', 'theater', 'cheap'] },
+  {
+    id: 'food_markets',
+    title: 'Food markets',
+    category: 'food',
+    tags: ['food_market', 'flea_market', 'outdoor'],
+  },
+  {
+    id: 'record_stores',
+    title: 'Record stores',
+    category: 'shopping',
+    tags: ['record_store', 'vintage'],
+  },
+  {
+    id: 'open_mics',
+    title: 'Open mics',
+    category: 'music',
+    tags: ['open_mic', 'theater', 'cheap'],
+  },
 ];

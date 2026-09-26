@@ -14,9 +14,15 @@ export class RealAppleIdentity implements AppleIdentity {
   private jwks = createRemoteJWKSet(new URL('https://appleid.apple.com/auth/keys'));
   constructor(private audience: string) {}
   async verify(token: string) {
-    const { payload } = await jwtVerify(token, this.jwks, { issuer: APPLE_ISSUER, audience: this.audience });
+    const { payload } = await jwtVerify(token, this.jwks, {
+      issuer: APPLE_ISSUER,
+      audience: this.audience,
+    });
     if (!payload.sub) throw new Error('no sub');
-    return { sub: payload.sub, email: typeof payload.email === 'string' ? payload.email : undefined };
+    return {
+      sub: payload.sub,
+      email: typeof payload.email === 'string' ? payload.email : undefined,
+    };
   }
 }
 

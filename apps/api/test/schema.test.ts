@@ -19,7 +19,14 @@ test('hypertables and continuous aggregates exist in the test schema', async () 
     `select hypertable_name from timescaledb_information.hypertables where hypertable_schema = current_schema()`,
   );
   expect(rows.map((r) => r.hypertable_name).sort()).toEqual(
-    ['checkins', 'hangouts', 'location_points', 'movement_segments', 'tag_reads', 'xp_events'].sort(),
+    [
+      'checkins',
+      'hangouts',
+      'location_points',
+      'movement_segments',
+      'tag_reads',
+      'xp_events',
+    ].sort(),
   );
   const caggs = await t.ctx.tiger.query(
     `select view_name from timescaledb_information.continuous_aggregates where view_schema = current_schema()`,
@@ -28,8 +35,12 @@ test('hypertables and continuous aggregates exist in the test schema', async () 
 });
 
 test('xp_daily is real-time: fresh events show without a refresh', async () => {
-  await t.ctx.tiger.query(`insert into xp_events (time, user_id, campus, kind, xp) values (now(), 'u1', 'Columbia', 'checkin_tag', 15)`);
-  const { rows } = await t.ctx.tiger.query(`select sum(xp) as xp from xp_daily where user_id = 'u1'`);
+  await t.ctx.tiger.query(
+    `insert into xp_events (time, user_id, campus, kind, xp) values (now(), 'u1', 'Columbia', 'checkin_tag', 15)`,
+  );
+  const { rows } = await t.ctx.tiger.query(
+    `select sum(xp) as xp from xp_daily where user_id = 'u1'`,
+  );
   expect(rows[0].xp).toBe(15);
 });
 

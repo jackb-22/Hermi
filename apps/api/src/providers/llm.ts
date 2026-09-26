@@ -1,5 +1,5 @@
-import { DEFAULT_STAY_MIN, type PinType } from '@itp/shared';
 import { GoogleGenAI } from '@google/genai';
+import { DEFAULT_STAY_MIN, type PinType } from '@itp/shared';
 import type { Config } from '../config.ts';
 import { clampStay } from '../domain/schedule.ts';
 
@@ -25,11 +25,17 @@ export interface ModerationResult {
 /** The model proposes; code computes. Every method has a deterministic fallback so the app never waits on AI. */
 export interface Llm {
   readonly name: string;
-  stayLengths(stops: StayInput[], ctx: { pace?: 'relaxed' | 'normal' | 'brisk'; notes?: string }): Promise<StayEstimate[]>;
+  stayLengths(
+    stops: StayInput[],
+    ctx: { pace?: 'relaxed' | 'normal' | 'brisk'; notes?: string },
+  ): Promise<StayEstimate[]>;
   /** Six words or fewer, e.g. "Sunset at Pier 45". */
   label(o: { placeName: string; category: PinType; context: string }): Promise<string>;
   planName(stopNames: string[]): Promise<string>;
-  moderate(o: { text?: string; images?: { mimeType: string; data: Buffer }[] }): Promise<ModerationResult>;
+  moderate(o: {
+    text?: string;
+    images?: { mimeType: string; data: Buffer }[];
+  }): Promise<ModerationResult>;
   /** Structured call with a JSON schema; used by features that need custom output. */
   json<T>(prompt: string, schema: object): Promise<T>;
 }
@@ -39,13 +45,19 @@ const sixWords = (s: string) => s.replace(/["\n]/g, ' ').trim().split(/\s+/).sli
 export class FakeLlm implements Llm {
   readonly name = 'fake';
   async stayLengths(stops: StayInput[], _ctx: { pace?: string; notes?: string } = {}) {
-    return stops.map((s) => ({ id: s.id, stayMin: DEFAULT_STAY_MIN[s.category], reason: `Typical ${s.category} visit` }));
+    return stops.map((s) => ({
+      id: s.id,
+      stayMin: DEFAULT_STAY_MIN[s.category],
+      reason: `Typical ${s.category} visit`,
+    }));
   }
   async label(o: { placeName: string; category: PinType; context?: string }) {
     return sixWords(`${o.placeName} next`);
   }
   async planName(names: string[]) {
-    return names.length ? sixWords(names.length > 1 ? `${names[0]} and more` : names[0]!) : 'New plan';
+    return names.length
+      ? sixWords(names.length > 1 ? `${names[0]} and more` : names[0]!)
+      : 'New plan';
   }
   async moderate(o: { text?: string }) {
     const bad = /\b(kill yourself|nazi)\b/i.test(o.text ?? '');
@@ -71,7 +83,11 @@ export class GeminiLlm implements Llm {
     const res = await this.ai.models.generateContent({
       model: this.model,
       contents: [{ role: 'user', parts: [{ text: prompt }, ...parts] }],
-      config: { responseMimeType: 'application/json', responseJsonSchema: schema, temperature: 0.3 },
+      config: {
+        responseMimeType: 'application/json',
+        responseJsonSchema: schema,
+        temperature: 0.3,
+      },
     });
     return JSON.parse(res.text ?? 'null') as T;
   }
@@ -89,7 +105,11 @@ ${stops.map((s) => `- id=${s.id} "${s.name}" (${s.category}) arriving ${s.arriva
               type: 'array',
               items: {
                 type: 'object',
-                properties: { id: { type: 'string' }, stayMin: { type: 'integer' }, reason: { type: 'string' } },
+                properties: {
+                  id: { type: 'string' },
+                  stayMin: { type: 'integer' },
+                  reason: { type: 'string' },
+                },
                 required: ['id', 'stayMin', 'reason'],
               },
             },
@@ -102,7 +122,9 @@ ${stops.map((s) => `- id=${s.id} "${s.name}" (${s.category}) arriving ${s.arriva
       const fb = await this.fallback.stayLengths(stops);
       return stops.map((s, i) => {
         const e = byId.get(s.id);
-        return e ? { id: s.id, stayMin: clampStay(e.stayMin), reason: e.reason.slice(0, 120) } : fb[i]!;
+        return e
+          ? { id: s.id, stayMin: clampStay(e.stayMin), reason: e.reason.slice(0, 120) }
+          : fb[i]!;
       });
     } catch (e) {
       console.warn(`[gemini] stayLengths failed: ${(e as Error).message}`);
@@ -136,12 +158,18 @@ ${stops.map((s) => `- id=${s.id} "${s.name}" (${s.category}) arriving ${s.arriva
 
   async moderate(o: { text?: string; images?: { mimeType: string; data: Buffer }[] }) {
     try {
-      const parts = (o.images ?? []).map((i) => ({ inlineData: { mimeType: i.mimeType, data: i.data.toString('base64') } }));
+      const parts = (o.images ?? []).map((i) => ({
+        inlineData: { mimeType: i.mimeType, data: i.data.toString('base64') },
+      }));
       return await this.json<ModerationResult>(
         `You moderate a social app where people post photos, short clips and reviews from places they visited. Decide if this content is allowed.
 Disallow: sexual content, graphic violence, hate or harassment, doxxing, illegal activity, self-harm. Allow ordinary nightlife, food, crowds and mild language.
 Text: ${JSON.stringify(o.text ?? '')}`,
-        { type: 'object', properties: { allowed: { type: 'boolean' }, reason: { type: 'string' } }, required: ['allowed', 'reason'] },
+        {
+          type: 'object',
+          properties: { allowed: { type: 'boolean' }, reason: { type: 'string' } },
+          required: ['allowed', 'reason'],
+        },
         parts,
       );
     } catch (e) {

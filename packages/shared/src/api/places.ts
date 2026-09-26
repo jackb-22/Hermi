@@ -14,10 +14,21 @@ export const PlaceSchema = z
     loc: LatLngSchema,
     address: z.string().nullable(),
     been: z.number().int().describe('People with a verified check-in here'),
-    wouldGoAgainPct: z.number().int().min(0).max(100).nullable().describe('Share of yes on verified reviews; null until reviewed'),
+    wouldGoAgainPct: z
+      .number()
+      .int()
+      .min(0)
+      .max(100)
+      .nullable()
+      .describe('Share of yes on verified reviews; null until reviewed'),
     distanceM: z.number().optional().describe('Present on proximity queries'),
     walkMin: z.number().int().optional().describe('Straight-line walking estimate at 80 m/min'),
-    tasteMatch: z.number().min(-1).max(1).optional().describe('Cosine of place tags vs your preferences (signed in only)'),
+    tasteMatch: z
+      .number()
+      .min(-1)
+      .max(1)
+      .optional()
+      .describe('Cosine of place tags vs your preferences (signed in only)'),
   })
   .meta({ id: 'Place' });
 
@@ -25,8 +36,13 @@ export const PlaceSchema = z
 export const PlaceDetailSchema = PlaceSchema.extend({
   hereNow: z.number().int().describe('Distinct people checked in within the last 60 minutes'),
   friendsBeen: z.number().int().describe('Your friends with any verified check-in here'),
-  going: z.number().int().describe('People with this place in a saved or joined plan within 7 days'),
-  hours: z.array(z.object({ day: z.number().int().min(0).max(6), open: z.string(), close: z.string() })).nullable(),
+  going: z
+    .number()
+    .int()
+    .describe('People with this place in a saved or joined plan within 7 days'),
+  hours: z
+    .array(z.object({ day: z.number().int().min(0).max(6), open: z.string(), close: z.string() }))
+    .nullable(),
   reviewSummary: z.string().nullable(),
 }).meta({ id: 'PlaceDetail' });
 
@@ -48,7 +64,9 @@ export const PlacesNearQuery = z.object({
     .min(50)
     .max(5000)
     .optional()
-    .describe('Search radius in meters: about one third of the visible map short side. Widened in steps to at least 5 results, capped at a 15-minute walk (1200 m).'),
+    .describe(
+      'Search radius in meters: about one third of the visible map short side. Widened in steps to at least 5 results, capped at a 15-minute walk (1200 m).',
+    ),
 });
 
 export const PlacesResponse = z.object({ items: z.array(PlaceSchema), nextCursor: z.null() });

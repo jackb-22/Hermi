@@ -1,4 +1,4 @@
-import { type LatLng, fromGeoJSONPoint, haversineM } from '@itp/shared';
+import { fromGeoJSONPoint, haversineM, type LatLng } from '@itp/shared';
 import type { PlaceSchema } from '@itp/shared/api';
 import type { Db } from 'mongodb';
 import type { z } from 'zod';
@@ -8,7 +8,10 @@ import { tasteMatch } from '../domain/taste.ts';
 export const places = (db: Db) => db.collection<PlaceDoc>('places');
 export const WALK_M_PER_MIN = 80;
 
-export function toPlace(p: PlaceDoc, opts: { from?: LatLng; pref?: number[]; distanceM?: number } = {}): z.infer<typeof PlaceSchema> {
+export function toPlace(
+  p: PlaceDoc,
+  opts: { from?: LatLng; pref?: number[]; distanceM?: number } = {},
+): z.infer<typeof PlaceSchema> {
   const loc = fromGeoJSONPoint(p.loc);
   const distanceM = opts.distanceM ?? (opts.from ? haversineM(opts.from, loc) : undefined);
   return {
@@ -19,9 +22,12 @@ export function toPlace(p: PlaceDoc, opts: { from?: LatLng; pref?: number[]; dis
     loc,
     address: p.address ?? null,
     been: p.been,
-    wouldGoAgainPct: p.wouldGoAgain.total ? Math.round((100 * p.wouldGoAgain.yes) / p.wouldGoAgain.total) : null,
+    wouldGoAgainPct: p.wouldGoAgain.total
+      ? Math.round((100 * p.wouldGoAgain.yes) / p.wouldGoAgain.total)
+      : null,
     distanceM: distanceM === undefined ? undefined : Math.round(distanceM),
-    walkMin: distanceM === undefined ? undefined : Math.max(1, Math.round(distanceM / WALK_M_PER_MIN)),
+    walkMin:
+      distanceM === undefined ? undefined : Math.max(1, Math.round(distanceM / WALK_M_PER_MIN)),
     tasteMatch: opts.pref ? Math.round(tasteMatch(opts.pref, p.tags) * 1000) / 1000 : undefined,
   };
 }

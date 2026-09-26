@@ -16,6 +16,7 @@ services:
       - { key: RUN_WORKER, value: "off" }
       - { key: ATTEST_MODE, value: log }
       - { key: DEV_ROUTES, value: "1" }
+      - { key: DEV_TOKEN, type: SECRET }   # dev routes need header x-dev-token: <this>
       - { key: FAKE_PROVIDERS, value: "1" }
       - { key: PUBLIC_BASE_URL, value: "${APP_URL}" }
       - { key: JWT_SECRET, type: SECRET }

@@ -31,7 +31,11 @@ export interface Dislikes {
 }
 
 /** Dislikes are hard filters in recommendations and matching. */
-export function violatesDislikes(d: Dislikes | undefined, category: PinType, tags: readonly Tag[]): boolean {
+export function violatesDislikes(
+  d: Dislikes | undefined,
+  category: PinType,
+  tags: readonly Tag[],
+): boolean {
   if (!d) return false;
   return d.categories.includes(category) || tags.some((t) => d.tags.includes(t));
 }

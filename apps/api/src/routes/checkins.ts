@@ -16,8 +16,10 @@ export const checkinRoutes: FastifyPluginAsyncZod = async (app) => {
       preHandler: [requireAuth, attestGuard],
       schema: {
         tags: ['action'],
-        summary: 'Check in: GPS tier (5 min inside the 100 m fence) or tag tier (venue QR / NFC within 150 m)',
-        description: 'Gates XP, reviews and posts. One check-in per user per venue every 6 hours. Tag tier earns 15 XP, GPS 10, +10 on a first visit.',
+        summary:
+          'Check in: GPS tier (5 min inside the 100 m fence) or tag tier (venue QR / NFC within 150 m)',
+        description:
+          'Gates XP, reviews and posts. One check-in per user per venue every 6 hours. Tag tier earns 15 XP, GPS 10, +10 on a first visit.',
         security: bearer,
         body: CheckinBody,
         response: { 200: CheckinResponse, ...errs(400, 401, 403, 404, 409, 429) },
@@ -34,7 +36,8 @@ export const checkinRoutes: FastifyPluginAsyncZod = async (app) => {
         tagId = tag._id;
       }
       const time = b.time ? new Date(b.time) : clock.now();
-      if (Math.abs(time.getTime() - clock.now().getTime()) > 10 * 60_000) throw new ApiError(400, 'BAD_REQUEST', 'Check-in time is too far from now');
+      if (Math.abs(time.getTime() - clock.now().getTime()) > 10 * 60_000)
+        throw new ApiError(400, 'BAD_REQUEST', 'Check-in time is too far from now');
       return createCheckin(app.ctx, {
         userId: req.userId,
         placeId: placeId!,

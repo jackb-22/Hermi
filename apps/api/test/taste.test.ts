@@ -38,14 +38,20 @@ describe('buildPrefs', () => {
   test('21+ cards are ignored for under-21 users', () => {
     const p = buildPrefs([{ cardId: 'rooftop_bars', liked: true }], false);
     expect(norm(p.prefVector)).toBe(0);
-    expect(buildPrefs([{ cardId: 'rooftop_bars', liked: true }], true).likedTags).toContain('rooftop_bar');
+    expect(buildPrefs([{ cardId: 'rooftop_bars', liked: true }], true).likedTags).toContain(
+      'rooftop_bar',
+    );
   });
 
   test('taste match and dislike filter', () => {
     const p = buildPrefs([{ cardId: 'coffee_mornings', liked: true }], false);
-    expect(tasteMatch(p.prefVector, ['coffee'])).toBeGreaterThan(tasteMatch(p.prefVector, ['pizza']));
+    expect(tasteMatch(p.prefVector, ['coffee'])).toBeGreaterThan(
+      tasteMatch(p.prefVector, ['pizza']),
+    );
     expect(violatesDislikes({ categories: ['sports'], tags: [] }, 'sports', [])).toBe(true);
-    expect(violatesDislikes({ categories: [], tags: ['karaoke'] }, 'music', ['karaoke', 'indoor'])).toBe(true);
+    expect(
+      violatesDislikes({ categories: [], tags: ['karaoke'] }, 'music', ['karaoke', 'indoor']),
+    ).toBe(true);
   });
 });
 
@@ -64,10 +70,19 @@ describe('routes', () => {
       method: 'POST',
       url: '/v1/me/taste',
       headers: u.headers,
-      payload: { is21: true, swipes: [{ cardId: 'rooftop_bars', liked: true }, { cardId: 'karaoke', liked: false }] },
+      payload: {
+        is21: true,
+        swipes: [
+          { cardId: 'rooftop_bars', liked: true },
+          { cardId: 'karaoke', liked: false },
+        ],
+      },
     });
     expect(r.statusCode).toBe(200);
-    expect(r.json()).toMatchObject({ user: { tasteDone: true, is21: true }, dislikes: { tags: ['karaoke'] } });
+    expect(r.json()).toMatchObject({
+      user: { tasteDone: true, is21: true },
+      dislikes: { tags: ['karaoke'] },
+    });
     const doc = await t.ctx.db.collection('users').findOne({ _id: u.id } as never);
     expect(doc?.prefVector).toHaveLength(TAG_DIMS);
   });

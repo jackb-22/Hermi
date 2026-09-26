@@ -1,15 +1,15 @@
 import { describe, expect, test } from 'vitest';
 import {
-  TAG_DIMS,
-  TAGS,
-  TASTE_DECK,
   buildTagUrl,
   haversineM,
   latLngToTile,
   localDayKey,
   parseTagUrl,
-  tileToLatLng,
+  TAG_DIMS,
+  TAGS,
+  TASTE_DECK,
   tilesAlongSegment,
+  tileToLatLng,
   weekIndex,
   weekKey,
 } from '../src/index.ts';
@@ -31,7 +31,10 @@ describe('tiles', () => {
   });
   test('segments color every tile they cross with no gaps', () => {
     // ~1 km north along Broadway: roughly 9 tiles tall
-    const tiles = tilesAlongSegment({ lat: 40.8075, lng: -73.9626 }, { lat: 40.8165, lng: -73.9580 });
+    const tiles = tilesAlongSegment(
+      { lat: 40.8075, lng: -73.9626 },
+      { lat: 40.8165, lng: -73.958 },
+    );
     expect(tiles.length).toBeGreaterThanOrEqual(9);
     const ys = [...new Set(tiles.map((t) => t.y))].sort((a, b) => a - b);
     for (let i = 1; i < ys.length; i++) expect(ys[i]! - ys[i - 1]!).toBe(1);

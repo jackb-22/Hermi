@@ -1,4 +1,4 @@
-import { ApiError, type PinType, fromGeoJSONPoint, newId, toGeoJSONPoint } from '@itp/shared';
+import { ApiError, fromGeoJSONPoint, newId, type PinType, toGeoJSONPoint } from '@itp/shared';
 import type { PlanSchema, StopInput } from '@itp/shared/api';
 import type { Db } from 'mongodb';
 import type { z } from 'zod';
@@ -6,13 +6,13 @@ import type { Config } from '../config.ts';
 import type { PlaceDoc } from '../db/placeTypes.ts';
 import type { GeoPoint, UserDoc } from '../db/types.ts';
 import {
-  type Issue,
-  type Mode,
-  type SchedStop,
   assemble,
   clampStay,
   defaultStay,
   estimateLegMin,
+  type Issue,
+  type Mode,
+  type SchedStop,
   totals,
   validate,
 } from '../domain/schedule.ts';
@@ -88,7 +88,9 @@ export type PlacesById = Map<string, PlaceDoc>;
 export async function loadPlaces(db: Db, ids: (string | undefined)[]): Promise<PlacesById> {
   const want = [...new Set(ids.filter((x): x is string => !!x))];
   if (!want.length) return new Map();
-  const docs = await places(db).find({ _id: { $in: want } }).toArray();
+  const docs = await places(db)
+    .find({ _id: { $in: want } })
+    .toArray();
   return new Map(docs.map((p) => [p._id, p]));
 }
 
@@ -106,10 +108,17 @@ export function slotLabel(c: PinType): string {
 }
 
 /** Merge requested stops with existing ones: a stop keeps its AI stay length while its place is unchanged. */
-export function normalizeStops(input: z.infer<typeof StopInput>[], existing: StopDoc[], mode: Mode, byId: PlacesById, now: Date): StopDoc[] {
+export function normalizeStops(
+  input: z.infer<typeof StopInput>[],
+  existing: StopDoc[],
+  mode: Mode,
+  byId: PlacesById,
+  now: Date,
+): StopDoc[] {
   const prev = new Map(existing.map((s) => [s.id, s]));
   return input.map((s) => {
-    if (s.placeId && !byId.has(s.placeId)) throw new ApiError(400, 'BAD_REQUEST', `Unknown place ${s.placeId}`);
+    if (s.placeId && !byId.has(s.placeId))
+      throw new ApiError(400, 'BAD_REQUEST', `Unknown place ${s.placeId}`);
     const old = s.id ? prev.get(s.id) : undefined;
     const samePlace = old && old.placeId === s.placeId && !s.slot;
     const category = s.placeId ? byId.get(s.placeId)!.category : s.slot!.category;
@@ -118,7 +127,11 @@ export function normalizeStops(input: z.infer<typeof StopInput>[], existing: Sto
         ? { stayMin: clampStay(s.stayMin), staySource: 'user' as const, stayReason: undefined }
         : samePlace
           ? { stayMin: old.stayMin, staySource: old.staySource, stayReason: old.stayReason }
-          : { stayMin: defaultStay(category), staySource: 'default' as const, stayReason: undefined };
+          : {
+              stayMin: defaultStay(category),
+              staySource: 'default' as const,
+              stayReason: undefined,
+            };
     return {
       id: old?.id ?? s.id ?? newId(),
       placeId: s.placeId,
@@ -137,7 +150,11 @@ export function normalizeStops(input: z.infer<typeof StopInput>[], existing: Sto
 }
 
 const locKey = (l: { lat: number; lng: number }) => `${l.lat.toFixed(5)},${l.lng.toFixed(5)}`;
-export const legKeyFor = (a: { lat: number; lng: number }, b: { lat: number; lng: number }, mode: Mode) => `${locKey(a)}->${locKey(b)}:${mode}`;
+export const legKeyFor = (
+  a: { lat: number; lng: number },
+  b: { lat: number; lng: number },
+  mode: Mode,
+) => `${locKey(a)}->${locKey(b)}:${mode}`;
 
 export function toSchedStops(stops: StopDoc[], byId: PlacesById): SchedStop[] {
   return stops.map((s) => {
@@ -198,7 +215,8 @@ export async function getPlan(db: Db, id: string): Promise<PlanDoc> {
   return p;
 }
 
-export const isMember = (p: PlanDoc, userId: string) => p.hostId === userId || p.members.some((m) => m.userId === userId && m.status === 'joined');
+export const isMember = (p: PlanDoc, userId: string) =>
+  p.hostId === userId || p.members.some((m) => m.userId === userId && m.status === 'joined');
 
 export function assertHost(p: PlanDoc, userId: string) {
   if (p.hostId !== userId) throw new ApiError(403, 'FORBIDDEN', 'Only the host can edit this plan');
@@ -211,12 +229,24 @@ export async function toPlanView(
   viewerId: string,
   opts: { byId?: PlacesById; issues?: Issue[]; pref?: number[] } = {},
 ): Promise<z.infer<typeof PlanSchema>> {
-  const byId = opts.byId ?? (await loadPlaces(db, plan.stops.map((s) => s.placeId)));
+  const byId =
+    opts.byId ??
+    (await loadPlaces(
+      db,
+      plan.stops.map((s) => s.placeId),
+    ));
   const issues = opts.issues ?? recompute(structuredClone(plan), byId).issues;
   const sched = toSchedStops(plan.stops, byId);
   const t = totals(sched, plan.stops);
   const memberDocs = plan.members.length
-    ? await users(db).find({ _id: { $in: plan.members.map((m) => m.userId) } }).project<Pick<UserDoc, '_id' | 'name' | 'username' | 'spriteKey'>>({ name: 1, username: 1, spriteKey: 1 }).toArray()
+    ? await users(db)
+        .find({ _id: { $in: plan.members.map((m) => m.userId) } })
+        .project<Pick<UserDoc, '_id' | 'name' | 'username' | 'spriteKey'>>({
+          name: 1,
+          username: 1,
+          spriteKey: 1,
+        })
+        .toArray()
     : [];
   const byUser = new Map(memberDocs.map((u) => [u._id, u]));
   return {
@@ -251,9 +281,21 @@ export async function toPlanView(
     }),
     members: plan.members.map((m) => {
       const u = byUser.get(m.userId);
-      return { userId: m.userId, name: u?.name ?? null, username: u?.username ?? null, spriteUrl: publicUrl(config, u?.spriteKey), status: m.status };
+      return {
+        userId: m.userId,
+        name: u?.name ?? null,
+        username: u?.username ?? null,
+        spriteUrl: publicUrl(config, u?.spriteKey),
+        status: m.status,
+      };
     }),
-    totals: { km: t.km, footKm: t.footKm, legMin: t.legMin, xpPreview: t.xpPreview, endsAt: t.endsAt?.toISOString() ?? null },
+    totals: {
+      km: t.km,
+      footKm: t.footKm,
+      legMin: t.legMin,
+      xpPreview: t.xpPreview,
+      endsAt: t.endsAt?.toISOString() ?? null,
+    },
     issues,
     ghostChanges: plan.ghostChanges,
     shareUrl: `${config.PUBLIC_BASE_URL.replace(/\/$/, '')}/p/${plan.shareToken}`,

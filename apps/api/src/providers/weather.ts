@@ -22,7 +22,13 @@ export class FakeWeather implements WeatherProvider {
   async daily(): Promise<DayForecast[]> {
     return Array.from({ length: 10 }, (_, i) => {
       const d = new Date(this.now().getTime() + i * 86_400_000);
-      return { date: d.toISOString().slice(0, 10), highF: 60 + ((i * 7) % 20), lowF: 50 + ((i * 3) % 10), precipChance: [0.1, 0.8, 0.3, 0.05, 0.6][i % 5]!, windMph: 5 + (i % 4) * 4 };
+      return {
+        date: d.toISOString().slice(0, 10),
+        highF: 60 + ((i * 7) % 20),
+        lowF: 50 + ((i * 3) % 10),
+        precipChance: [0.1, 0.8, 0.3, 0.05, 0.6][i % 5]!,
+        windMph: 5 + (i % 4) * 4,
+      };
     });
   }
 }
@@ -34,7 +40,8 @@ export class OpenMeteoWeather implements WeatherProvider {
     const q = new URLSearchParams({
       latitude: String(loc.lat),
       longitude: String(loc.lng),
-      daily: 'temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max',
+      daily:
+        'temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max',
       temperature_unit: 'fahrenheit',
       wind_speed_unit: 'mph',
       timezone: 'America/New_York',
@@ -56,14 +63,29 @@ export class OpenMeteoWeather implements WeatherProvider {
 /** WeatherKit REST, same Apple Developer key family as Maps. */
 export class WeatherKit implements WeatherProvider {
   readonly name = 'weatherkit';
-  constructor(private c: { teamId: string; keyId: string; privateKey: string; serviceId: string }) {}
+  constructor(
+    private c: { teamId: string; keyId: string; privateKey: string; serviceId: string },
+  ) {}
   async daily(loc: LatLng): Promise<DayForecast[]> {
-    const token = await appleDevToken({ ...this.c, header: { id: `${this.c.teamId}.${this.c.serviceId}` }, sub: this.c.serviceId });
-    const r = await fetch(`https://weatherkit.apple.com/api/v1/weather/en_US/${loc.lat}/${loc.lng}?dataSets=forecastDaily&timezone=America/New_York`, {
-      headers: { Authorization: `Bearer ${token}` },
+    const token = await appleDevToken({
+      ...this.c,
+      header: { id: `${this.c.teamId}.${this.c.serviceId}` },
+      sub: this.c.serviceId,
     });
+    const r = await fetch(
+      `https://weatherkit.apple.com/api/v1/weather/en_US/${loc.lat}/${loc.lng}?dataSets=forecastDaily&timezone=America/New_York`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    );
     if (!r.ok) throw new Error(`weatherkit ${r.status}`);
-    const days = (await r.json()).forecastDaily?.days as { forecastStart: string; temperatureMax: number; temperatureMin: number; precipitationChance: number; windSpeedAvg?: number }[];
+    const days = (await r.json()).forecastDaily?.days as {
+      forecastStart: string;
+      temperatureMax: number;
+      temperatureMin: number;
+      precipitationChance: number;
+      windSpeedAvg?: number;
+    }[];
     const f = (c: number) => Math.round(c * 1.8 + 32);
     return days.map((d) => ({
       date: d.forecastStart.slice(0, 10),
@@ -95,7 +117,12 @@ class FallbackWeather implements WeatherProvider {
 export function createWeather(c: Config): WeatherProvider {
   if (c.APPLE_TEAM_ID && c.WEATHERKIT_KEY_ID && c.WEATHERKIT_PRIVATE_KEY && c.APPLE_BUNDLE_ID) {
     return new FallbackWeather([
-      new WeatherKit({ teamId: c.APPLE_TEAM_ID, keyId: c.WEATHERKIT_KEY_ID, privateKey: c.WEATHERKIT_PRIVATE_KEY, serviceId: c.APPLE_BUNDLE_ID }),
+      new WeatherKit({
+        teamId: c.APPLE_TEAM_ID,
+        keyId: c.WEATHERKIT_KEY_ID,
+        privateKey: c.WEATHERKIT_PRIVATE_KEY,
+        serviceId: c.APPLE_BUNDLE_ID,
+      }),
       new OpenMeteoWeather(),
     ]);
   }

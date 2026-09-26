@@ -1,5 +1,11 @@
 import { ApiError, PIN_TYPES, type PinType } from '@itp/shared';
-import { PlaceDetailSchema, PlacesBboxQuery, PlacesNearQuery, PlacesNearResponse, PlacesResponse } from '@itp/shared/api';
+import {
+  PlaceDetailSchema,
+  PlacesBboxQuery,
+  PlacesNearQuery,
+  PlacesNearResponse,
+  PlacesResponse,
+} from '@itp/shared/api';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import type { Filter } from 'mongodb';
 import { z } from 'zod';
@@ -19,8 +25,10 @@ export const NEAR_TOP = 10;
 export const placesRoutes: FastifyPluginAsyncZod = async (app) => {
   const { db, tiger, clock } = app.ctx;
 
-  const viewer = async (userId: string): Promise<UserDoc | null> => (userId ? users(db).findOne({ _id: userId }) : null);
-  const ageFilter = (u: UserDoc | null): Filter<PlaceDoc> => (u?.is21 ? {} : { adultOnly: { $ne: true } });
+  const viewer = async (userId: string): Promise<UserDoc | null> =>
+    userId ? users(db).findOne({ _id: userId }) : null;
+  const ageFilter = (u: UserDoc | null): Filter<PlaceDoc> =>
+    u?.is21 ? {} : { adultOnly: { $ne: true } };
 
   app.get(
     '/places',
@@ -29,17 +37,35 @@ export const placesRoutes: FastifyPluginAsyncZod = async (app) => {
       schema: {
         tags: ['places'],
         summary: 'Pins for the visible map: top places per category inside a bbox',
-        description: 'Ranked by verified visits and (when signed in) preference match. Bars are hidden unless the user confirmed 21+.',
+        description:
+          'Ranked by verified visits and (when signed in) preference match. Bars are hidden unless the user confirmed 21+.',
         security: bearer,
         querystring: PlacesBboxQuery,
         response: { 200: PlacesResponse, ...errs(400) },
       },
     },
     async (req) => {
-      const [w, s, e, n] = req.query.bbox.split(',').map(Number) as [number, number, number, number];
-      if (w >= e || s >= n) throw new ApiError(400, 'BAD_REQUEST', 'bbox must be west,south,east,north');
+      const [w, s, e, n] = req.query.bbox.split(',').map(Number) as [
+        number,
+        number,
+        number,
+        number,
+      ];
+      if (w >= e || s >= n)
+        throw new ApiError(400, 'BAD_REQUEST', 'bbox must be west,south,east,north');
       const u = await viewer(req.userId);
-      const polygon = { type: 'Polygon' as const, coordinates: [[[w, s], [e, s], [e, n], [w, n], [w, s]]] };
+      const polygon = {
+        type: 'Polygon' as const,
+        coordinates: [
+          [
+            [w, s],
+            [e, s],
+            [e, n],
+            [w, n],
+            [w, s],
+          ],
+        ],
+      };
       const cats: readonly PinType[] = req.query.cat === 'all' ? PIN_TYPES : [req.query.cat];
       const lists = await Promise.all(
         cats.map(async (category) => {
@@ -82,7 +108,16 @@ export const placesRoutes: FastifyPluginAsyncZod = async (app) => {
       for (;;) {
         found = await places(db)
           .aggregate<PlaceDoc & { distanceM: number }>([
-            { $geoNear: { near: { type: 'Point', coordinates: [from.lng, from.lat] }, key: 'loc', distanceField: 'distanceM', maxDistance: radius, query, spherical: true } },
+            {
+              $geoNear: {
+                near: { type: 'Point', coordinates: [from.lng, from.lat] },
+                key: 'loc',
+                distanceField: 'distanceM',
+                maxDistance: radius,
+                query,
+                spherical: true,
+              },
+            },
             { $limit: 80 },
           ])
           .toArray();
@@ -108,7 +143,10 @@ export const placesRoutes: FastifyPluginAsyncZod = async (app) => {
         summary: 'Place sheet: details plus the counts line',
         security: bearer,
         params: z.object({ id: z.string() }),
-        querystring: z.object({ lat: z.coerce.number().optional(), lng: z.coerce.number().optional() }),
+        querystring: z.object({
+          lat: z.coerce.number().optional(),
+          lng: z.coerce.number().optional(),
+        }),
         response: { 200: PlaceDetailSchema, ...errs(404) },
       },
     },
@@ -126,12 +164,22 @@ export const placesRoutes: FastifyPluginAsyncZod = async (app) => {
           [p._id, hourAgo, now],
         ),
         friends.length
-          ? tiger.query<{ n: number }>('select count(distinct user_id)::int as n from checkins where place_id = $1 and user_id = any($2)', [p._id, friends])
+          ? tiger.query<{ n: number }>(
+              'select count(distinct user_id)::int as n from checkins where place_id = $1 and user_id = any($2)',
+              [p._id, friends],
+            )
           : Promise.resolve({ rows: [{ n: 0 }] }),
         db
           .collection<{ hostId: string; members?: { userId: string; status: string }[] }>('plans')
-          .find({ 'stops.placeId': p._id, startAt: { $gte: now, $lte: weekAhead }, status: { $ne: 'cancelled' } })
-          .project<{ hostId: string; members?: { userId: string; status: string }[] }>({ hostId: 1, members: 1 })
+          .find({
+            'stops.placeId': p._id,
+            startAt: { $gte: now, $lte: weekAhead },
+            status: { $ne: 'cancelled' },
+          })
+          .project<{ hostId: string; members?: { userId: string; status: string }[] }>({
+            hostId: 1,
+            members: 1,
+          })
           .toArray(),
       ]);
       const going = new Set<string>();
@@ -139,7 +187,10 @@ export const placesRoutes: FastifyPluginAsyncZod = async (app) => {
         going.add(plan.hostId);
         for (const m of plan.members ?? []) if (m.status === 'joined') going.add(m.userId);
       }
-      const from = req.query.lat !== undefined && req.query.lng !== undefined ? { lat: req.query.lat, lng: req.query.lng } : undefined;
+      const from =
+        req.query.lat !== undefined && req.query.lng !== undefined
+          ? { lat: req.query.lat, lng: req.query.lng }
+          : undefined;
       return {
         ...toPlace(p, { pref: u?.prefVector, from }),
         hereNow: here.rows[0]?.n ?? 0,

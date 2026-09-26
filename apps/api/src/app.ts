@@ -1,14 +1,14 @@
 import cors from '@fastify/cors';
 import swagger from '@fastify/swagger';
-import scalar from '@scalar/fastify-api-reference';
 import { HealthSchema } from '@itp/shared/api';
+import scalar from '@scalar/fastify-api-reference';
 import Fastify, { type FastifyInstance, type FastifyPluginAsync } from 'fastify';
 import {
-  type ZodTypeProvider,
   jsonSchemaTransform,
   jsonSchemaTransformObject,
   serializerCompiler,
   validatorCompiler,
+  type ZodTypeProvider,
 } from 'fastify-type-provider-zod';
 import type { AppContext } from './context.ts';
 import { rawBodyPlugin } from './plugins/attest.ts';
@@ -58,23 +58,38 @@ export async function buildApp(ctx: AppContext): Promise<FastifyInstance> {
     { schema: { tags: ['meta'], response: { 200: HealthSchema, 503: HealthSchema } } },
     async (_req, reply) => {
       const [mongo, tiger] = await Promise.all([
-        ctx.db.command({ ping: 1 }).then(() => true, () => false),
-        ctx.tiger.query('select 1').then(() => true, () => false),
+        ctx.db.command({ ping: 1 }).then(
+          () => true,
+          () => false,
+        ),
+        ctx.tiger.query('select 1').then(
+          () => true,
+          () => false,
+        ),
       ]);
-      const body = { ok: mongo && tiger, version: API_VERSION, mongo, tiger, time: ctx.clock.now().toISOString(), providers: describeProviders(ctx.providers) };
+      const body = {
+        ok: mongo && tiger,
+        version: API_VERSION,
+        mongo,
+        tiger,
+        time: ctx.clock.now().toISOString(),
+        providers: describeProviders(ctx.providers),
+      };
       return reply.status(body.ok ? 200 : 503).send(body);
     },
   );
 
   // Documented under /v1; mirrored at the bare path (hidden) because the PDF's endpoint table has no prefix.
-  const mount = (hidden: boolean): FastifyPluginAsync => async (scope) => {
-    if (hidden) {
-      scope.addHook('onRoute', (r) => {
-        r.schema = { ...(r.schema ?? {}), hide: true };
-      });
-    }
-    for (const plugin of routes) await scope.register(plugin);
-  };
+  const mount =
+    (hidden: boolean): FastifyPluginAsync =>
+    async (scope) => {
+      if (hidden) {
+        scope.addHook('onRoute', (r) => {
+          r.schema = { ...(r.schema ?? {}), hide: true };
+        });
+      }
+      for (const plugin of routes) await scope.register(plugin);
+    };
   await app.register(webRoutes);
   await app.register(mount(false), { prefix: '/v1' });
   await app.register(mount(true), { prefix: '' });

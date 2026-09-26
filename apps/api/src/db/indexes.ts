@@ -4,8 +4,16 @@ import type { Db, IndexDescription } from 'mongodb';
 /** MongoDB holds things that exist. Index list follows the plan's Data model table plus implied additions. */
 const INDEXES: Record<string, IndexDescription[]> = {
   users: [
-    { key: { username: 1 }, unique: true, partialFilterExpression: { username: { $type: 'string' } } },
-    { key: { appleSub: 1 }, unique: true, partialFilterExpression: { appleSub: { $type: 'string' } } },
+    {
+      key: { username: 1 },
+      unique: true,
+      partialFilterExpression: { username: { $type: 'string' } },
+    },
+    {
+      key: { appleSub: 1 },
+      unique: true,
+      partialFilterExpression: { appleSub: { $type: 'string' } },
+    },
     { key: { tagId: 1 }, sparse: true },
     { key: { campus: 1 } },
   ],
@@ -20,21 +28,38 @@ const INDEXES: Record<string, IndexDescription[]> = {
     { key: { visibility: 1, startAt: 1 } },
     { key: { shareToken: 1 }, sparse: true },
   ],
-  posts: [{ key: { authorId: 1, createdAt: -1 } }, { key: { loc: '2dsphere' } }, { key: { placeId: 1, createdAt: -1 } }],
+  posts: [
+    { key: { authorId: 1, createdAt: -1 } },
+    { key: { loc: '2dsphere' } },
+    { key: { placeId: 1, createdAt: -1 } },
+  ],
   reviews: [{ key: { placeId: 1 } }, { key: { userId: 1, checkinId: 1 }, unique: true }],
   folders: [{ key: { ownerId: 1 } }],
-  saves: [{ key: { userId: 1, type: 1, refId: 1 }, unique: true }, { key: { userId: 1, createdAt: -1 } }],
+  saves: [
+    { key: { userId: 1, type: 1, refId: 1 }, unique: true },
+    { key: { userId: 1, createdAt: -1 } },
+  ],
   friendships: [{ key: { a: 1 } }, { key: { b: 1 } }],
   tags: [{ key: { ownerId: 1 } }, { key: { placeId: 1 } }],
   user_tiles: [{ key: { userId: 1, x: 1, y: 1 }, unique: true }],
   jobs: [
     { key: { status: 1, runAt: 1 } },
-    { key: { dedupeKey: 1 }, unique: true, partialFilterExpression: { status: { $in: ['pending', 'running'] }, dedupeKey: { $type: 'string' } } },
+    {
+      key: { dedupeKey: 1 },
+      unique: true,
+      partialFilterExpression: {
+        status: { $in: ['pending', 'running'] },
+        dedupeKey: { $type: 'string' },
+      },
+    },
   ],
   sessions: [{ key: { userId: 1, status: 1 } }],
   media: [{ key: { checkinId: 1 } }, { key: { sha256: 1 } }, { key: { userId: 1, createdAt: -1 } }],
   edu_codes: [{ key: { expiresAt: 1 }, expireAfterSeconds: 0 }],
-  feed_seen: [{ key: { userId: 1, day: 1 }, unique: true }, { key: { createdAt: 1 }, expireAfterSeconds: 3 * 86400 }],
+  feed_seen: [
+    { key: { userId: 1, day: 1 }, unique: true },
+    { key: { createdAt: 1 }, expireAfterSeconds: 3 * 86400 },
+  ],
   blocks: [{ key: { blocker: 1, blocked: 1 }, unique: true }, { key: { blocked: 1 } }],
   attest_keys: [{ key: { userId: 1 } }],
   attest_challenges: [{ key: { expiresAt: 1 }, expireAfterSeconds: 0 }],
@@ -45,7 +70,9 @@ const INDEXES: Record<string, IndexDescription[]> = {
 export const PREF_VECTOR_INDEX = 'pref_vector';
 
 export async function ensureMongoIndexes(db: Db, log: (m: string) => void = () => {}) {
-  const existing = new Set((await db.listCollections({}, { nameOnly: true }).toArray()).map((c) => c.name));
+  const existing = new Set(
+    (await db.listCollections({}, { nameOnly: true }).toArray()).map((c) => c.name),
+  );
   for (const [coll, specs] of Object.entries(INDEXES)) {
     if (!existing.has(coll)) await db.createCollection(coll);
     await db.collection(coll).createIndexes(specs);

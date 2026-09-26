@@ -9,7 +9,8 @@ const rad = (d: number) => (d * Math.PI) / 180;
 export function haversineM(a: LatLng, b: LatLng): number {
   const dLat = rad(b.lat - a.lat);
   const dLng = rad(b.lng - a.lng);
-  const h = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLng / 2) ** 2;
+  const h =
+    Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLng / 2) ** 2;
   return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
 }
 
@@ -29,5 +30,11 @@ export const lerp = (a: LatLng, b: LatLng, t: number): LatLng => ({
   lng: a.lng + (b.lng - a.lng) * t,
 });
 
-export const toGeoJSONPoint = (p: LatLng) => ({ type: 'Point' as const, coordinates: [p.lng, p.lat] as [number, number] });
-export const fromGeoJSONPoint = (g: { coordinates: number[] }): LatLng => ({ lng: g.coordinates[0]!, lat: g.coordinates[1]! });
+export const toGeoJSONPoint = (p: LatLng) => ({
+  type: 'Point' as const,
+  coordinates: [p.lng, p.lat] as [number, number],
+});
+export const fromGeoJSONPoint = (g: { coordinates: number[] }): LatLng => ({
+  lng: g.coordinates[0]!,
+  lat: g.coordinates[1]!,
+});

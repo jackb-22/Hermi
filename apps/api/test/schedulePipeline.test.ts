@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import type { EtaProvider } from '../src/providers/eta.ts';
 import type { HoursProvider } from '../src/providers/hours.ts';
 import { FakeLlm } from '../src/providers/llm.ts';
-import { ORIGIN, insertPlaces, offset, placeDoc } from './fixtures/places.ts';
+import { insertPlaces, ORIGIN, offset, placeDoc } from './fixtures/places.ts';
 import { devLogin, setupTestApp } from './helpers.ts';
 
 let t: Awaited<ReturnType<typeof setupTestApp>>;
@@ -21,7 +21,10 @@ beforeAll(async () => {
   // Stub providers: hours only for the museum, fixed ETAs, an "AI" that says 60 min everywhere.
   const hours: HoursProvider = {
     name: 'stub',
-    hours: async (p) => (p.name === 'Museum' ? { googlePlaceId: 'g-museum', hours: [{ day: 6, open: '10:00', close: '15:30' }] } : null),
+    hours: async (p) =>
+      p.name === 'Museum'
+        ? { googlePlaceId: 'g-museum', hours: [{ day: 6, open: '10:00', close: '15:30' }] }
+        : null,
   };
   const eta: EtaProvider = {
     name: 'stub',
@@ -45,16 +48,50 @@ describe('POST /plans/:id/schedule', () => {
   test('closing-time violation proposes a swap; accepting it clears the issue', async () => {
     // Sat 3 Oct 2026, 14:00 EDT
     const p = (
-      await t.app.inject({ method: 'POST', url: '/v1/plans', headers: u.headers, payload: { startAt: '2026-10-03T18:00:00Z', stops: [{ placeId: cafe }, { placeId: museum }] } })
+      await t.app.inject({
+        method: 'POST',
+        url: '/v1/plans',
+        headers: u.headers,
+        payload: {
+          startAt: '2026-10-03T18:00:00Z',
+          stops: [{ placeId: cafe }, { placeId: museum }],
+        },
+      })
     ).json();
-    const r = await t.app.inject({ method: 'POST', url: `/v1/plans/${p.id}/schedule`, headers: u.headers });
+    const r = await t.app.inject({
+      method: 'POST',
+      url: `/v1/plans/${p.id}/schedule`,
+      headers: u.headers,
+    });
     expect(r.statusCode).toBe(200);
     const s = r.json();
-    expect(s.stops[1]).toMatchObject({ legMin: 12, legSource: 'apple', stayMin: 90, staySource: 'ai', stayReason: 'Big collection' });
-    expect(s.issues).toEqual([expect.objectContaining({ code: 'CLOSES_BEFORE_STAY_ENDS', stopId: s.stops[1].id })]);
-    expect(s.ghostChanges).toEqual([expect.objectContaining({ kind: 'swap', fromIndex: 2, toIndex: 1, label: 'Swap 1 and 2 to reach Museum by 2 pm' })]);
+    expect(s.stops[1]).toMatchObject({
+      legMin: 12,
+      legSource: 'apple',
+      stayMin: 90,
+      staySource: 'ai',
+      stayReason: 'Big collection',
+    });
+    expect(s.issues).toEqual([
+      expect.objectContaining({ code: 'CLOSES_BEFORE_STAY_ENDS', stopId: s.stops[1].id }),
+    ]);
+    expect(s.ghostChanges).toEqual([
+      expect.objectContaining({
+        kind: 'swap',
+        fromIndex: 2,
+        toIndex: 1,
+        label: 'Swap 1 and 2 to reach Museum by 2 pm',
+      }),
+    ]);
 
-    const applied = (await t.app.inject({ method: 'POST', url: `/v1/plans/${p.id}/changes/apply`, headers: u.headers, payload: {} })).json();
+    const applied = (
+      await t.app.inject({
+        method: 'POST',
+        url: `/v1/plans/${p.id}/changes/apply`,
+        headers: u.headers,
+        payload: {},
+      })
+    ).json();
     expect(applied.stops.map((x: { label: string }) => x.label)).toEqual(['Museum', 'Cafe']);
     expect(applied.issues).toEqual([]);
     expect(applied.ghostChanges).toEqual([]);
@@ -68,7 +105,11 @@ describe('POST /plans/:id/schedule', () => {
         method: 'POST',
         url: '/v1/plans',
         headers: u.headers,
-        payload: { mode: 'transit', startAt: '2026-10-04T14:00:00Z', stops: [{ placeId: cafe }, { placeId: museum }, { placeId: cafe }] },
+        payload: {
+          mode: 'transit',
+          startAt: '2026-10-04T14:00:00Z',
+          stops: [{ placeId: cafe }, { placeId: museum }, { placeId: cafe }],
+        },
       })
     ).json();
     await t.app.inject({ method: 'POST', url: `/v1/plans/${p.id}/schedule`, headers: u.headers });
@@ -87,19 +128,52 @@ describe('POST /plans/:id/schedule', () => {
         method: 'POST',
         url: '/v1/plans',
         headers: u.headers,
-        payload: { startAt: '2026-10-04T14:00:00Z', endBy: '2026-10-04T16:00:00Z', stops: [{ placeId: cafe }, { placeId: cafe }] },
+        payload: {
+          startAt: '2026-10-04T14:00:00Z',
+          endBy: '2026-10-04T16:00:00Z',
+          stops: [{ placeId: cafe }, { placeId: cafe }],
+        },
       })
     ).json();
-    const s = (await t.app.inject({ method: 'POST', url: `/v1/plans/${p.id}/schedule`, headers: u.headers })).json();
-    expect(s.ghostChanges[0]).toMatchObject({ kind: 'set_start', label: expect.stringMatching(/^Start \d+ min earlier/) });
-    const applied = (await t.app.inject({ method: 'POST', url: `/v1/plans/${p.id}/changes/apply`, headers: u.headers, payload: { ids: [s.ghostChanges[0].id] } })).json();
+    const s = (
+      await t.app.inject({ method: 'POST', url: `/v1/plans/${p.id}/schedule`, headers: u.headers })
+    ).json();
+    expect(s.ghostChanges[0]).toMatchObject({
+      kind: 'set_start',
+      label: expect.stringMatching(/^Start \d+ min earlier/),
+    });
+    const applied = (
+      await t.app.inject({
+        method: 'POST',
+        url: `/v1/plans/${p.id}/changes/apply`,
+        headers: u.headers,
+        payload: { ids: [s.ghostChanges[0].id] },
+      })
+    ).json();
     expect(applied.issues).toEqual([]);
   });
 
   test('dismiss clears ghosts without changing the plan', async () => {
-    const p = (await t.app.inject({ method: 'POST', url: '/v1/plans', headers: u.headers, payload: { startAt: '2026-10-03T18:00:00Z', stops: [{ placeId: cafe }, { placeId: museum }] } })).json();
+    const p = (
+      await t.app.inject({
+        method: 'POST',
+        url: '/v1/plans',
+        headers: u.headers,
+        payload: {
+          startAt: '2026-10-03T18:00:00Z',
+          stops: [{ placeId: cafe }, { placeId: museum }],
+        },
+      })
+    ).json();
     await t.app.inject({ method: 'POST', url: `/v1/plans/${p.id}/schedule`, headers: u.headers });
-    const d = (await t.app.inject({ method: 'POST', url: `/v1/plans/${p.id}/changes/dismiss`, headers: u.headers, payload: {} })).json();
+    const d = (
+      await t.app.inject({
+        method: 'POST',
+        url: `/v1/plans/${p.id}/changes/dismiss`,
+        headers: u.headers,
+        payload: {},
+      })
+    ).json();
     expect(d.ghostChanges).toEqual([]);
     expect(d.stops.map((x: { label: string }) => x.label)).toEqual(['Cafe', 'Museum']);
   });

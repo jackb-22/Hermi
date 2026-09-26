@@ -25,28 +25,52 @@ export const webRoutes: FastifyPluginAsyncZod = async (app) => {
   const { config, db } = app.ctx;
 
   // Universal links: stickers (/c venue, /t personal) and plan share links (/p) open the app.
-  app.get('/.well-known/apple-app-site-association', { schema: { hide: true } }, async (_req, reply) => {
-    const appID = config.APPLE_TEAM_ID && config.APPLE_BUNDLE_ID ? `${config.APPLE_TEAM_ID}.${config.APPLE_BUNDLE_ID}` : 'TEAMID.BUNDLEID';
-    return reply.type('application/json').send({
-      applinks: {
-        details: [{ appIDs: [appID], components: [{ '/': '/c/*' }, { '/': '/t/*' }, { '/': '/p/*' }] }],
-      },
-    });
-  });
+  app.get(
+    '/.well-known/apple-app-site-association',
+    { schema: { hide: true } },
+    async (_req, reply) => {
+      const appID =
+        config.APPLE_TEAM_ID && config.APPLE_BUNDLE_ID
+          ? `${config.APPLE_TEAM_ID}.${config.APPLE_BUNDLE_ID}`
+          : 'TEAMID.BUNDLEID';
+      return reply.type('application/json').send({
+        applinks: {
+          details: [
+            { appIDs: [appID], components: [{ '/': '/c/*' }, { '/': '/t/*' }, { '/': '/p/*' }] },
+          ],
+        },
+      });
+    },
+  );
 
-  const fallback = (kind: 'venue' | 'personal') => async (req: { params: { id: string } }, reply: { type: (t: string) => { send: (b: string) => unknown } }) => {
-    let line = kind === 'venue' ? 'A check-in spot.' : 'Someone’s tag. Tap yours back to become friends.';
-    if (kind === 'venue') {
-      const tag = await db.collection<{ _id: string; placeId?: string }>('tags').findOne({ _id: req.params.id });
-      const place = tag?.placeId ? await db.collection<{ _id: string; name: string }>('places').findOne({ _id: tag.placeId }) : null;
-      if (place) line = `Check in at ${place.name}.`;
-    }
-    return reply.type('text/html').send(
-      page('It only counts if you go', `<h1>It only counts if you go.</h1><p>${esc(line)}</p>
+  const fallback =
+    (kind: 'venue' | 'personal') =>
+    async (
+      req: { params: { id: string } },
+      reply: { type: (t: string) => { send: (b: string) => unknown } },
+    ) => {
+      let line =
+        kind === 'venue' ? 'A check-in spot.' : 'Someone’s tag. Tap yours back to become friends.';
+      if (kind === 'venue') {
+        const tag = await db
+          .collection<{ _id: string; placeId?: string }>('tags')
+          .findOne({ _id: req.params.id });
+        const place = tag?.placeId
+          ? await db
+              .collection<{ _id: string; name: string }>('places')
+              .findOne({ _id: tag.placeId })
+          : null;
+        if (place) line = `Check in at ${place.name}.`;
+      }
+      return reply.type('text/html').send(
+        page(
+          'It only counts if you go',
+          `<h1>It only counts if you go.</h1><p>${esc(line)}</p>
 <p class="muted">This tag works with the app: install it, then tap again.</p>
-<a class="btn" href="https://apps.apple.com/">Get the app</a>`),
-    );
-  };
+<a class="btn" href="https://apps.apple.com/">Get the app</a>`,
+        ),
+      );
+    };
 
   const Params = z.object({ id: z.string().max(64) });
   app.get('/c/:id', { schema: { hide: true, params: Params } }, fallback('venue'));

@@ -14,15 +14,23 @@ import { hashSecret, newSecret, newTagId, tags } from '../src/services/tags.ts';
 
 const { positionals, values } = parseArgs({
   allowPositionals: true,
-  options: { place: { type: 'string' }, name: { type: 'string' }, count: { type: 'string', default: '1' }, chip: { type: 'string', default: 'NTAG215' } },
+  options: {
+    place: { type: 'string' },
+    name: { type: 'string' },
+    count: { type: 'string', default: '1' },
+    chip: { type: 'string', default: 'NTAG215' },
+  },
 });
 const kind = positionals[0];
-if (kind !== 'venue' && kind !== 'personal') throw new Error('usage: register-tags.ts venue|personal [--place id | --name "..."] [--count n]');
+if (kind !== 'venue' && kind !== 'personal')
+  throw new Error('usage: register-tags.ts venue|personal [--place id | --name "..."] [--count n]');
 
 const ctx = await createContext();
 let placeId: string | undefined;
 if (kind === 'venue') {
-  const p = values.place ? await places(ctx.db).findOne({ _id: values.place }) : await places(ctx.db).findOne({ name: values.name });
+  const p = values.place
+    ? await places(ctx.db).findOne({ _id: values.place })
+    : await places(ctx.db).findOne({ name: values.name });
   if (!p) throw new Error(`place not found: ${values.place ?? values.name}`);
   placeId = p._id;
   console.log(`# venue tags for ${p.name} (${p._id})`);
@@ -30,7 +38,14 @@ if (kind === 'venue') {
 for (let i = 0; i < Number(values.count); i++) {
   const id = newTagId();
   const k = newSecret();
-  await tags(ctx.db).insertOne({ _id: id, kind, placeId, secretHash: hashSecret(k), chip: values.chip!, createdAt: new Date() });
+  await tags(ctx.db).insertOne({
+    _id: id,
+    kind,
+    placeId,
+    secretHash: hashSecret(k),
+    chip: values.chip!,
+    createdAt: new Date(),
+  });
   if (placeId) await places(ctx.db).updateOne({ _id: placeId }, { $set: { venueTagId: id } });
   console.log(buildTagUrl(ctx.config.PUBLIC_BASE_URL, { kind, id, k }));
 }

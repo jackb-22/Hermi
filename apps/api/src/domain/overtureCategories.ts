@@ -7,7 +7,11 @@ interface Mapped {
   adultOnly?: boolean;
 }
 
-const m = (category: PinType, tags: Tag[], adultOnly = false): Mapped => ({ category, tags, adultOnly });
+const m = (category: PinType, tags: Tag[], adultOnly = false): Mapped => ({
+  category,
+  tags,
+  adultOnly,
+});
 
 /** Overture taxonomy.primary → one of the seven pin types, plus tags from the shared vocabulary. */
 const BY_PRIMARY: Record<string, Mapped> = {

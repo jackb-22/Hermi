@@ -5,7 +5,12 @@ const fmtCache = new Map<string, Intl.DateTimeFormat>();
 function fmt(tz: string) {
   let f = fmtCache.get(tz);
   if (!f) {
-    f = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' });
+    f = new Intl.DateTimeFormat('en-CA', {
+      timeZone: tz,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
     fmtCache.set(tz, f);
   }
   return f;

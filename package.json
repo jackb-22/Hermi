@@ -2,7 +2,9 @@
   "name": "incentivize-the-physical",
   "private": true,
   "packageManager": "pnpm@12.5.1",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "pnpm --filter @itp/api dev",
     "test": "pnpm -r test",

@@ -1,4 +1,4 @@
-import { type LatLng, haversineM, lerp } from './geo.ts';
+import { haversineM, type LatLng, lerp } from './geo.ts';
 
 /** Zoom-18 web-mercator tiles: ~116 m squares in Manhattan, about one block. */
 export const TILE_ZOOM = 18;

@@ -11,4 +11,15 @@ import { sessionRoutes } from './sessions.ts';
 import { tasteRoutes } from './taste.ts';
 
 /** Route plugins, registered once under /v1 and once at the bare path. */
-export const routes: FastifyPluginAsync[] = [authRoutes, attestRoutes, meRoutes, tasteRoutes, placesRoutes, planRoutes, sessionRoutes, checkinRoutes, mediaRoutes, devRoutes];
+export const routes: FastifyPluginAsync[] = [
+  authRoutes,
+  attestRoutes,
+  meRoutes,
+  tasteRoutes,
+  placesRoutes,
+  planRoutes,
+  sessionRoutes,
+  checkinRoutes,
+  mediaRoutes,
+  devRoutes,
+];

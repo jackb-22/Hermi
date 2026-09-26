@@ -21,9 +21,14 @@ const stub: AppAttestVerifier = {
 };
 
 const echo = (app: FastifyInstance) =>
-  app.post('/test/guarded', { preHandler: [requireAuth, attestGuard] }, async (req) => ({ attested: req.attested }));
+  app.post('/test/guarded', { preHandler: [requireAuth, attestGuard] }, async (req) => ({
+    attested: req.attested,
+  }));
 
-const header = (keyId: string, assertion: string) => Buffer.from(JSON.stringify({ keyId, assertion: Buffer.from(assertion).toString('base64') })).toString('base64');
+const header = (keyId: string, assertion: string) =>
+  Buffer.from(
+    JSON.stringify({ keyId, assertion: Buffer.from(assertion).toString('base64') }),
+  ).toString('base64');
 
 describe.each(['log', 'enforce'] as const)('ATTEST_MODE=%s', (mode) => {
   let t: Awaited<ReturnType<typeof setupTestApp>>;
@@ -32,17 +37,46 @@ describe.each(['log', 'enforce'] as const)('ATTEST_MODE=%s', (mode) => {
     t = await setupTestApp({ ATTEST_MODE: mode }, echo);
     t.ctx.providers.appAttest = stub;
     u = await devLogin(t.app, 'attester');
-    const ch = (await t.app.inject({ url: '/v1/attest/challenge', headers: u.headers })).json().challenge;
-    const bad = await t.app.inject({ method: 'POST', url: '/v1/attest/register', headers: u.headers, payload: { keyId: 'key-1234', attestation: Buffer.from('nope').toString('base64'), challenge: ch } });
+    const ch = (await t.app.inject({ url: '/v1/attest/challenge', headers: u.headers })).json()
+      .challenge;
+    const bad = await t.app.inject({
+      method: 'POST',
+      url: '/v1/attest/register',
+      headers: u.headers,
+      payload: {
+        keyId: 'key-1234',
+        attestation: Buffer.from('nope').toString('base64'),
+        challenge: ch,
+      },
+    });
     expect(bad.statusCode).toBe(403);
-    const ch2 = (await t.app.inject({ url: '/v1/attest/challenge', headers: u.headers })).json().challenge;
-    const reg = await t.app.inject({ method: 'POST', url: '/v1/attest/register', headers: u.headers, payload: { keyId: 'key-1234', attestation: Buffer.from('good-attestation').toString('base64'), challenge: ch2 } });
+    const ch2 = (await t.app.inject({ url: '/v1/attest/challenge', headers: u.headers })).json()
+      .challenge;
+    const reg = await t.app.inject({
+      method: 'POST',
+      url: '/v1/attest/register',
+      headers: u.headers,
+      payload: {
+        keyId: 'key-1234',
+        attestation: Buffer.from('good-attestation').toString('base64'),
+        challenge: ch2,
+      },
+    });
     expect(reg.statusCode).toBe(200);
   });
   afterAll(() => t.teardown());
 
   const send = (h?: string) =>
-    t.app.inject({ method: 'POST', url: '/test/guarded', headers: { ...u.headers, 'content-type': 'application/json', ...(h ? { 'x-app-attest': h } : {}) }, payload: '{"a":1}' });
+    t.app.inject({
+      method: 'POST',
+      url: '/test/guarded',
+      headers: {
+        ...u.headers,
+        'content-type': 'application/json',
+        ...(h ? { 'x-app-attest': h } : {}),
+      },
+      payload: '{"a":1}',
+    });
 
   test('valid assertion over the exact body is attested; replay is not', async () => {
     const good = await send(header('key-1234', 'ok|1|{"a":1}'));
@@ -72,7 +106,10 @@ describe('rate limit', () => {
   test('fixed window throws 429 past the limit and resets next window', async () => {
     const now = new Date('2026-09-26T20:00:05Z');
     for (let i = 0; i < 3; i++) await hit(t.ctx.db, 'k', 3, 60, now);
-    await expect(hit(t.ctx.db, 'k', 3, 60, now)).rejects.toMatchObject({ status: 429, code: 'RATE_LIMITED' });
+    await expect(hit(t.ctx.db, 'k', 3, 60, now)).rejects.toMatchObject({
+      status: 429,
+      code: 'RATE_LIMITED',
+    });
     await hit(t.ctx.db, 'k', 3, 60, new Date('2026-09-26T20:01:05Z'));
   });
 });

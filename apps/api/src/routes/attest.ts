@@ -30,7 +30,11 @@ export const attestRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (req) => {
-      const doc = { _id: randomBytes(24).toString('base64url'), userId: req.userId, expiresAt: new Date(clock.now().getTime() + 5 * 60_000) };
+      const doc = {
+        _id: randomBytes(24).toString('base64url'),
+        userId: req.userId,
+        expiresAt: new Date(clock.now().getTime() + 5 * 60_000),
+      };
       await db.collection<ChallengeDoc>('attest_challenges').insertOne(doc);
       return { challenge: doc._id, expiresAt: doc.expiresAt.toISOString() };
     },
@@ -40,20 +44,37 @@ export const attestRoutes: FastifyPluginAsyncZod = async (app) => {
     '/attest/register',
     {
       ...authed,
-      schema: { tags: ['integrity'], summary: 'Register an App Attest key for this user', security: bearer, body: AttestRegisterBody, response: { 200: OkSchema, ...errs(400, 401, 403) } },
+      schema: {
+        tags: ['integrity'],
+        summary: 'Register an App Attest key for this user',
+        security: bearer,
+        body: AttestRegisterBody,
+        response: { 200: OkSchema, ...errs(400, 401, 403) },
+      },
     },
     async (req) => {
-      const ch = await db.collection<ChallengeDoc>('attest_challenges').findOneAndDelete({ _id: req.body.challenge, userId: req.userId });
-      if (!ch || ch.expiresAt < clock.now()) throw new ApiError(400, 'BAD_REQUEST', 'Unknown or expired challenge');
+      const ch = await db
+        .collection<ChallengeDoc>('attest_challenges')
+        .findOneAndDelete({ _id: req.body.challenge, userId: req.userId });
+      if (!ch || ch.expiresAt < clock.now())
+        throw new ApiError(400, 'BAD_REQUEST', 'Unknown or expired challenge');
       let publicKey: string;
       try {
-        ({ publicKey } = providers.appAttest.attestation({ attestation: Buffer.from(req.body.attestation, 'base64'), challenge: req.body.challenge, keyId: req.body.keyId }));
+        ({ publicKey } = providers.appAttest.attestation({
+          attestation: Buffer.from(req.body.attestation, 'base64'),
+          challenge: req.body.challenge,
+          keyId: req.body.keyId,
+        }));
       } catch (e) {
         throw new ApiError(403, 'ATTEST_FAILED', `Attestation rejected: ${(e as Error).message}`);
       }
       await db
         .collection<AttestKeyDoc>('attest_keys')
-        .updateOne({ _id: req.body.keyId }, { $set: { userId: req.userId, publicKey, signCount: 0, createdAt: clock.now() } }, { upsert: true });
+        .updateOne(
+          { _id: req.body.keyId },
+          { $set: { userId: req.userId, publicKey, signCount: 0, createdAt: clock.now() } },
+          { upsert: true },
+        );
       return { ok: true as const };
     },
   );

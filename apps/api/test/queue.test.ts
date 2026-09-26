@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'vitest';
-import { Worker, claim, enqueue } from '../src/jobs/queue.ts';
+import { claim, enqueue, Worker } from '../src/jobs/queue.ts';
 import { setupTestApp } from './helpers.ts';
 
 let t: Awaited<ReturnType<typeof setupTestApp>>;
@@ -20,7 +20,17 @@ test('concurrent claims never hand the same job to two workers', async () => {
 
 test('failures back off and die after maxAttempts; successes finish', async () => {
   let calls = 0;
-  const w = new Worker(t.ctx, { flaky: async () => { calls++; throw new Error('boom'); }, fine: async () => {} }, quiet);
+  const w = new Worker(
+    t.ctx,
+    {
+      flaky: async () => {
+        calls++;
+        throw new Error('boom');
+      },
+      fine: async () => {},
+    },
+    quiet,
+  );
   const id = await enqueue(t.ctx, 'flaky', {}, { maxAttempts: 3 });
   const ok = await enqueue(t.ctx, 'fine', {});
   for (let i = 0; i < 3; i++) {
@@ -30,7 +40,11 @@ test('failures back off and die after maxAttempts; successes finish', async () =
   t.ctx.clock.offsetMs = 0;
   const jobs = t.ctx.db.collection('jobs');
   expect(calls).toBe(3);
-  expect(await jobs.findOne({ _id: id } as never)).toMatchObject({ status: 'dead', attempts: 3, lastError: expect.stringContaining('boom') });
+  expect(await jobs.findOne({ _id: id } as never)).toMatchObject({
+    status: 'dead',
+    attempts: 3,
+    lastError: expect.stringContaining('boom'),
+  });
   expect(await jobs.findOne({ _id: ok } as never)).toMatchObject({ status: 'done' });
 });
 

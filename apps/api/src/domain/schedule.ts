@@ -1,4 +1,11 @@
-import { DEFAULT_STAY_MIN, type LatLng, type PinType, XP, COMPLETED_PLAN_MIN_STOPS, haversineM } from '@itp/shared';
+import {
+  COMPLETED_PLAN_MIN_STOPS,
+  DEFAULT_STAY_MIN,
+  haversineM,
+  type LatLng,
+  type PinType,
+  XP,
+} from '@itp/shared';
 
 export const MODES = ['walk', 'transit', 'bike', 'car'] as const;
 export type Mode = (typeof MODES)[number];
@@ -52,7 +59,11 @@ export function assemble(startAt: Date, stops: SchedStop[]): Timed[] {
   return out;
 }
 
-export type IssueCode = 'CLOSES_BEFORE_STAY_ENDS' | 'OPENS_AFTER_ARRIVAL' | 'ENDS_AFTER_END_TIME' | 'UNFILLED_SLOT';
+export type IssueCode =
+  | 'CLOSES_BEFORE_STAY_ENDS'
+  | 'OPENS_AFTER_ARRIVAL'
+  | 'ENDS_AFTER_END_TIME'
+  | 'UNFILLED_SLOT';
 export interface Issue {
   stopId: string;
   code: IssueCode;
@@ -66,7 +77,13 @@ const hm = (s: string) => {
 
 /** Local wall-clock minutes and weekday in New York for comparing against opening hours. */
 function localMinutes(d: Date): { day: number; min: number } {
-  const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', weekday: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(d);
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    weekday: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(d);
   const get = (t: string) => parts.find((p) => p.type === t)?.value ?? '0';
   const day = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(get('weekday'));
   return { day, min: Number(get('hour')) * 60 + Number(get('minute')) };
@@ -77,25 +94,40 @@ export function validate(stops: SchedStop[], times: Timed[], endBy?: Date): Issu
   const issues: Issue[] = [];
   stops.forEach((s, i) => {
     const t = times[i]!;
-    if (s.isSlot) issues.push({ stopId: s.id, code: 'UNFILLED_SLOT', message: `Pick a ${s.category} spot` });
+    if (s.isSlot)
+      issues.push({ stopId: s.id, code: 'UNFILLED_SLOT', message: `Pick a ${s.category} spot` });
     const today = s.hours?.filter((h) => h.day === localMinutes(t.arriveAt).day);
-    if (today && today.length) {
+    if (today?.length) {
       const a = localMinutes(t.arriveAt).min;
       const d = a + s.stayMin;
-      const open = today.some((h) => hm(h.open) <= a && (hm(h.close) === 0 ? 24 * 60 : hm(h.close)) >= d);
+      const open = today.some(
+        (h) => hm(h.open) <= a && (hm(h.close) === 0 ? 24 * 60 : hm(h.close)) >= d,
+      );
       if (!open) {
         const opensLater = today.every((h) => hm(h.open) > a);
         issues.push(
           opensLater
-            ? { stopId: s.id, code: 'OPENS_AFTER_ARRIVAL', message: `${s.name} opens at ${today[0]!.open}` }
-            : { stopId: s.id, code: 'CLOSES_BEFORE_STAY_ENDS', message: `${s.name} closes before your stay ends` },
+            ? {
+                stopId: s.id,
+                code: 'OPENS_AFTER_ARRIVAL',
+                message: `${s.name} opens at ${today[0]!.open}`,
+              }
+            : {
+                stopId: s.id,
+                code: 'CLOSES_BEFORE_STAY_ENDS',
+                message: `${s.name} closes before your stay ends`,
+              },
         );
       }
     }
   });
   const last = times.at(-1);
   if (endBy && last && last.departAt > endBy) {
-    issues.push({ stopId: stops.at(-1)!.id, code: 'ENDS_AFTER_END_TIME', message: 'Plan runs past your end time' });
+    issues.push({
+      stopId: stops.at(-1)!.id,
+      code: 'ENDS_AFTER_END_TIME',
+      message: 'Plan runs past your end time',
+    });
   }
   return issues;
 }
@@ -121,6 +153,14 @@ export function totals(stops: SchedStop[], times: Timed[]): Totals {
   }
   const footKm = foot / 1000;
   const xpPreview =
-    stops.length * XP.checkinGps + (stops.length >= COMPLETED_PLAN_MIN_STOPS ? XP.completedPlan : 0) + Math.round(footKm * XP.perKmOnFootOrBike);
-  return { km: Math.round(m / 100) / 10, footKm: Math.round(footKm * 10) / 10, legMin, xpPreview, endsAt: times.at(-1)?.departAt ?? null };
+    stops.length * XP.checkinGps +
+    (stops.length >= COMPLETED_PLAN_MIN_STOPS ? XP.completedPlan : 0) +
+    Math.round(footKm * XP.perKmOnFootOrBike);
+  return {
+    km: Math.round(m / 100) / 10,
+    footKm: Math.round(footKm * 10) / 10,
+    legMin,
+    xpPreview,
+    endsAt: times.at(-1)?.departAt ?? null,
+  };
 }

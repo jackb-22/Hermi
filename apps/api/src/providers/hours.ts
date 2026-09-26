@@ -10,7 +10,11 @@ export interface OpeningHours {
 export interface HoursProvider {
   readonly name: string;
   /** Opening hours for a venue, resolving (and returning) its Google place id when not known yet. */
-  hours(p: { name: string; loc: LatLng; googlePlaceId?: string }): Promise<{ googlePlaceId?: string; hours: OpeningHours[] } | null>;
+  hours(p: {
+    name: string;
+    loc: LatLng;
+    googlePlaceId?: string;
+  }): Promise<{ googlePlaceId?: string; hours: OpeningHours[] } | null>;
 }
 
 /** No data: hours checks are skipped, which the plan allows as a demo fallback. */
@@ -31,18 +35,27 @@ export class GooglePlacesHours implements HoursProvider {
     let place: { id: string; regularOpeningHours?: { periods?: Period[] } } | undefined;
     if (p.googlePlaceId) {
       const r = await fetch(`https://places.googleapis.com/v1/places/${p.googlePlaceId}`, {
-        headers: { 'X-Goog-Api-Key': this.key, 'X-Goog-FieldMask': 'id,regularOpeningHours.periods' },
+        headers: {
+          'X-Goog-Api-Key': this.key,
+          'X-Goog-FieldMask': 'id,regularOpeningHours.periods',
+        },
       });
       if (!r.ok) throw new Error(`places details ${r.status}`);
       place = await r.json();
     } else {
       const r = await fetch('https://places.googleapis.com/v1/places:searchText', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': this.key, 'X-Goog-FieldMask': mask },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': this.key,
+          'X-Goog-FieldMask': mask,
+        },
         body: JSON.stringify({
           textQuery: p.name,
           maxResultCount: 1,
-          locationBias: { circle: { center: { latitude: p.loc.lat, longitude: p.loc.lng }, radius: 150 } },
+          locationBias: {
+            circle: { center: { latitude: p.loc.lat, longitude: p.loc.lng }, radius: 150 },
+          },
         }),
       });
       if (!r.ok) throw new Error(`places search ${r.status}`);
@@ -52,10 +65,15 @@ export class GooglePlacesHours implements HoursProvider {
     const periods = place.regularOpeningHours?.periods ?? [];
     return {
       googlePlaceId: place.id,
-      hours: periods.map((x) =>
-        x.close
-          ? { day: x.open.day, open: `${pad(x.open.hour)}:${pad(x.open.minute ?? 0)}`, close: `${pad(x.close.hour)}:${pad(x.close.minute ?? 0)}` }
-          : { day: x.open.day, open: '00:00', close: '00:00' }, // open 24h
+      hours: periods.map(
+        (x) =>
+          x.close
+            ? {
+                day: x.open.day,
+                open: `${pad(x.open.hour)}:${pad(x.open.minute ?? 0)}`,
+                close: `${pad(x.close.hour)}:${pad(x.close.minute ?? 0)}`,
+              }
+            : { day: x.open.day, open: '00:00', close: '00:00' }, // open 24h
       ),
     };
   }

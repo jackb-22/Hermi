@@ -1,15 +1,23 @@
-import { ApiError, CHECKIN_COOLDOWN_H, type LatLng, XP, fromGeoJSONPoint, haversineM, newId } from '@itp/shared';
+import {
+  ApiError,
+  CHECKIN_COOLDOWN_H,
+  fromGeoJSONPoint,
+  haversineM,
+  type LatLng,
+  newId,
+  XP,
+} from '@itp/shared';
 import type { CheckinResponse } from '@itp/shared/api';
 import type { z } from 'zod';
 import type { AppContext } from '../context.ts';
 import type { PlaceDoc } from '../db/placeTypes.ts';
-import { GPS_ACCURACY_M, checkDwell } from '../domain/dwell.ts';
+import { checkDwell, GPS_ACCURACY_M } from '../domain/dwell.ts';
 import { places, toPlace } from './places.ts';
 import { plans } from './plans.ts';
 import { hit } from './rateLimit.ts';
-import { activeSession, sessionTrace, sessions } from './sessions.ts';
+import { activeSession, sessions, sessionTrace } from './sessions.ts';
 import { getUser } from './users.ts';
-import { type XpRow, awardXp, xpLabel } from './xp.ts';
+import { awardXp, type XpRow, xpLabel } from './xp.ts';
 
 export const TAG_RADIUS_M = 150;
 const CHECKINS_PER_HOUR = 12;
@@ -31,7 +39,17 @@ export interface CheckinInput {
 export type CheckinResult = z.infer<typeof CheckinResponse>;
 
 /** Called after the check-in row is written, e.g. co-check-in hangouts. Registered by the social feature. */
-export type CheckinHook = (ctx: AppContext, c: { id: string; userId: string; placeId: string; tier: 'gps' | 'tag'; time: Date; tagId?: string }) => Promise<CheckinResult['hangouts']>;
+export type CheckinHook = (
+  ctx: AppContext,
+  c: {
+    id: string;
+    userId: string;
+    placeId: string;
+    tier: 'gps' | 'tag';
+    time: Date;
+    tagId?: string;
+  },
+) => Promise<CheckinResult['hangouts']>;
 export const checkinHooks: CheckinHook[] = [];
 
 /**
@@ -45,17 +63,41 @@ export async function createCheckin(ctx: AppContext, input: CheckinInput): Promi
   if (!place) throw new ApiError(404, 'NOT_FOUND', 'No such place');
   const loc = fromGeoJSONPoint(place.loc);
   const user = await getUser(db, input.userId);
-  const session = input.sessionId ? await sessions(db).findOne({ _id: input.sessionId, userId: input.userId }) : await activeSession(db, input.userId);
+  const session = input.sessionId
+    ? await sessions(db).findOne({ _id: input.sessionId, userId: input.userId })
+    : await activeSession(db, input.userId);
 
   if (input.tier === 'tag') {
-    if (haversineM(input.at, loc) > TAG_RADIUS_M) throw new ApiError(400, 'CHECKIN_TOO_FAR', `You need to be within ${TAG_RADIUS_M} m of ${place.name}`);
+    if (haversineM(input.at, loc) > TAG_RADIUS_M)
+      throw new ApiError(
+        400,
+        'CHECKIN_TOO_FAR',
+        `You need to be within ${TAG_RADIUS_M} m of ${place.name}`,
+      );
   } else if (!input.dwellVerified) {
-    if (input.accuracy > GPS_ACCURACY_M) throw new ApiError(400, 'CHECKIN_LOW_ACCURACY', 'GPS accuracy too low; try again outside or scan the venue tag');
-    if (!session || session.status !== 'active') throw new ApiError(409, 'SESSION_NOT_ACTIVE', 'GPS check-ins need an active session');
-    const trace = await sessionTrace(tiger, session._id, new Date(input.time.getTime() - 3 * 3600_000), input.time);
+    if (input.accuracy > GPS_ACCURACY_M)
+      throw new ApiError(
+        400,
+        'CHECKIN_LOW_ACCURACY',
+        'GPS accuracy too low; try again outside or scan the venue tag',
+      );
+    if (session?.status !== 'active')
+      throw new ApiError(409, 'SESSION_NOT_ACTIVE', 'GPS check-ins need an active session');
+    const trace = await sessionTrace(
+      tiger,
+      session._id,
+      new Date(input.time.getTime() - 3 * 3600_000),
+      input.time,
+    );
     const dwell = checkDwell(trace, loc, input.time);
     if (!dwell.ok) {
-      throw new ApiError(400, dwell.reason, dwell.reason === 'CHECKIN_TOO_FAR' ? `You are not at ${place.name} yet` : 'Stay 5 minutes to check in, or scan the venue tag');
+      throw new ApiError(
+        400,
+        dwell.reason,
+        dwell.reason === 'CHECKIN_TOO_FAR'
+          ? `You are not at ${place.name} yet`
+          : 'Stay 5 minutes to check in, or scan the venue tag',
+      );
     }
   }
 
@@ -64,8 +106,20 @@ export async function createCheckin(ctx: AppContext, input: CheckinInput): Promi
     `select count(*) filter (where time > $3)::int as recent, count(*)::int as ever from checkins where user_id = $1 and place_id = $2`,
     [input.userId, place._id, cooldownFrom],
   );
-  if ((prior.rows[0]?.recent ?? 0) > 0) throw new ApiError(429, 'CHECKIN_RATE_LIMITED', `Already checked in at ${place.name} in the last ${CHECKIN_COOLDOWN_H} hours`);
-  await hit(db, `checkin:${input.userId}`, CHECKINS_PER_HOUR, 3600, clock.now(), 'CHECKIN_RATE_LIMITED');
+  if ((prior.rows[0]?.recent ?? 0) > 0)
+    throw new ApiError(
+      429,
+      'CHECKIN_RATE_LIMITED',
+      `Already checked in at ${place.name} in the last ${CHECKIN_COOLDOWN_H} hours`,
+    );
+  await hit(
+    db,
+    `checkin:${input.userId}`,
+    CHECKINS_PER_HOUR,
+    3600,
+    clock.now(),
+    'CHECKIN_RATE_LIMITED',
+  );
   const firstVisit = (prior.rows[0]?.ever ?? 0) === 0;
 
   const id = newId();
@@ -73,14 +127,28 @@ export async function createCheckin(ctx: AppContext, input: CheckinInput): Promi
   await tiger.query(
     `insert into checkins (time, id, user_id, place_id, tier, plan_id, session_id, lat, lng, accuracy, attested, tag_id)
      values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
-    [input.time, id, input.userId, place._id, input.tier, planId ?? null, session?._id ?? null, input.at.lat, input.at.lng, input.accuracy, input.attested, input.tagId ?? null],
+    [
+      input.time,
+      id,
+      input.userId,
+      place._id,
+      input.tier,
+      planId ?? null,
+      session?._id ?? null,
+      input.at.lat,
+      input.at.lng,
+      input.accuracy,
+      input.attested,
+      input.tagId ?? null,
+    ],
   );
   const xp: XpRow[] = [
     input.tier === 'tag'
       ? { kind: 'checkin_tag', xp: XP.checkinTag, refId: id, label: xpLabel('checkin_tag') }
       : { kind: 'checkin_gps', xp: XP.checkinGps, refId: id, label: xpLabel('checkin_gps') },
   ];
-  if (firstVisit) xp.push({ kind: 'first_visit', xp: XP.firstVisit, refId: id, label: xpLabel('first_visit') });
+  if (firstVisit)
+    xp.push({ kind: 'first_visit', xp: XP.firstVisit, refId: id, label: xpLabel('first_visit') });
   await awardXp(tiger, input.userId, user.campus, input.time, xp);
 
   if (firstVisit) await places(db).updateOne({ _id: place._id }, { $inc: { been: 1 } });
@@ -89,19 +157,43 @@ export async function createCheckin(ctx: AppContext, input: CheckinInput): Promi
     const plan = await plans(db).findOne({ _id: planId });
     const idx = plan?.stops.findIndex((s) => s.placeId === place._id && !s.done) ?? -1;
     if (plan && idx >= 0) {
-      await plans(db).updateOne({ _id: planId, 'stops.id': plan.stops[idx]!.id }, { $set: { 'stops.$.done': true, 'stops.$.checkinId': id } });
+      await plans(db).updateOne(
+        { _id: planId, 'stops.id': plan.stops[idx]!.id },
+        { $set: { 'stops.$.done': true, 'stops.$.checkinId': id } },
+      );
       planStop = { planId, stopId: plan.stops[idx]!.id, index: idx + 1 };
     }
   }
 
   const hangouts: CheckinResult['hangouts'] = [];
-  for (const hook of checkinHooks) hangouts.push(...(await hook(ctx, { id, userId: input.userId, placeId: place._id, tier: input.tier, time: input.time, tagId: input.tagId })));
+  for (const hook of checkinHooks)
+    hangouts.push(
+      ...(await hook(ctx, {
+        id,
+        userId: input.userId,
+        placeId: place._id,
+        tier: input.tier,
+        time: input.time,
+        tagId: input.tagId,
+      })),
+    );
 
   return {
-    checkin: { id, placeId: place._id, tier: input.tier, time: input.time.toISOString(), attested: input.attested, sessionId: session?._id ?? null, planId: planId ?? null },
+    checkin: {
+      id,
+      placeId: place._id,
+      tier: input.tier,
+      time: input.time.toISOString(),
+      attested: input.attested,
+      sessionId: session?._id ?? null,
+      planId: planId ?? null,
+    },
     place: toPlace(place as PlaceDoc, { pref: user.prefVector, from: input.at }),
     firstVisit,
-    xp: { total: xp.reduce((s, r) => s + r.xp, 0), items: xp.map(({ kind, xp: v, label }) => ({ kind, xp: v, label })) },
+    xp: {
+      total: xp.reduce((s, r) => s + r.xp, 0),
+      items: xp.map(({ kind, xp: v, label }) => ({ kind, xp: v, label })),
+    },
     planStop,
     hangouts,
   };

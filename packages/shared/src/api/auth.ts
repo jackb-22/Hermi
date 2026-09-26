@@ -57,7 +57,11 @@ export const EduVerifyBody = z.object({ code: z.string().regex(/^\d{6}$/) });
 export const PatchMeBody = z.object({
   name: z.string().min(1).max(80).optional(),
   username: z.string().regex(USERNAME_RE).optional(),
-  photoKey: z.string().max(300).optional().describe('Storage key returned by a profile-photo upload'),
+  photoKey: z
+    .string()
+    .max(300)
+    .optional()
+    .describe('Storage key returned by a profile-photo upload'),
   ghostMode: z.boolean().optional(),
   openToPlans: z.boolean().optional(),
 });

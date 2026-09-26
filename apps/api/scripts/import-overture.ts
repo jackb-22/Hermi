@@ -32,6 +32,7 @@ const flush = async () => {
 
 const rl = createInterface({ input: createReadStream(file), crlfDelay: Number.POSITIVE_INFINITY });
 for await (const raw of rl) {
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: geojsonseq records may start with the RS (0x1E) separator
   const line = raw.replace(/^\x1e/, '').trim();
   if (!line) continue;
   read++;
@@ -40,7 +41,10 @@ for await (const raw of rl) {
   const name: string | undefined = p.names?.primary;
   if (!name || (p.confidence ?? 0) < MIN_CONFIDENCE) continue;
   if (p.operating_status && p.operating_status !== 'open') continue;
-  const mapped = mapOvertureCategory(p.taxonomy?.primary ?? p.categories?.primary, p.basic_category);
+  const mapped = mapOvertureCategory(
+    p.taxonomy?.primary ?? p.categories?.primary,
+    p.basic_category,
+  );
   if (!mapped) continue;
   const a = p.addresses?.[0];
   kept++;
@@ -57,7 +61,12 @@ for await (const raw of rl) {
           address: a?.freeform ? `${a.freeform}${a.locality ? `, ${a.locality}` : ''}` : undefined,
           confidence: p.confidence,
         },
-        $setOnInsert: { _id: newId(), been: 0, wouldGoAgain: { yes: 0, total: 0 }, createdAt: new Date() },
+        $setOnInsert: {
+          _id: newId(),
+          been: 0,
+          wouldGoAgain: { yes: 0, total: 0 },
+          createdAt: new Date(),
+        },
       },
       upsert: true,
     },
@@ -72,12 +81,26 @@ const hallLng = Number(process.env.DEMO_HALL_LNG ?? -73.9639);
 await places.updateOne(
   { overtureId: 'demo-hall' },
   {
-    $set: { name: 'Demo Hall', category: 'culture', tags: ['indoor'], adultOnly: false, confidence: 1, loc: { type: 'Point', coordinates: [hallLng, hallLat] } },
-    $setOnInsert: { _id: newId(), been: 0, wouldGoAgain: { yes: 0, total: 0 }, createdAt: new Date() },
+    $set: {
+      name: 'Demo Hall',
+      category: 'culture',
+      tags: ['indoor'],
+      adultOnly: false,
+      confidence: 1,
+      loc: { type: 'Point', coordinates: [hallLng, hallLat] },
+    },
+    $setOnInsert: {
+      _id: newId(),
+      been: 0,
+      wouldGoAgain: { yes: 0, total: 0 },
+      createdAt: new Date(),
+    },
   },
   { upsert: true },
 );
 
-const byCat = await places.aggregate([{ $group: { _id: '$category', n: { $sum: 1 } } }, { $sort: { n: -1 } }]).toArray();
+const byCat = await places
+  .aggregate([{ $group: { _id: '$category', n: { $sum: 1 } } }, { $sort: { n: -1 } }])
+  .toArray();
 console.log(`read ${read}, kept ${kept}`, byCat);
 await closeContext(ctx);

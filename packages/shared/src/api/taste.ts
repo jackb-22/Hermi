@@ -10,7 +10,10 @@ export const TasteCardSchema = z.object({
   requires21: z.boolean().describe('Only show after the user confirms 21+'),
 });
 
-export const DeckResponse = z.object({ cards: z.array(TasteCardSchema), tags: z.array(z.enum(TAGS)).describe('Vector dimension order') });
+export const DeckResponse = z.object({
+  cards: z.array(TasteCardSchema),
+  tags: z.array(z.enum(TAGS)).describe('Vector dimension order'),
+});
 
 export const TasteBody = z.object({
   is21: z.boolean().describe('User confirmed 21+ during Taste; gates bars and nightlife'),

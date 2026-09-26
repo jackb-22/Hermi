@@ -21,9 +21,27 @@ const run = async (name: string, f: () => Promise<unknown>) => {
 };
 
 await run('eta walk', () => p.eta.eta(from, to, 'walk', new Date(Date.now() + 3600_000)));
-await run('eta transit', () => p.eta.eta(from, { lat: 40.7411, lng: -74.0048 }, 'transit', new Date(Date.now() + 3600_000)));
-await run('hours', () => p.hours.hours({ name: 'Hungarian Pastry Shop', loc: { lat: 40.8036, lng: -73.9637 } }));
+await run('eta transit', () =>
+  p.eta.eta(from, { lat: 40.7411, lng: -74.0048 }, 'transit', new Date(Date.now() + 3600_000)),
+);
+await run('hours', () =>
+  p.hours.hours({ name: 'Hungarian Pastry Shop', loc: { lat: 40.8036, lng: -73.9637 } }),
+);
 await run('weather', () => p.weather.daily(from));
-await run('stay lengths', () => p.llm.stayLengths([{ id: 's1', name: 'The Met', category: 'culture', arrival: 'Sat 2:00 PM' }, { id: 's2', name: "Tom's Restaurant", category: 'food', arrival: 'Sat 5:00 PM' }], {}));
-await run('label', () => p.llm.label({ placeName: 'Pier 45', category: 'nature', context: 'sunset in 40 minutes, clear sky' }));
+await run('stay lengths', () =>
+  p.llm.stayLengths(
+    [
+      { id: 's1', name: 'The Met', category: 'culture', arrival: 'Sat 2:00 PM' },
+      { id: 's2', name: "Tom's Restaurant", category: 'food', arrival: 'Sat 5:00 PM' },
+    ],
+    {},
+  ),
+);
+await run('label', () =>
+  p.llm.label({
+    placeName: 'Pier 45',
+    category: 'nature',
+    context: 'sunset in 40 minutes, clear sky',
+  }),
+);
 await run('moderate', () => p.llm.moderate({ text: 'Best pierogi in the city, would go again' }));

@@ -25,18 +25,39 @@ describe('provider selection', () => {
 
 describe('fallbacks', () => {
   test('chain falls through a failing provider to the estimate', async () => {
-    const broken: EtaProvider = { name: 'broken', eta: async () => { throw new Error('down'); } };
+    const broken: EtaProvider = {
+      name: 'broken',
+      eta: async () => {
+        throw new Error('down');
+      },
+    };
     const logs: string[] = [];
-    const eta = await new ChainEta([broken, new EstimateEta()], (m) => logs.push(m)).eta(ORIGIN, offset(ORIGIN, 800, 0), 'walk', new Date());
+    const eta = await new ChainEta([broken, new EstimateEta()], (m) => logs.push(m)).eta(
+      ORIGIN,
+      offset(ORIGIN, 800, 0),
+      'walk',
+      new Date(),
+    );
     expect(eta).toEqual({ minutes: 13, source: 'estimate' });
     expect(logs[0]).toMatch(/broken failed/);
   });
 
   test('fake llm returns category defaults and short labels', async () => {
     const llm = new FakeLlm();
-    expect(await llm.stayLengths([{ id: 'a', name: 'Met', category: 'culture', arrival: 'Sat 2 PM' }], {})).toEqual([
-      { id: 'a', stayMin: 90, reason: 'Typical culture visit' },
-    ]);
-    expect((await llm.label({ placeName: 'A Very Long Place Name Indeed Here', category: 'food', context: '' })).split(' ').length).toBeLessThanOrEqual(6);
+    expect(
+      await llm.stayLengths(
+        [{ id: 'a', name: 'Met', category: 'culture', arrival: 'Sat 2 PM' }],
+        {},
+      ),
+    ).toEqual([{ id: 'a', stayMin: 90, reason: 'Typical culture visit' }]);
+    expect(
+      (
+        await llm.label({
+          placeName: 'A Very Long Place Name Indeed Here',
+          category: 'food',
+          context: '',
+        })
+      ).split(' ').length,
+    ).toBeLessThanOrEqual(6);
   });
 });
