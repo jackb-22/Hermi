@@ -35,7 +35,7 @@ git clone https://github.com/jackb-22/Hermi.git && cd Hermi
 sh scripts/judge-sim.sh          # builds Hermi and opens it signed in as @ava
 sh scripts/judge-sim.sh --two    # …and a second simulator as @ben, to see the social side
 ```
-It asks for the demo token once. The first build takes a few minutes. Several people testing at once? Each person or pair should use its own accounts: `sh scripts/judge-sim.sh --two --as judge1,judge2` (see [Accounts](#accounts)).
+It asks for the demo token once. This is the first line in our "Project Story" in our DevPost submission. The first build takes a few minutes. Several people testing at once? Each person or pair should use its own accounts: `sh scripts/judge-sim.sh --two --as judge1,judge2` (see [Accounts](#accounts)).
 
 In the Simulator, **Features → Location → Custom Location…** is how you "walk" between stops (coordinates in the route below). With no camera, the Simulator uses a clearly labelled sample photo.
 
