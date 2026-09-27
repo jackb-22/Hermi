@@ -19,10 +19,40 @@ export const SocialResponse = z.object({
         place: z.object({ id: IdSchema, name: z.string(), loc: LatLngSchema }),
         at: z.string(),
         planId: IdSchema.nullable().describe('Their current plan, with Join if it is shared'),
+        active: z
+          .boolean()
+          .describe(
+            'Blink this place: they are there now as far as check-ins tell (checked in within the hour, or it is the latest stop of the outing they are still on). Still never live location.',
+          ),
       }),
     )
     .describe(
-      'Friends checked in within the last 3 hours: their pixel sprite on the place. Never live location.',
+      'Friends checked in within the last 3 hours, drawn on the place. Never live location.',
+    ),
+  routes: z
+    .array(
+      z.object({
+        planId: IdSchema,
+        name: z.string(),
+        host: UserCardSchema,
+        status: z.enum(['planned', 'active', 'completed']),
+        style: z
+          .enum(['dotted', 'solid', 'mixed'])
+          .describe(
+            'planned: dotted · completed: solid · active (under way): solid through stop doneThrough, dotted after',
+          ),
+        line: z
+          .array(LatLngSchema)
+          .describe(
+            'The stops in order, to join with straight lines. Completed routes list only the stops they checked in at. Never a GPS trace.',
+          ),
+        doneThrough: z.number().int().describe('Stops checked in at, counted from the first'),
+        startAt: z.string(),
+        completedAt: z.string().nullable(),
+      }),
+    )
+    .describe(
+      "Friends' plans as lines on the Social map: shared upcoming and under-way plans, and plans they completed in the last 7 days (hidden while they are in ghost mode).",
     ),
   friendPlans: z
     .array(z.object({ plan: PlanSchema, action: z.enum(['join', 'joined', 'invited']) }))

@@ -89,7 +89,10 @@ export const MemberSchema = z.object({
   userId: IdSchema,
   name: z.string().nullable(),
   username: z.string().nullable(),
-  spriteUrl: z.string().nullable(),
+  spriteUrl: z
+    .string()
+    .nullable()
+    .describe('Deprecated, always null: everyone is the same hermit crab, bundled in the app'),
   status: MemberStatusSchema,
 });
 

@@ -19,7 +19,10 @@ export const MeSchema = z
       })
       .nullable()
       .describe('A new photo being scanned (photoUrl is still the old one) or refused'),
-    spriteUrl: z.string().nullable(),
+    spriteUrl: z
+      .string()
+      .nullable()
+      .describe('Deprecated, always null: everyone is the same hermit crab, bundled in the app'),
     verified: z.boolean(),
     campus: z.string().nullable(),
     gradYear: z.number().int().nullable(),
