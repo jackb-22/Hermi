@@ -22,7 +22,7 @@ Our demo backend runs live, with real NYC places, AI, media storage and verifica
 
 ### Option A: iOS Simulator (any Mac with Xcode, no Apple account)
 ```sh
-git clone https://github.com/jackb-22/Cairn.git && cd Cairn
+git clone https://github.com/jackb-22/Hermi.git && cd Hermi
 sh scripts/judge-sim.sh          # builds Hermi and opens it signed in as @ava
 sh scripts/judge-sim.sh --two    # …and a second simulator as @ben, to see the social side
 ```
