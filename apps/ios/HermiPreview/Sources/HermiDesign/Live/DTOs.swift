@@ -91,6 +91,17 @@ struct UserCardDTO: Decodable, Equatable, Sendable {
   var username: String
   var photoUrl: String?
   var verified: Bool?
+
+  private enum Keys: String, CodingKey { case id, name, username, photoUrl, verified }
+  /// A deleted account comes back with null name/username; show "Former user" instead of failing the list.
+  init(from decoder: Decoder) throws {
+    let c = try decoder.container(keyedBy: Keys.self)
+    id = try c.decode(String.self, forKey: .id)
+    username = (try? c.decodeIfPresent(String.self, forKey: .username)) ?? ""
+    name = (try? c.decodeIfPresent(String.self, forKey: .name)) ?? (username.isEmpty ? "Former user" : username)
+    photoUrl = try? c.decodeIfPresent(String.self, forKey: .photoUrl)
+    verified = try? c.decodeIfPresent(Bool.self, forKey: .verified)
+  }
 }
 
 /// `Post` (packages/shared/src/api/posts.ts).
@@ -173,6 +184,13 @@ struct PlanDTO: Decodable, Sendable {
     var userId: String
     var name: String
     var status: String
+    private enum Keys: String, CodingKey { case userId, name, status }
+    init(from decoder: Decoder) throws {
+      let c = try decoder.container(keyedBy: Keys.self)
+      userId = try c.decode(String.self, forKey: .userId)
+      name = (try? c.decodeIfPresent(String.self, forKey: .name)) ?? "Former user"
+      status = try c.decode(String.self, forKey: .status)
+    }
   }
   var id: String
   var name: String
