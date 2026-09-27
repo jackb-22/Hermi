@@ -6,6 +6,7 @@ xcrun swift build --product HermiDesktop --disable-sandbox
 APP="$PWD/.preview/Hermi Preview.app"
 mkdir -p "$APP/Contents/MacOS"
 cp .build/debug/HermiDesktop "$APP/Contents/MacOS/HermiDesktop"
+cp -R .build/debug/HermiPreview_HermiDesign.bundle "$APP/Contents/"
 cat > "$APP/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <plist version="1.0"><dict>

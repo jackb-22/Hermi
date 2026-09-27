@@ -7,7 +7,7 @@ final class MapCompositionTests: XCTestCase {
     XCTAssertEqual(HomePanel.allCases, [.feed, .map, .profile])
     XCTAssertEqual(state.panel, .map)
     XCTAssertNil(state.sheet)
-    XCTAssertFalse(state.showsPlan)
+    XCTAssertTrue(state.showsPlan)
     XCTAssertTrue(state.planIDs.isEmpty)
   }
 
@@ -72,4 +72,28 @@ final class MapCompositionTests: XCTestCase {
     let restored = try JSONDecoder().decode(MapPreviewState.self, from: JSONEncoder().encode(state))
     XCTAssertEqual(restored, state)
   }
+  func testGeographicDropRejectsInvalidCoordinatesAndDoesNotAddDestinations() {
+    var state = MapPreviewState()
+    state.dropGeographicPin(at: .init(latitude: .nan, longitude: 0))
+    XCTAssertNil(state.geographicDiscovery)
+    state.dropGeographicPin(at: .init(latitude: 40.8073, longitude: -73.9654))
+    XCTAssertEqual(state.nearby.map(\.id), ["cafe"])
+    XCTAssertTrue(state.planIDs.isEmpty)
+    state.selectPlace("cafe"); state.goBack()
+    XCTAssertEqual(state.sheet, .nearby)
+    state.dropGeographicPin(at: .init(latitude: 51.5, longitude: -0.1))
+    XCTAssertTrue(state.nearby.isEmpty)
+    XCTAssertTrue(state.planIDs.isEmpty)
+  }
+  func testSavedAndPlanRemainIndependentAndBothAvailableFromEmptyState() {
+    var state = MapPreviewState()
+    state.toggleSave("garden")
+    XCTAssertTrue(state.showsPlan)
+    XCTAssertTrue(state.planIDs.isEmpty)
+    state.sheet = .plan; state.selectPlace("garden"); state.goBack()
+    XCTAssertEqual(state.sheet, .plan)
+    state.addPlace("garden"); state.removePlace("garden")
+    XCTAssertEqual(state.savedIDs, ["garden"])
+  }
+
 }

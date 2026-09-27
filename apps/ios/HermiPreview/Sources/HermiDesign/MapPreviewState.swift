@@ -1,4 +1,5 @@
 import Foundation
+import CoreLocation
 
 enum HomePanel: String, CaseIterable, Codable { case feed = "Feed", map = "Map", profile = "Profile" }
 enum MapPreviewSheet: Equatable, Codable { case nearby, place(String), plan }
@@ -19,10 +20,32 @@ struct MapSamplePlace: Identifiable {
     .init(id: "court", name: "Riverside courts", category: .sports, x: 0.33, y: 0.73),
     .init(id: "music", name: "Evening jazz", category: .music, x: 0.69, y: 0.78),
   ]
+  var coordinate: GeoPoint {
+    // Explicit sample locations around Columbia; fixture names are not verified businesses.
+    let coordinates: [String: GeoPoint] = [
+      "garden": .init(latitude: 40.8078, longitude: -73.9715),
+      "cafe": .init(latitude: 40.8073, longitude: -73.9654),
+      "gallery": .init(latitude: 40.8077, longitude: -73.9625),
+      "books": .init(latitude: 40.8050, longitude: -73.9653),
+      "tea": .init(latitude: 40.8101, longitude: -73.9620),
+      "court": .init(latitude: 40.8039, longitude: -73.9708),
+      "music": .init(latitude: 40.8026, longitude: -73.9661)
+    ]
+    return coordinates[id]!
+  }
   static func find(_ id: String) -> MapSamplePlace? { all.first { $0.id == id } }
 }
 
-/// Composition preview only; coordinates are normalized illustration positions, never GPS.
+struct GeoPoint: Codable, Equatable {
+  var latitude: Double
+  var longitude: Double
+  var isValid: Bool { latitude.isFinite && longitude.isFinite && abs(latitude) <= 85 && abs(longitude) <= 180 }
+  func distance(to other: GeoPoint) -> Double {
+    CLLocation(latitude: latitude, longitude: longitude).distance(from: CLLocation(latitude: other.latitude, longitude: other.longitude))
+  }
+}
+
+/// Product data remains local fixtures; map projection and basemap are geographic.
 struct MapPreviewState: Codable, Equatable {
   var panel: HomePanel = .map
   var category: HermiCategory = .food
@@ -30,12 +53,15 @@ struct MapPreviewState: Codable, Equatable {
   var social = false
   var sheet: MapPreviewSheet?
   var returnSheet: MapPreviewSheet?
-  var discovery: CGPoint?
+  var discovery: CGPoint? // Legacy illustration state, retained only for migration/tests.
+  var geographicDiscovery: GeoPoint?
   var planIDs: [String] = []
   var savedIDs: Set<String> = []
 
-  var showsPlan: Bool { discovery != nil || !planIDs.isEmpty }
-  var nearby: [MapSamplePlace] { MapSamplePlace.all.filter { !filterEnabled || $0.category == category } }
+  var showsPlan: Bool { true }
+  var nearby: [MapSamplePlace] { MapSamplePlace.all.filter { place in
+    (!filterEnabled || place.category == category) && (geographicDiscovery.map { $0.distance(to: place.coordinate) <= 1500 } ?? true)
+  } }
 
   mutating func switchPanel(_ panel: HomePanel) { self.panel = panel; sheet = nil; returnSheet = nil }
   mutating func cycleCategory(_ delta: Int) {
@@ -49,9 +75,15 @@ struct MapPreviewState: Codable, Equatable {
     filterEnabled = true
     sheet = .nearby
   }
+  mutating func dropGeographicPin(at point: GeoPoint) {
+    guard point.isValid else { return }
+    geographicDiscovery = point
+    filterEnabled = true
+    sheet = .nearby
+  }
   mutating func selectPlace(_ id: String) {
     guard MapSamplePlace.find(id) != nil else { return }
-    returnSheet = sheet == .plan ? .plan : (discovery == nil ? nil : .nearby)
+    returnSheet = sheet == .plan ? .plan : (discovery == nil && geographicDiscovery == nil ? nil : .nearby)
     sheet = .place(id)
   }
   mutating func goBack() { sheet = returnSheet; returnSheet = nil }

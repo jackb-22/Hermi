@@ -9,7 +9,7 @@ let package = Package(
     .executable(name: "HermiDesktop", targets: ["HermiDesktop"]),
   ],
   targets: [
-    .target(name: "HermiDesign"),
+    .target(name: "HermiDesign", resources: [.copy("Resources")]),
     .executableTarget(name: "HermiDesktop", dependencies: ["HermiDesign"]),
     .testTarget(name: "HermiDesignTests", dependencies: ["HermiDesign"]),
   ],
