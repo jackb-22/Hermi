@@ -184,4 +184,22 @@ final class LiveContractTests: XCTestCase {
     XCTAssertEqual(open.hours?.first, .init(day: 1, open: "09:00", close: "17:00"))
     XCTAssertEqual(open.reviewSummary, "Cozy and quiet.")
   }
+
+  func testMapTilesMatchSlippyMathAndStayInsideTheCity() throws {
+    let times = PlaceCatalog.tile(latitude: 40.7580, longitude: -73.9855, zoom: 15)
+    XCTAssertEqual(times.x, 9649); XCTAssertEqual(times.y, 12314)
+    let box = try XCTUnwrap(PlaceCatalog.tileBounds("15/9649/12314"))
+    XCTAssertTrue(box[0] <= -73.9855 && -73.9855 <= box[2] && box[1] <= 40.7580 && 40.7580 <= box[3])
+    let screen = [-73.995, 40.750, -73.975, 40.766]
+    let visible = PlaceCatalog.tiles(covering: screen, zoom: 15, ring: 0)
+    let shown = PlaceCatalog.tiles(covering: screen, zoom: 15, ring: 1)
+    XCTAssertTrue(visible.contains("15/9649/12314"))
+    XCTAssertTrue(Set(visible).isSubset(of: Set(shown)))
+    XCTAssertGreaterThan(shown.count, visible.count)
+    XCTAssertTrue(PlaceCatalog.tiles(covering: [-75.5, 39.0, -75.0, 39.5], zoom: 15, ring: 1).isEmpty, "outside NYC")
+    XCTAssertEqual(PlaceCatalog.tileZoom(forMapZoom: 15.9), 15)
+    XCTAssertEqual(PlaceCatalog.tileZoom(forMapZoom: 3), 10)
+    XCTAssertEqual(PlaceCatalog.tileZoom(forMapZoom: 19), 16)
+    XCTAssertNil(PlaceCatalog.tileBounds("nope"))
+  }
 }

@@ -113,6 +113,21 @@ pnpm exec tsx --env-file=../../.env.demo scripts/import-overture.ts data/nyc_pla
 - [ ] Bookmark a post in the sheet: it toggles and appears in Saved (Plan → bookmark) during this session. It won't survive a relaunch until Step 5.
 - [ ] Sample mode (Disconnected): the sample places still show their 3 sample posts with placeholders, and no detail block.
 
+### Step 4b: smoother map loading
+- [ ] `check.sh` passes: 74 tests.
+- [ ] Pan slowly across Midtown: dots fill in tile by tile **while you're still dragging**, rather than all at once after you stop.
+- [ ] Pan back to where you started: the dots are **already there**, with no reload.
+- [ ] Short pans show dots at the screen edges right away, because a ring of tiles around the screen is preloaded.
+- [ ] Zooming in or out loads a density that fits the new zoom. Pins and citywide behave as in 3c.
+- [ ] Photos: the seeded posts are test patterns (coloured bars), not an app bug. Real photos need a reseed with `--media-dir` (see below).
+
+**Real seed photos (Jack, laptop):** put up to 20 photos (jpg, png, heic; mp4 or mov also work as clips) in a folder, then:
+```sh
+cd apps/api
+pnpm exec tsx --env-file=../../.env.demo scripts/seed.ts --reset --demo jack,jenny --media-dir ~/hermi-photos
+```
+Photos are assigned to seeded check-in places at random, so general NYC or campus shots work best.
+
 ---
 
 ## Deferred / deviations log

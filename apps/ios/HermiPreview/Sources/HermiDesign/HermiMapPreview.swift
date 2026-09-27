@@ -284,9 +284,9 @@ public struct HermiMapPreview: View {
       case "moving": beginMapGesture()
       case "stopped", "error":
         endMapGesture()
-        if let bounds = event["bounds"] as? [Double] { PlaceCatalog.shared.viewportChanged(bounds) }
+        if let bounds = event["bounds"] as? [Double] { PlaceCatalog.shared.viewportChanged(bounds, zoom: event["zoom"] as? Double) }
       case "viewport":
-        if let bounds = event["bounds"] as? [Double] { PlaceCatalog.shared.viewportChanged(bounds) }
+        if let bounds = event["bounds"] as? [Double] { PlaceCatalog.shared.viewportChanged(bounds, zoom: event["zoom"] as? Double) }
       case "place": if let id = event["id"] as? String { editingPinID = nil; state.selectPlace(id); panelLevel = .compact }
       case "discovery":
         guard let raw = event["id"] as? String, let id = UUID(uuidString: raw), state.pin(id: id) != nil else { return }

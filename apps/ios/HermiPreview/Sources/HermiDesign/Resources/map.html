@@ -25,7 +25,7 @@ html,body,#map{margin:0;width:100%;height:100%;overflow:hidden;background:var(--
 @media(prefers-reduced-motion:reduce){#pin-editor{transition:none}.friend.current svg{width:32px;height:32px;animation:none}}
 </style></head><body><div id="map"></div><button id="pin-remove" aria-label="Remove discovery pin"><svg viewBox="0 0 9 9" aria-hidden="true"><path fill="currentColor" d="M0 0h2v1h1v1h1v1h1V2h1V1h1V0h2v2H8v1H7v1H6v1h1v1h1v1h1v2H7V8H6V7H5V6H4v1H3v1H2v1H0V7h1V6h1V5h1V4H2V3H1V2H0z"/></svg></button><div id="pin-editor"><input id="pin-radius" aria-label="Geographic radius in miles" type="range" min="0" max="1" step="0.01" value="0.5"><output id="radius-value">1 mi</output></div><div class="notice" style="display:none"></div><div id="error">Map unavailable. Check your connection.<button onclick="location.reload()">Retry map</button></div><script src="maplibre-gl.js"></script><script>
 const send=body=>window.webkit?.messageHandlers.hermi.postMessage(body);
-let map, pending={},markers=[],loaded=false,placeSignature="",socialSignature="",discoveryMarker=null,draggingPin=false,revealDiscovery=false,lastBottomInset=0;
+let map, pending={},markers=[],loaded=false,placeSignature="",socialSignature="",lastViewportSent=0,discoveryMarker=null,draggingPin=false,revealDiscovery=false,lastBottomInset=0;
 const discoveryMarkers=new Map(), categoryRepresentatives=new Map();
 const empty={type:'FeatureCollection',features:[]};
 const error=document.getElementById('error');
@@ -49,7 +49,7 @@ map.addLayer({id:'social-loved',type:'line',source:'social-routes',filter:['==',
 map.addSource('adventure',{type:'geojson',data:empty});map.addLayer({id:'adventure',type:'line',source:'adventure',paint:{'line-color':palette.green,'line-width':4,'line-dasharray':[2,1]}});map.addSource('discovery-radius',{type:'geojson',data:empty});map.addLayer({id:'discovery-radius-fill',type:'fill',source:'discovery-radius',paint:{'fill-color':palette.lime,'fill-opacity':0.13}});map.addLayer({id:'discovery-radius-line',type:'line',source:'discovery-radius',paint:{'line-color':palette.green,'line-width':2,'line-dasharray':[3,2]}});map.addSource('places',{type:'geojson',data:empty});map.addLayer({id:'places',type:'symbol',source:'places',layout:{'icon-image':['get','icon'],'icon-allow-overlap':true,'icon-ignore-placement':true}});renderHermi(pending);send({type:'ready'});send({type:'viewport',...viewport()})});
 map.on('error',()=>{error.style.display='block';send({type:'error'})});
 map.on('idle',()=>{if(map.areTilesLoaded()){error.style.display='none';send({type:'ready'})}});
-map.on('move',()=>{positionEditor();updateCategoryIndicators()});
+map.on('move',()=>{positionEditor();updateCategoryIndicators();const now=Date.now();if(now-lastViewportSent>250){lastViewportSent=now;send({type:'viewport',...viewport()})}});
 map.on('click',e=>{if(draggingPin)return;const hit=e&&e.point?placeAt(e.point):null;if(hit){send({type:'place',id:hit});return}{pending.editingDiscovery=false;positionEditor();map.getSource('discovery-radius').setData(empty);send({type:'mapTap'})}});
 map.on('movestart',()=>send({type:'moving'}));map.on('moveend',()=>send({type:'stopped',...viewport()}));
 window.addEventListener('resize',()=>map.resize());

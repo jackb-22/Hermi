@@ -10,8 +10,11 @@ final class PlaceCatalog {
 
   /// Live places seen this run (plus persisted referenced ones), by ID.
   private(set) var cache: [String: MapSamplePlace]
-  /// Latest map-area result.
-  private(set) var viewportIDs: [String] = []
+  /// General discovery is loaded in fixed map tiles ("z/x/y" → place IDs), each fetched once per run,
+  /// so panning back is instant and new areas fill in tile by tile.
+  private(set) var tilePlaces: [String: [String]] = [:]
+  /// Tiles on screen plus a one-tile ring around it (what the map shows).
+  private(set) var shownTiles: [String] = []
   /// Latest results for discovery pins and the citywide category (see `discoveryChanged`).
   private(set) var filterIDs: [String] = []
   private(set) var loading = false
@@ -20,15 +23,17 @@ final class PlaceCatalog {
   private(set) var posts: [String: PlaceFeedPost] = [:]
 
   @ObservationIgnored private var viewportTask: Task<Void, Never>?
+  @ObservationIgnored private var tileTasks: [String: Task<Void, Never>] = [:]
   @ObservationIgnored private var lastBounds: [Double]?
+  @ObservationIgnored private var lastZoom: Double = 15
   @ObservationIgnored private var filterTask: Task<Void, Never>?
   @ObservationIgnored private var query = DiscoveryQuery()
   @ObservationIgnored private var persistedIDs: Set<String> = []
   private let defaults: UserDefaults
   private static let storageKey = "hermi.live.places.v1"
 
-  /// Viewport grid (n×n requests) and places per category per cell.
-  static let viewportGrid = 3, viewportLimit = 18
+  /// Places per category per map tile for general discovery.
+  static let tileLimit = 18
   /// Citywide category: all of NYC in a grid, up to `citywideLimit` per cell.
   static let citywideBounds: [Double] = [-74.26, 40.49, -73.70, 40.92]
   static let citywideGrid = 4, citywideLimit = 100
@@ -47,7 +52,7 @@ final class PlaceCatalog {
   var discoverable: [MapSamplePlace] {
     guard LiveSession.shared.isLive else { return MapSamplePlace.fixtures }
     // MapPreviewState.matchingPlaces applies category/radius and removes duplicates.
-    return (filterIDs + viewportIDs).compactMap { cache[$0] }
+    return (filterIDs + shownTiles.flatMap { tilePlaces[$0] ?? [] }).compactMap { cache[$0] }
   }
   var cached: [MapSamplePlace] { cache.values.sorted { $0.id < $1.id } }
 
@@ -72,19 +77,97 @@ final class PlaceCatalog {
     if let data = try? JSONEncoder().encode(places) { defaults.set(data, forKey: PlaceCatalog.storageKey) }
   }
 
-  /// Map finished moving. Bounds are [west, south, east, north]. Debounced; superseded requests are dropped.
+  /// Map moved (sent while panning, throttled, and when it stops). Bounds are [west, south, east, north].
   @MainActor
-  func viewportChanged(_ bounds: [Double]) {
+  func viewportChanged(_ bounds: [Double], zoom: Double?) {
     guard bounds.count == 4, bounds.allSatisfy({ $0.isFinite }), bounds[0] < bounds[2], bounds[1] < bounds[3] else { return }
     lastBounds = bounds
-    refreshViewport(debounce: true)
+    if let zoom, zoom.isFinite { lastZoom = zoom }
+    viewportTask?.cancel()
+    viewportTask = Task { @MainActor in
+      do { try await Task.sleep(for: .milliseconds(120)) } catch { return }
+      loadTiles()
+    }
   }
 
   /// Refetch everything (e.g. right after connecting).
   @MainActor
   func refresh() {
-    refreshViewport(debounce: false)
+    for task in tileTasks.values { task.cancel() }
+    tileTasks = [:]; tilePlaces = [:]
+    loadTiles()
     refreshFilters(debounce: false)
+  }
+
+  @MainActor
+  private func loadTiles() {
+    guard let bounds = lastBounds, let api = LiveSession.shared.api else { return }
+    let z = PlaceCatalog.tileZoom(forMapZoom: lastZoom)
+    let visible = PlaceCatalog.tiles(covering: bounds, zoom: z, ring: 0)
+    let shown = PlaceCatalog.tiles(covering: bounds, zoom: z, ring: 1)
+    if shown != shownTiles { shownTiles = shown }
+    // Drop requests for tiles that scrolled well away; keep ones still in view.
+    for (key, task) in tileTasks where !shown.contains(key) { task.cancel(); tileTasks[key] = nil }
+    // On-screen tiles first, then the prefetch ring.
+    for key in visible + shown.filter({ !visible.contains($0) }) where tilePlaces[key] == nil && tileTasks[key] == nil {
+      guard let box = PlaceCatalog.tileBounds(key) else { continue }
+      tileTasks[key] = Task { @MainActor in
+        defer {
+          // A cancelled task was already replaced or dropped; only a finished one clears its slot.
+          if !Task.isCancelled { tileTasks[key] = nil; loading = !tileTasks.isEmpty }
+        }
+        do {
+          let places = try await PlaceCatalog.fetch(api, [PlaceRequest(bbox: box, category: "all", limit: PlaceCatalog.tileLimit)])
+          guard !Task.isCancelled else { return }
+          upsert(places)
+          tilePlaces[key] = places.map(\.id)
+          lastError = nil
+        } catch {
+          guard !Task.isCancelled else { return }
+          lastError = error.localizedDescription
+        }
+      }
+    }
+    loading = !tileTasks.isEmpty
+  }
+
+  /// Tile zoom follows the map so each screen holds roughly 8–15 tiles; clamped to the city's useful range.
+  static func tileZoom(forMapZoom zoom: Double) -> Int { min(16, max(10, Int(zoom.rounded(.down)))) }
+
+  /// Slippy-map tiles ("z/x/y") covering the bounds, plus `ring` tiles on every side, clipped to NYC.
+  static func tiles(covering bounds: [Double], zoom z: Int, ring: Int) -> [String] {
+    let city = citywideBounds
+    let west = max(bounds[0], city[0]), south = max(bounds[1], city[1])
+    let east = min(bounds[2], city[2]), north = min(bounds[3], city[3])
+    guard west < east, south < north else { return [] }
+    let (x0, y0) = tile(latitude: north, longitude: west, zoom: z)
+    let (x1, y1) = tile(latitude: south, longitude: east, zoom: z)
+    let (cx0, cy0) = tile(latitude: city[3], longitude: city[0], zoom: z)
+    let (cx1, cy1) = tile(latitude: city[1], longitude: city[2], zoom: z)
+    let rows = (low: max(cy0, y0 - ring), high: min(cy1, y1 + ring))
+    let columns = (low: max(cx0, x0 - ring), high: min(cx1, x1 + ring))
+    guard rows.low <= rows.high, columns.low <= columns.high else { return [] }
+    var keys: [String] = []
+    for y in rows.low...rows.high {
+      for x in columns.low...columns.high { keys.append("\(z)/\(x)/\(y)") }
+    }
+    return keys
+  }
+
+  static func tile(latitude: Double, longitude: Double, zoom z: Int) -> (x: Int, y: Int) {
+    let n = pow(2, Double(z)), lat = latitude * .pi / 180
+    let x = Int(((longitude + 180) / 360 * n).rounded(.down))
+    let y = Int(((1 - log(tan(lat) + 1 / cos(lat)) / .pi) / 2 * n).rounded(.down))
+    return (x, y)
+  }
+
+  /// [west, south, east, north] of a "z/x/y" tile key.
+  static func tileBounds(_ key: String) -> [Double]? {
+    let parts = key.split(separator: "/").compactMap { Int($0) }
+    guard parts.count == 3 else { return nil }
+    let n = pow(2, Double(parts[0])), x = Double(parts[1]), y = Double(parts[2])
+    func lat(_ y: Double) -> Double { atan(sinh(.pi * (1 - 2 * y / n))) * 180 / .pi }
+    return [x / n * 360 - 180, lat(y + 1), (x + 1) / n * 360 - 180, lat(y)]
   }
 
   /// Discovery pins or the citywide category changed.
@@ -93,32 +176,6 @@ final class PlaceCatalog {
     guard next != query else { return }
     query = next
     refreshFilters(debounce: true)
-  }
-
-  @MainActor
-  private func refreshViewport(debounce: Bool) {
-    viewportTask?.cancel()
-    guard let bounds = lastBounds, let api = LiveSession.shared.api else { return }
-    let requests = PlaceCatalog.grid(bounds, PlaceCatalog.viewportGrid).map {
-      PlaceRequest(bbox: $0, category: "all", limit: PlaceCatalog.viewportLimit)
-    }
-    viewportTask = Task { @MainActor in
-      if debounce {
-        do { try await Task.sleep(for: .milliseconds(400)) } catch { return }
-      }
-      loading = true
-      defer { loading = false }
-      do {
-        let places = try await PlaceCatalog.fetch(api, requests)
-        guard !Task.isCancelled else { return }
-        upsert(places)
-        viewportIDs = places.map(\.id)
-        lastError = nil
-      } catch {
-        guard !Task.isCancelled else { return }
-        lastError = error.localizedDescription
-      }
-    }
   }
 
   @MainActor
