@@ -20,7 +20,7 @@ Social apps reward staying in: posting, scrolling and collecting likes from home
 
 ## Try Hermi
 
-> **The backend is already running.** You don't need to start, install or configure any server. Our API, database and media storage are live right now, with real NYC places, AI, check-in verification and uploads, at an HTTPS address the app is already built to use. It stays up throughout judging. All you need is the app and the **demo token** from our submission's testing instructions. The "Run the backend yourself" section at the bottom is only for developers.
+> **The backend is already running.** You don't need to start, install or configure any server. Our API, database and media storage are live right now, with real NYC places, AI, check-in verification and uploads, at an HTTPS address the app is already built to use. It stays up throughout judging. All you need is the app and the **demo token** from our submission's Project Story! It is the first line in that section on the DevPost. The "Run the backend yourself" section at the bottom is only for developers.
 
 > **Strongly recommended: use a real iPhone** (Option B or C). Hermi is built for touch: swiping the category pin, holding and dragging it onto the map, and pinch-zooming all feel natural on a phone and clumsy with a mouse.
 >
