@@ -159,9 +159,14 @@ describe('POST /plans/:id/schedule', () => {
     const { hours, eta, llm } = saved;
     Object.assign(t.ctx.providers, {
       hours: { name: 'slow', hours: async (p: never) => (await wait(150), hours.hours(p)) },
-      eta: { name: 'slow', eta: async (...a: never[]) => (await wait(100), eta.eta(...a)) },
+      eta: {
+        name: 'slow',
+        eta: async (...a: Parameters<EtaProvider['eta']>) => (await wait(100), eta.eta(...a)),
+      },
       llm: Object.assign(Object.create(llm), {
-        stayLengths: async (...a: never[]) => (await wait(400), llm.stayLengths(...a)),
+        stayLengths: async (...a: Parameters<typeof llm.stayLengths>) => (
+          await wait(400), llm.stayLengths(...a)
+        ),
       }),
     });
     const [far] = await insertPlaces(t.ctx.db, [
