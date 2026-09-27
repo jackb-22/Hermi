@@ -25,7 +25,7 @@ html,body,#map{margin:0;width:100%;height:100%;overflow:hidden;background:var(--
 @media(prefers-reduced-motion:reduce){#pin-editor{transition:none}.friend.current svg{width:32px;height:32px;animation:none}}
 </style></head><body><div id="map"></div><button id="pin-remove" aria-label="Remove discovery pin"><svg viewBox="0 0 9 9" aria-hidden="true"><path fill="currentColor" d="M0 0h2v1h1v1h1v1h1V2h1V1h1V0h2v2H8v1H7v1H6v1h1v1h1v1h1v2H7V8H6V7H5V6H4v1H3v1H2v1H0V7h1V6h1V5h1V4H2V3H1V2H0z"/></svg></button><div id="pin-editor"><input id="pin-radius" aria-label="Geographic radius in miles" type="range" min="0" max="1" step="0.01" value="0.5"><output id="radius-value">1 mi</output></div><div class="notice" style="display:none"></div><div id="error">Map unavailable. Check your connection.<button onclick="location.reload()">Retry map</button></div><script src="maplibre-gl.js"></script><script>
 const send=body=>window.webkit?.messageHandlers.hermi.postMessage(body);
-let map, pending={},markers=[],loaded=false,placeSignature="",discoveryMarker=null,draggingPin=false,revealDiscovery=false,lastBottomInset=0;
+let map, pending={},markers=[],loaded=false,placeSignature="",socialSignature="",discoveryMarker=null,draggingPin=false,revealDiscovery=false,lastBottomInset=0;
 const discoveryMarkers=new Map(), categoryRepresentatives=new Map();
 const empty={type:'FeatureCollection',features:[]};
 const error=document.getElementById('error');
@@ -44,14 +44,29 @@ map.addControl(new maplibregl.AttributionControl({compact:true}),'bottom-right')
 map.on('load',()=>{loaded=true;error.style.display='none';map.addSource('social-routes',{type:'geojson',data:empty});
 map.addLayer({id:'social-current',type:'line',source:'social-routes',filter:['==','kind','current'],paint:{'line-color':palette.green,'line-width':4,'line-dasharray':[1,2]}});
 map.addLayer({id:'social-loved',type:'line',source:'social-routes',filter:['==','kind','loved'],paint:{'line-color':'#D66C9B','line-width':4}});
-map.addSource('adventure',{type:'geojson',data:empty});map.addLayer({id:'adventure',type:'line',source:'adventure',paint:{'line-color':palette.green,'line-width':4,'line-dasharray':[2,1]}});map.addSource('discovery-radius',{type:'geojson',data:empty});map.addLayer({id:'discovery-radius-fill',type:'fill',source:'discovery-radius',paint:{'fill-color':palette.lime,'fill-opacity':0.13}});map.addLayer({id:'discovery-radius-line',type:'line',source:'discovery-radius',paint:{'line-color':palette.green,'line-width':2,'line-dasharray':[3,2]}});renderHermi(pending);send({type:'ready'});send({type:'viewport',...viewport()})});
+map.addSource('adventure',{type:'geojson',data:empty});map.addLayer({id:'adventure',type:'line',source:'adventure',paint:{'line-color':palette.green,'line-width':4,'line-dasharray':[2,1]}});map.addSource('discovery-radius',{type:'geojson',data:empty});map.addLayer({id:'discovery-radius-fill',type:'fill',source:'discovery-radius',paint:{'fill-color':palette.lime,'fill-opacity':0.13}});map.addLayer({id:'discovery-radius-line',type:'line',source:'discovery-radius',paint:{'line-color':palette.green,'line-width':2,'line-dasharray':[3,2]}});map.addSource('places',{type:'geojson',data:empty});map.addLayer({id:'places',type:'symbol',source:'places',layout:{'icon-image':['get','icon'],'icon-allow-overlap':true,'icon-ignore-placement':true}});renderHermi(pending);send({type:'ready'});send({type:'viewport',...viewport()})});
 map.on('error',()=>{error.style.display='block';send({type:'error'})});
 map.on('idle',()=>{if(map.areTilesLoaded()){error.style.display='none';send({type:'ready'})}});
 map.on('move',()=>{positionEditor();updateCategoryIndicators()});
-map.on('click',()=>{if(!draggingPin){pending.editingDiscovery=false;positionEditor();map.getSource('discovery-radius').setData(empty);send({type:'mapTap'})}});
+map.on('click',e=>{if(draggingPin)return;const hit=e&&e.point?placeAt(e.point):null;if(hit){send({type:'place',id:hit});return}{pending.editingDiscovery=false;positionEditor();map.getSource('discovery-radius').setData(empty);send({type:'mapTap'})}});
 map.on('movestart',()=>send({type:'moving'}));map.on('moveend',()=>send({type:'stopped',...viewport()}));
 window.addEventListener('resize',()=>map.resize());
 }catch(e){error.style.display='block';send({type:'error'})}
+// Place dots are one WebGL symbol layer (thousands of points); each colour gets a pixel image with an ink edge.
+const DOT=['.IIII.','IccccI','IccccI','IccccI','IccccI','.IIII.'];
+function rgb(hex){const n=parseInt(String(hex).slice(1),16);return [n>>16&255,n>>8&255,n&255]}
+function ensureDot(color){
+ const id='dot-'+color;if(map.hasImage(id))return id;
+ const size=DOT.length,data=new Uint8Array(size*size*4),c=rgb(color),ink=rgb(palette.ink);
+ DOT.forEach((row,y)=>[...row].forEach((px,x)=>{if(px==='.')return;const v=px==='I'?ink:c,i=(y*size+x)*4;data[i]=v[0];data[i+1]=v[1];data[i+2]=v[2];data[i+3]=255}));
+ map.addImage(id,{width:size,height:size,data},{pixelRatio:0.5});return id;
+}
+function placeAt(point){
+ const r=16,found=map.queryRenderedFeatures([[point.x-r,point.y-r],[point.x+r,point.y+r]],{layers:['places']})||[];
+ let best=null,bestD=Infinity;
+ for(const f of found){const c=f.geometry.coordinates,p=map.project({lng:c[0],lat:c[1]}),d=Math.hypot(p.x-point.x,p.y-point.y);if(d<bestD){bestD=d;best=f.properties.id}}
+ return best;
+}
 // Visible area for place queries: bounds [west,south,east,north], zoom.
 function viewport(){const b=map.getBounds();return {bounds:[b.getWest(),b.getSouth(),b.getEast(),b.getNorth()],zoom:map.getZoom()}}
 function pin(color, name, rows){
@@ -162,10 +177,14 @@ function renderDiscovery(){
 window.renderHermi=data=>{pending=data;if(!loaded)return;
  document.documentElement.className=data.reduceMotion?'reduce-motion':'';
  map.getSource('social-routes').setData({type:'FeatureCollection',features:data.social?(data.socialRoutes||[]):[]});
- const signature=JSON.stringify([data.places,data.social,data.socialMarkers]);
- if(signature!==placeSignature){
-  placeSignature=signature;markers.forEach(m=>m.remove());markers=[];
-  for(const p of data.places||[]){const el=document.createElement('button');el.className='recommendation';el.setAttribute('aria-label',p.name);const dot=document.createElement('span');dot.style.background=p.color;el.append(dot);el.onclick=e=>{e.stopPropagation();send({type:'place',id:p.id})};markers.push(new maplibregl.Marker({element:el,anchor:'center'}).setLngLat([p.lng,p.lat]).addTo(map))}
+ const places=data.places||[], placeSig=JSON.stringify(places);
+ if(placeSig!==placeSignature){
+  placeSignature=placeSig;
+  map.getSource('places').setData({type:'FeatureCollection',features:places.map(p=>({type:'Feature',properties:{id:p.id,name:p.name,icon:ensureDot(p.color)},geometry:{type:'Point',coordinates:[p.lng,p.lat]}}))});
+ }
+ const signature=JSON.stringify([data.social,data.socialMarkers]);
+ if(signature!==socialSignature){
+  socialSignature=signature;markers.forEach(m=>m.remove());markers=[];
   if(data.social){for(const item of data.socialMarkers||[]){
    const el=document.createElement('button');el.className='friend '+item.kind;el.setAttribute('aria-label',item.name);
    const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 16 16');svg.setAttribute('aria-hidden','true');

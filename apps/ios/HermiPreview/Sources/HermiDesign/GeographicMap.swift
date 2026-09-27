@@ -40,7 +40,7 @@ struct GeographicMap: View {
       "revision": revision,
       "bottomInset": bottomInset,
       "places": adventure || !showsPlaces ? [] : state.nearby.map { place -> [String: Any] in
-        ["rows": PinArtwork.rows(for: place.category), "id": place.id, "name": (place.isLive ? "" : "Sample: ") + place.name, "color": PinArtwork.hex(place.category), "lng": place.coordinate.longitude, "lat": place.coordinate.latitude]
+        ["id": place.id, "name": (place.isLive ? "" : "Sample: ") + place.name, "color": PinArtwork.hex(place.category), "lng": place.coordinate.longitude, "lat": place.coordinate.latitude]
       },
       "social": state.social && !adventure && showsPlaces,
       "socialMarkers": SocialMapPreview.markers(enabled: state.social && !adventure && showsPlaces),

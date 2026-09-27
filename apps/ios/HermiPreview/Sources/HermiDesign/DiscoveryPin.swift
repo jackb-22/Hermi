@@ -5,6 +5,8 @@ struct DiscoveryPin: Identifiable, Codable, Equatable {
   var category: HermiCategory
   var coordinate: GeoPoint
   var radiusMiles: Double = 1
+  /// Radius for a newly dropped pin (user amendment 2026-09-27: smaller than the old 1-mile start).
+  static let initialRadiusMiles = 0.25
   var radiusMeters: Double { radiusMiles * 1609.344 }
   static func miles(at fraction: Double) -> Double {
     pow(40, min(1, max(0, fraction))) * 0.1

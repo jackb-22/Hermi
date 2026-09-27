@@ -140,7 +140,7 @@ struct MapPreviewState: Codable, Equatable {
   }
   @discardableResult mutating func dropGeographicPin(at point: GeoPoint) -> Bool {
     guard NYCLandMask.shared.allows(point) else { return false }
-    discoveryPins.append(DiscoveryPin(category: category, coordinate: point))
+    discoveryPins.append(DiscoveryPin(category: category, coordinate: point, radiusMiles: DiscoveryPin.initialRadiusMiles))
     sheet = .nearby
     return true
   }

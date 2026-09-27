@@ -38,7 +38,7 @@ enum HermiPalette {
   static var mapColors: [String: String] {
     ["ink": hex(inkRGB), "paper": hex(paperRGB), "green": hex(greenRGB),
      "lime": hex(limeRGB), "lake": hex(lakeRGB), "coral": hex(coralRGB),
-     "land": "#ECEDD9", "cover": "#C4DAB0", "parks": "#AED095",
+     "land": "#ECEDD9", "cover": "#9DBF84", "parks": "#5B8C4A",
      "buildings": "#D2D9BE", "paths": "#739D69"]
   }
 }

@@ -2,14 +2,15 @@ import Foundation
 import Observation
 
 /// Places known to the app. Sample mode: the fixtures. Live mode: whatever `/v1/places` returned for the
-/// current map area, plus a persisted cache so saved/plan IDs still resolve before login restores at launch.
+/// visible map, the discovery pins and the citywide category. Places referenced by plans/saved items are
+/// persisted so their IDs still resolve before login restores at launch.
 @Observable
 final class PlaceCatalog {
   static let shared = PlaceCatalog()
 
-  /// Live places ever seen, by ID (persisted).
+  /// Live places seen this run (plus persisted referenced ones), by ID.
   private(set) var cache: [String: MapSamplePlace]
-  /// Latest map-area result, in server rank order.
+  /// Latest map-area result.
   private(set) var viewportIDs: [String] = []
   /// Latest results for discovery pins and the citywide category (see `discoveryChanged`).
   private(set) var filterIDs: [String] = []
@@ -20,8 +21,15 @@ final class PlaceCatalog {
   @ObservationIgnored private var lastBounds: [Double]?
   @ObservationIgnored private var filterTask: Task<Void, Never>?
   @ObservationIgnored private var query = DiscoveryQuery()
+  @ObservationIgnored private var persistedIDs: Set<String> = []
   private let defaults: UserDefaults
   private static let storageKey = "hermi.live.places.v1"
+
+  /// Viewport grid (n×n requests) and places per category per cell.
+  static let viewportGrid = 3, viewportLimit = 30
+  /// Citywide category: all of NYC in a grid, up to `citywideLimit` per cell.
+  static let citywideBounds: [Double] = [-74.26, 40.49, -73.70, 40.92]
+  static let citywideGrid = 4, citywideLimit = 100
 
   init(defaults: UserDefaults = .standard) {
     self.defaults = defaults
@@ -31,6 +39,7 @@ final class PlaceCatalog {
     } else {
       cache = [:]
     }
+    persistedIDs = Set(cache.keys)
   }
 
   var discoverable: [MapSamplePlace] {
@@ -45,9 +54,16 @@ final class PlaceCatalog {
   }
 
   func upsert(_ places: [MapSamplePlace]) {
-    guard !places.isEmpty else { return }
     for place in places { cache[place.id] = place }
-    if let data = try? JSONEncoder().encode(Array(cache.values)) { defaults.set(data, forKey: PlaceCatalog.storageKey) }
+  }
+
+  /// Keep only places the user's plans/saved items point at on disk (the cache can hold thousands).
+  func persist(referenced ids: Set<String>) {
+    let keep = ids.filter { cache[$0] != nil }
+    guard keep != persistedIDs else { return }
+    persistedIDs = keep
+    let places = keep.sorted().compactMap { cache[$0] }
+    if let data = try? JSONEncoder().encode(places) { defaults.set(data, forKey: PlaceCatalog.storageKey) }
   }
 
   /// Map finished moving. Bounds are [west, south, east, north]. Debounced; superseded requests are dropped.
@@ -56,7 +72,6 @@ final class PlaceCatalog {
     guard bounds.count == 4, bounds.allSatisfy({ $0.isFinite }), bounds[0] < bounds[2], bounds[1] < bounds[3] else { return }
     lastBounds = bounds
     refreshViewport(debounce: true)
-    if query.citywide != nil { refreshFilters(debounce: true) }
   }
 
   /// Refetch everything (e.g. right after connecting).
@@ -75,66 +90,21 @@ final class PlaceCatalog {
   }
 
   @MainActor
-  private func refreshFilters(debounce: Bool) {
-    filterTask?.cancel()
-    var requests: [(bbox: [Double], category: HermiCategory)] = query.pins.map {
-      (PlaceCatalog.bbox(latitude: $0.latitude, longitude: $0.longitude, radiusMeters: $0.radiusMeters), $0.category)
-    }
-    if let citywide = query.citywide, let bounds = lastBounds { requests.append((bounds, citywide)) }
-    guard !requests.isEmpty else { filterIDs = []; return }
-    guard let api = LiveSession.shared.api else { return }
-    let batch = requests
-    filterTask = Task { @MainActor in
-      if debounce {
-        do { try await Task.sleep(for: .milliseconds(300)) } catch { return }
-      }
-      do {
-        let results = try await withThrowingTaskGroup(of: (Int, [MapSamplePlace]).self, returning: [MapSamplePlace].self) { group in
-          for (index, request) in batch.enumerated() {
-            group.addTask {
-              let bbox = request.bbox.map { String(format: "%.5f", $0) }.joined(separator: ",")
-              let response: PlacesResponseDTO = try await api.send("GET", "/places",
-                query: ["bbox": bbox, "cat": request.category.serverName, "limit": "100"])
-              return (index, response.items.compactMap(\.place))
-            }
-          }
-          var ordered = [[MapSamplePlace]](repeating: [], count: batch.count)
-          for try await (index, places) in group { ordered[index] = places }
-          return ordered.flatMap { $0 }
-        }
-        guard !Task.isCancelled else { return }
-        upsert(results)
-        filterIDs = results.map(\.id)
-        lastError = nil
-      } catch {
-        guard !Task.isCancelled else { return }
-        lastError = error.localizedDescription
-      }
-    }
-  }
-
-  /// Box enclosing a circle, as [west, south, east, north].
-  static func bbox(latitude: Double, longitude: Double, radiusMeters: Double) -> [Double] {
-    let dLat = radiusMeters / 111_320
-    let dLng = radiusMeters / (111_320 * max(0.01, cos(latitude * .pi / 180)))
-    return [longitude - dLng, latitude - dLat, longitude + dLng, latitude + dLat]
-  }
-
-  @MainActor
   private func refreshViewport(debounce: Bool) {
     viewportTask?.cancel()
     guard let bounds = lastBounds, let api = LiveSession.shared.api else { return }
+    let requests = PlaceCatalog.grid(bounds, PlaceCatalog.viewportGrid).map {
+      PlaceRequest(bbox: $0, category: "all", limit: PlaceCatalog.viewportLimit)
+    }
     viewportTask = Task { @MainActor in
       if debounce {
         do { try await Task.sleep(for: .milliseconds(400)) } catch { return }
       }
       loading = true
       defer { loading = false }
-      let bbox = bounds.map { String(format: "%.5f", $0) }.joined(separator: ",")
       do {
-        let response: PlacesResponseDTO = try await api.send("GET", "/places", query: ["bbox": bbox, "cat": "all", "limit": "25"])
+        let places = try await PlaceCatalog.fetch(api, requests)
         guard !Task.isCancelled else { return }
-        let places = response.items.compactMap(\.place)
         upsert(places)
         viewportIDs = places.map(\.id)
         lastError = nil
@@ -143,6 +113,87 @@ final class PlaceCatalog {
         lastError = error.localizedDescription
       }
     }
+  }
+
+  @MainActor
+  private func refreshFilters(debounce: Bool) {
+    filterTask?.cancel()
+    var requests: [PlaceRequest] = []
+    for pin in query.pins {
+      let box = PlaceCatalog.bbox(latitude: pin.latitude, longitude: pin.longitude, radiusMeters: pin.radiusMeters)
+      // Big circles are split so the server's per-request cap doesn't thin them out.
+      let cells = pin.radiusMeters > 1.5 * 1609.344 ? 2 : 1
+      requests += PlaceCatalog.grid(box, cells).map { PlaceRequest(bbox: $0, category: pin.category.serverName, limit: 100) }
+    }
+    if let citywide = query.citywide {
+      requests += PlaceCatalog.grid(PlaceCatalog.citywideBounds, PlaceCatalog.citywideGrid).map {
+        PlaceRequest(bbox: $0, category: citywide.serverName, limit: PlaceCatalog.citywideLimit)
+      }
+    }
+    guard !requests.isEmpty else { filterIDs = []; return }
+    guard let api = LiveSession.shared.api else { return }
+    let batch = requests
+    filterTask = Task { @MainActor in
+      if debounce {
+        do { try await Task.sleep(for: .milliseconds(300)) } catch { return }
+      }
+      do {
+        let places = try await PlaceCatalog.fetch(api, batch)
+        guard !Task.isCancelled else { return }
+        upsert(places)
+        filterIDs = places.map(\.id)
+        lastError = nil
+      } catch {
+        guard !Task.isCancelled else { return }
+        lastError = error.localizedDescription
+      }
+    }
+  }
+
+  struct PlaceRequest: Sendable {
+    var bbox: [Double]
+    var category: String
+    var limit: Int
+  }
+
+  /// Runs the requests in parallel; results keep request order, deduplicated by ID.
+  static func fetch(_ api: HermiAPI, _ requests: [PlaceRequest]) async throws -> [MapSamplePlace] {
+    let lists = try await withThrowingTaskGroup(of: (Int, [MapSamplePlace]).self, returning: [[MapSamplePlace]].self) { group in
+      for (index, request) in requests.enumerated() {
+        group.addTask {
+          let bbox = request.bbox.map { String(format: "%.5f", $0) }.joined(separator: ",")
+          let response: PlacesResponseDTO = try await api.send("GET", "/places",
+            query: ["bbox": bbox, "cat": request.category, "limit": String(request.limit)])
+          return (index, response.items.compactMap(\.place))
+        }
+      }
+      var ordered = [[MapSamplePlace]](repeating: [], count: requests.count)
+      for try await (index, places) in group { ordered[index] = places }
+      return ordered
+    }
+    var seen = Set<String>()
+    return lists.flatMap { $0 }.filter { seen.insert($0.id).inserted }
+  }
+
+  /// Splits [west, south, east, north] into n×n cells.
+  static func grid(_ bounds: [Double], _ n: Int) -> [[Double]] {
+    guard n > 1 else { return [bounds] }
+    let width = (bounds[2] - bounds[0]) / Double(n), height = (bounds[3] - bounds[1]) / Double(n)
+    var cells: [[Double]] = []
+    for row in 0..<n {
+      for column in 0..<n {
+        let west = bounds[0] + Double(column) * width, south = bounds[1] + Double(row) * height
+        cells.append([west, south, west + width, south + height])
+      }
+    }
+    return cells
+  }
+
+  /// Box enclosing a circle, as [west, south, east, north].
+  static func bbox(latitude: Double, longitude: Double, radiusMeters: Double) -> [Double] {
+    let dLat = radiusMeters / 111_320
+    let dLng = radiusMeters / (111_320 * max(0.01, cos(latitude * .pi / 180)))
+    return [longitude - dLng, latitude - dLat, longitude + dLng, latitude + dLat]
   }
 }
 
@@ -163,5 +214,26 @@ extension MapPreviewState {
     DiscoveryQuery(pins: discoveryPins.map {
       .init(category: $0.category, latitude: $0.coordinate.latitude, longitude: $0.coordinate.longitude, radiusMeters: $0.radiusMeters)
     }, citywide: activeCitywideCategory)
+  }
+
+  /// Every place ID the user's own data points at (plan, saved, saved plans, active outing).
+  var referencedPlaceIDs: Set<String> {
+    var ids = Set(planIDs).union(savedIDs)
+    for plan in library.plans { ids.formUnion(plan.stopIDs) }
+    if let draft = unsavedPlanContents { ids.formUnion(draft.ids) }
+    if let session = actionSession { ids.formUnion(session.stopIDs) }
+    return ids
+  }
+
+  /// Places for the Nearby row: only the selected pin's matches (nearest first) when a pin is selected.
+  func nearbyPlaces(for pinID: UUID?, limit: Int = 60) -> [MapSamplePlace] {
+    guard let pin = pin(id: pinID) else { return Array(nearby.prefix(limit)) }
+    var seen = Set<String>()
+    let matches = MapSamplePlace.all
+      .filter { $0.category == pin.category && seen.insert($0.id).inserted }
+      .map { (place: $0, meters: pin.coordinate.distance(to: $0.coordinate)) }
+      .filter { $0.meters <= pin.radiusMeters }
+      .sorted { $0.meters < $1.meters }
+    return matches.prefix(limit).map { $0.place }
   }
 }

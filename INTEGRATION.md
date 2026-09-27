@@ -70,6 +70,16 @@ Paste any compile or test failure back verbatim.
 - [ ] Drag a pin to a new spot: the results follow the pin.
 - [ ] Sample mode (Disconnected): pins and the filter behave exactly as before, on the 7 fixtures.
 
+### Step 3b: feedback fixes (density, citywide, Nearby, radius, park colour)
+- [ ] `swift test` passes: 70 tests. `node scripts/test-map-bridge.cjs` also passes.
+- [ ] **Density:** connected, Midtown fills with about 1,000 dots (up from about 175), spread over the whole screen. Panning and zooming stay smooth.
+- [ ] Tapping a dot still opens that place. A tap on empty map still deselects the pin.
+- [ ] **Citywide:** tap the category pin to turn on citywide Food. Food dots appear across all of Manhattan when you zoom out (several hundred), and non-food dots disappear if no pins are placed. Tap again to turn it off.
+- [ ] **Nearby row:** with two pins placed, tapping one pin lists only that pin's places, nearest first. Tapping the other switches the list.
+- [ ] **Radius:** a new pin starts at 0.25 mi.
+- [ ] **Parks and forests** on the map are clearly darker green.
+- [ ] **Brooklyn:** Williamsburg and the Queens and Brooklyn waterfront have places. Park Slope and Downtown Brooklyn are empty because there's no data there yet (D21).
+
 ---
 
 ## Deferred / deviations log
@@ -98,3 +108,7 @@ Items that are unconnected, need UI or backend work, or depart from `docs/HERMI_
 | D18 | Security | App Attest is not integrated. | The demo runs `ATTEST_MODE=log`. |
 | D19 | Repo | The legacy `apps/ios/Package.swift` (CairnKit prototype, re-added on main in `50125cd`) is a separate package and is left untouched. | Not used by HermiPreview. |
 | D20 | Config | The base URL must be re-entered whenever the quick tunnel restarts. | Use `NGROK_DOMAIN` with `demo-up.sh` for a stable URL. |
+| D21 | Data | Places cover only Manhattan plus the Queens and Brooklyn waterfront (import bbox `-74.02,40.70,-73.91,40.88`). Most of Brooklyn and all of the Bronx and Staten Island are empty. | Importing more boroughs writes to the production database; Jack runs it. Mind the Atlas free-tier storage limit. |
+| D22 | Accessibility | Place dots are drawn as a WebGL layer, so VoiceOver can't focus individual dots. The Nearby row is still accessible. | Needed for performance with about 1,000+ dots. |
+| D23 | Design amendment | New discovery pins start at 0.25 mi instead of 1 mi. Park and forest map colours are darker. | User request, 2026-09-27. Supersedes the frontend docs. |
+

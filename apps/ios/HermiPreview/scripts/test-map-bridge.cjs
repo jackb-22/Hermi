@@ -7,10 +7,11 @@ function node(){return {style:{setProperty(){}},value:'0.5',attributes:{},listen
 const document={documentElement:node(),activeElement:null,getElementById(id){if(!nodes.has(id))nodes.set(id,node());return nodes.get(id)},querySelector(id){return this.getElementById(id)},createElement:node,createElementNS:node};
 let map;
 class MapStub {
- constructor(){map=this;this.events={};this.sources={};this.layers={};this.touchZoomRotate={disableRotation(){}};}
+ constructor(){map=this;this.events={};this.sources={};this.layers={};this.images={};this.rendered=[];this.touchZoomRotate={disableRotation(){}};}
  on(k,f){this.events[k]=f;return this} addControl(){} addLayer(layer){this.layers[layer.id]=layer} resize(){} areTilesLoaded(){return true}
  addSource(k,v){this.sources[k]={data:v.data,setData(d){this.data=d}}} getSource(k){return this.sources[k]}
  panBy(offset){this.lastPan=offset}
+ hasImage(id){return !!this.images[id]} addImage(id,image,options){this.images[id]={image,options}} queryRenderedFeatures(){return this.rendered}
  getContainer(){return {clientWidth:400,clientHeight:800}} getCanvas(){return {width:1200,height:2400,clientWidth:400,clientHeight:800}}
  getBounds(){return {getWest:()=>-73.97,getSouth:()=>40.80,getEast:()=>-73.96,getNorth:()=>40.81}} getZoom(){return 15.1}
  project(point){return this.projectOverride?this.projectOverride(point):{x:200,y:350}} unproject(p){this.lastUnproject=p;return {lng:-73.9654,lat:40.8073}}
@@ -42,11 +43,15 @@ nodes.get('pin-remove').onclick({stopPropagation(){}});assert.equal(messages.at(
 context.renderHermi({places:[],social:false});assert.equal(marker.removed,true);assert.equal(nodes.get('pin-editor').style.display,'none');
 // Tap-away hides editing without removing pin or recommendations.
 context.renderHermi({...payload,places:[{id:'cafe',name:'Cafe',color:'#EF8067',lng:-73.965,lat:40.807}]});
-const dot=markers.findLast(m=>m.options.element.className==='recommendation');
-assert.ok(dot);assert.equal(dot.options.anchor,'center');
-map.events.click();assert.equal(messages.at(-1).type,'mapTap');
+const dots=()=>map.getSource('places').data.features;
+assert.equal(dots().length,1);assert.equal(dots()[0].properties.id,'cafe');
+assert.equal(dots()[0].properties.icon,'dot-#EF8067');assert.equal(map.images['dot-#EF8067'].image.width,6);
+map.events.click({point:{x:10,y:10}});assert.equal(messages.at(-1).type,'mapTap');
 assert.equal(nodes.get('pin-editor').style.display,'none');assert.equal(nodes.get('pin-remove').style.display,'none');
-assert.equal(dot.removed,undefined);assert.equal(map.getSource('discovery-radius').data.features.length,0);
+assert.equal(dots().length,1);assert.equal(map.getSource('discovery-radius').data.features.length,0);
+// A tap on a dot opens that place instead of tapping away.
+map.rendered=[{properties:{id:'cafe'},geometry:{coordinates:[-73.965,40.807]}}];
+map.events.click({point:{x:200,y:350}});assert.equal(messages.at(-1).type,'place');assert.equal(messages.at(-1).id,'cafe');map.rendered=[];
 context.renderHermi({...payload,editingDiscovery:true,bottomInset:520});
 assert.equal(nodes.get('pin-editor').style.bottom,'656px');assert.equal(nodes.get('pin-remove').style.display,'block');
 for(const [value,expected] of [['0',0.1],['1',4]]){nodes.get('pin-radius').value=value;nodes.get('pin-radius').listeners.input();assert.equal(messages.at(-1).miles,expected)}

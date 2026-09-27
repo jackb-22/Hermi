@@ -175,6 +175,7 @@ public struct HermiMapPreview: View {
     .onChange(of: state) { _, value in
       guard !pinReviewFixture else { return }
       if let data = try? JSONEncoder().encode(value) { UserDefaults.standard.set(data, forKey: storageKey) }
+      PlaceCatalog.shared.persist(referenced: value.referencedPlaceIDs)
     }
     .task { _ = await Task.detached { NYCLandMask.shared.available }.value }
     .task { await LiveSession.shared.restore() }
@@ -426,14 +427,16 @@ public struct HermiMapPreview: View {
   }
 
   private var nearbyContent: some View {
-    VStack(alignment: .leading, spacing: 12) {
+    // Only the selected pin's places (nearest first); all current matches when no pin is selected.
+    let places = state.nearbyPlaces(for: editingPinID)
+    return VStack(alignment: .leading, spacing: 12) {
       HStack { Text("Nearby").font(.headline); Spacer(); Text(discoverySummary).font(.caption).foregroundStyle(HermiPalette.secondary) }
-      if state.nearby.isEmpty {
+      if places.isEmpty {
         Text(LiveSession.shared.isLive ? (PlaceCatalog.shared.loading ? "Loading places…" : "No places match these filters here.") : "No sample places match these filters.").font(.subheadline)
       }
       ScrollView(.horizontal) {
-        HStack(spacing: 12) {
-          ForEach(state.nearby) { place in
+        LazyHStack(spacing: 12) {
+          ForEach(places) { place in
             Button { state.selectPlace(place.id) } label: {
               VStack(alignment: .leading, spacing: 6) {
                 mediaTile(place.category).frame(width: 124, height: 76)

@@ -114,4 +114,33 @@ final class LiveContractTests: XCTestCase {
     state.toggleCategoryFilter()
     XCTAssertEqual(state.discoveryQuery.citywide, state.category)
   }
+
+  func testNearbyRowShowsOnlyTheSelectedPinsPlacesNearestFirst() throws {
+    var state = MapPreviewState()
+    state.category = .food
+    XCTAssertTrue(state.dropGeographicPin(at: .init(latitude: 40.8073, longitude: -73.9654)))
+    let food = try XCTUnwrap(state.discoveryPins.last)
+    state.category = .nature
+    XCTAssertTrue(state.dropGeographicPin(at: .init(latitude: 40.808, longitude: -73.963)))
+    let nature = try XCTUnwrap(state.discoveryPins.last)
+    XCTAssertEqual(Set(state.nearby.map(\.id)), ["cafe", "garden"])
+    XCTAssertEqual(state.nearbyPlaces(for: food.id).map(\.id), ["cafe"])
+    XCTAssertEqual(state.nearbyPlaces(for: nature.id).map(\.id), ["garden"])
+    XCTAssertEqual(Set(state.nearbyPlaces(for: nil).map(\.id)), ["cafe", "garden"])
+  }
+
+  func testViewportGridCoversBoundsWithoutGaps() {
+    let cells = PlaceCatalog.grid([-74, 40.7, -73.9, 40.8], 3)
+    XCTAssertEqual(cells.count, 9)
+    XCTAssertEqual(cells.map { $0[0] }.min(), -74)
+    XCTAssertEqual(cells.map { $0[3] }.max() ?? 0, 40.8, accuracy: 1e-9)
+    XCTAssertEqual(cells.map { ($0[2] - $0[0]) * ($0[3] - $0[1]) }.reduce(0, +), 0.1 * 0.1, accuracy: 1e-9)
+    XCTAssertEqual(PlaceCatalog.grid([-74, 40.7, -73.9, 40.8], 1), [[-74, 40.7, -73.9, 40.8]])
+  }
+
+  func testReferencedPlaceIDsCoverPlanAndSaved() {
+    var state = MapPreviewState()
+    state.addPlace("cafe"); state.toggleSave("garden")
+    XCTAssertEqual(state.referencedPlaceIDs, ["cafe", "garden"])
+  }
 }
