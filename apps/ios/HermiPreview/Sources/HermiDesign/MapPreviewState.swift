@@ -73,6 +73,9 @@ struct MapPreviewState: Codable, Equatable {
   var stopInviteDrafts: [String: Set<String>]?
   var savedIDs: Set<String> = []
   var savedLibrary: SavedLibrary? // Optional so older local snapshots still decode.
+  var activeSavedPlanID: UUID?
+  var unsavedPlanContents: PlanContents?
+  var planUndoHistory: [PlanContents]?
 
   var showsPlan: Bool { true }
   var nearby: [MapSamplePlace] { matchingPlaces(MapSamplePlace.all) }
@@ -145,7 +148,9 @@ struct MapPreviewState: Codable, Equatable {
   mutating func goBack() { sheet = returnSheet; returnSheet = nil }
   mutating func addPlace(_ id: String) {
     guard MapSamplePlace.find(id) != nil, !planIDs.contains(id) else { return }
-    planIDs.append(id)
+    var contents = planContents
+    contents.ids.append(id)
+    applyPlanContents(contents)
   }
   mutating func togglePlan(_ id: String) {
     guard MapSamplePlace.find(id) != nil else { return }
@@ -154,13 +159,17 @@ struct MapPreviewState: Codable, Equatable {
   mutating func movePlace(_ id: String, before target: String) { movePlace(id, relativeTo: target, after: false) }
   mutating func movePlace(_ id: String, relativeTo target: String, after: Bool) {
     guard id != target, planIDs.contains(id), planIDs.contains(target) else { return }
-    planIDs.removeAll { $0 == id }
-    if let index = planIDs.firstIndex(of: target) { planIDs.insert(id, at: index + (after ? 1 : 0)) }
+    var contents = planContents
+    contents.ids.removeAll { $0 == id }
+    if let index = contents.ids.firstIndex(of: target) { contents.ids.insert(id, at: index + (after ? 1 : 0)) }
+    applyPlanContents(contents)
   }
   mutating func removePlace(_ id: String) {
-    planIDs.removeAll { $0 == id }
-    stopTimes?[id] = nil
-    stopInviteDrafts?[id] = nil
+    var contents = planContents
+    contents.ids.removeAll { $0 == id }
+    contents.times[id] = nil
+    contents.inviteDrafts[id] = nil
+    applyPlanContents(contents)
   }
   mutating func toggleSave(_ id: String) {
     guard MapSamplePlace.find(id) != nil else { return }

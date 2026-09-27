@@ -24,6 +24,7 @@ struct SavedPlanDraft: Codable, Equatable, Identifiable {
   var friendNames: [String]
   var stopIDs: [String]
   var times: [String: PreviewStopTime]
+  var inviteDrafts: [String: Set<String>]?
 }
 
 struct SavedLibrary: Codable, Equatable {
@@ -37,6 +38,9 @@ struct SavedLibrary: Codable, Equatable {
     guard let destination = folders.firstIndex(where: { $0.id == folderID }) else { return false }
     for index in folders.indices { folders[index].items.removeAll { $0 == reference } }
     folders[destination].items.append(reference)
+    if reference.kind == .plan, let index = plans.firstIndex(where: { $0.id.uuidString == reference.refID }) {
+      plans[index].folderID = folderID
+    }
     return true
   }
 
@@ -103,13 +107,15 @@ extension MapPreviewState {
     guard !ids.isEmpty else { return .init(unavailable: 1) }
     let savedPlan = reference.kind == .plan ? library.plan(reference.refID) : nil
     var result = SavedAppendResult()
+    var contents = planContents
     for id in ids {
       guard MapSamplePlace.find(id) != nil else { result.unavailable += 1; continue }
-      if planIDs.contains(id) { result.skipped += 1; continue }
-      addPlace(id)
-      if let time = savedPlan?.times[id] { setStopTime(time, for: id) }
+      if contents.ids.contains(id) { result.skipped += 1; continue }
+      contents.ids.append(id)
+      if let time = savedPlan?.times[id] { contents.times[id] = time }
       result.added += 1
     }
+    applyPlanContents(contents)
     return result
   }
 }

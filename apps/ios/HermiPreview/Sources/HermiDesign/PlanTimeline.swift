@@ -24,12 +24,14 @@ extension MapPreviewState {
   }
   mutating func setStopTime(_ value: PreviewStopTime?, for id: String) {
     guard planIDs.contains(id), value?.isValid != false else { return }
-    if stopTimes == nil { stopTimes = [:] }
-    stopTimes?[id] = value
+    var contents = planContents
+    contents.times[id] = value
+    applyPlanContents(contents)
   }
   mutating func setInviteDraft(_ value: Set<String>, for id: String) {
     guard planIDs.contains(id) else { return }
-    if stopInviteDrafts == nil { stopInviteDrafts = [:] }
-    stopInviteDrafts?[id] = value.intersection(["Alex", "Sam", "Riley"])
+    var contents = planContents
+    contents.inviteDrafts[id] = value.intersection(["Alex", "Sam", "Riley"])
+    applyPlanContents(contents)
   }
 }
