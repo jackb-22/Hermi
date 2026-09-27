@@ -2,8 +2,8 @@ import SwiftUI
 
 enum HermiPalette {
   // One RGB source for SwiftUI sprites, the map renderer and map UI chrome.
-  static let inkRGB: UInt32 = 0x203D39
-  static let paperRGB: UInt32 = 0xF8FAF3
+  static let inkRGB: UInt32 = 0x29343F
+  static let paperRGB: UInt32 = 0xFAF7F0
   static let greenRGB: UInt32 = 0x23856B
   static let limeRGB: UInt32 = 0xBFDE59
   static let lakeRGB: UInt32 = 0x69B7CC
@@ -16,8 +16,8 @@ enum HermiPalette {
   static let lake = color(lakeRGB)
   static let coral = color(coralRGB)
   static let lavender = color(lavenderRGB)
-  static let secondary = color(0x52675E)
-  static let line = color(0xCED9CB)
+  static let secondary = color(0x626975)
+  static let line = color(0xDCDAD5)
   static let error = color(0x974C3B)
   static func color(_ value: UInt32) -> Color {
     Color(red: Double((value >> 16) & 255) / 255, green: Double((value >> 8) & 255) / 255, blue: Double(value & 255) / 255)
@@ -27,7 +27,7 @@ enum HermiPalette {
     switch category {
     case .food: return coralRGB
     case .shopping: return 0xE2B652
-    case .nature: return limeRGB
+    case .nature: return 0x75AC96
     case .culture: return lavenderRGB
     case .drinks: return 0xD7A27D
     case .sports: return lakeRGB
@@ -38,8 +38,8 @@ enum HermiPalette {
   static var mapColors: [String: String] {
     ["ink": hex(inkRGB), "paper": hex(paperRGB), "green": hex(greenRGB),
      "lime": hex(limeRGB), "lake": hex(lakeRGB), "coral": hex(coralRGB),
-     "land": "#ECEDD9", "cover": "#9DBF84", "parks": "#5B8C4A",
-     "buildings": "#D2D9BE", "paths": "#739D69"]
+     "land": "#EDE7DC", "cover": "#E0E1D6", "parks": "#CBD5BA",
+     "buildings": "#D4CABB", "paths": "#A7A391", "water": "#A8C3D1", "shadow": "#B9AE9F"]
   }
 }
 
@@ -159,7 +159,7 @@ struct CategorySprite: View {
     case .nature: return ["    I    ","   III   ","  IIIII  "," IIIIIII ","  IIIII  "," IIIIIII ","    I    ","   III   "]
     case .culture: return ["    I    ","  IIIII  "," IIIIIII ","         "," I I I I "," I I I I "," I I I I "," IIIIIII "]
     case .drinks: return ["  I I    ","   I I   ","         "," IIIIII  "," I    III"," I    I I","  IIIIIII"," IIIIIII "]
-    case .sports: return ["   III   ","  IIIII  "," IIIIIII "," I III I "," IIIIIII ","  IIIII  ","   III   ","         "]
+    case .sports: return ["   III   "," II I II "," I  I  I ","I I I I I","IIIIIIIII","I I I I I"," I  I  I "," II I II ","   III   "]
     case .music: return ["   IIIII ","   I   I ","   I   I ","   I   I ","   I III "," III III "," III     ","         "]
     }
   }

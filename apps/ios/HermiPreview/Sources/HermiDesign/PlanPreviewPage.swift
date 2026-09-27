@@ -225,7 +225,7 @@ struct PlanPreviewPage: View {
         }.frame(width: 64, height: 58)
       }.accessibilityLabel("Edit time for \(place.name)")
         .controlHelp("Edit arrival, duration and reminder for \(place.name)")
-      Rectangle().fill(HermiPalette.green.opacity(0.4)).frame(width: 2, height: 58)
+      Rectangle().fill(HermiPalette.category(place.category)).frame(width: 2, height: 58)
       HStack(spacing: 4) {
         Button { openPlace = SavedReference(kind: .place, refID: place.id) } label: {
           Text(place.name).font(.subheadline).frame(maxWidth: .infinity, minHeight: 54, alignment: .leading)
@@ -233,8 +233,8 @@ struct PlanPreviewPage: View {
         Button { participants = place } label: { PixelIcon(name: "menu").frame(width: 22, height: 16).frame(width: 44, height: 48) }
           .accessibilityLabel("Who's going to \(place.name)")
           .controlHelp("View attendees and choose existing friends to invite")
-      }.padding(.leading, 12).background(HermiPalette.lime.opacity(0.35), in: Capsule())
-        .draggable(place.id) { Text("Move \(place.name)").padding(12).background(HermiPalette.lime) }
+      }.padding(.leading, 12).background(HermiPalette.category(place.category).opacity(0.32), in: PixelPanel(corner: 8))
+        .draggable(place.id) { Text("Move \(place.name)").padding(12).background(HermiPalette.category(place.category)) }
         .dropDestination(for: String.self) { ids, point in
           guard let id = ids.first, state.planIDs.contains(id) else { return false }
           state.movePlace(id, relativeTo: place.id, after: point.y > 27); return true
