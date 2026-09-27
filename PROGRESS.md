@@ -4,6 +4,14 @@ Updated: 2026-09-27. Branch: codex/cairn-frontend. No pushes authorized.
 
 ## Current checkpoint
 
+### Social map feedback — implemented for local review
+
+User clarified shared current places (green blink–blink–pause), loved places (pink), active adventures (dotted) and loved adventures (solid). Replaced letter placeholders with geographic pixel sprites/hearts plus separate route layers. Social off removes all layers; Profile Adventures and Action do not inherit Home Social fixtures. Reduced Motion disables sprite animation. Taps show sample identity/context; no GPS or real sharing claims.
+
+Removed generic hold-help recognizer/popovers throughout SwiftUI, and map-pin hold timers/tips. Accessibility hints remain. Intentional Save Plan, category drag and stop reorder holds remain. Expanded bridge tests verify route styles, supplied coordinates, Solo clearing, Reduce Motion and absence of hold tips; 55 Swift tests pass. Simulator and unsigned iPhone builds pass. Screenshot caught sample-label/attribution overlap, fixed label spacing and rebuilt Simulator. No backend changes or pushes.
+
+Backend gap: SocialResponse friendsOut means check-in within 3 hours, explicitly not live location; friendPlans means upcoming shared plans, not confirmed active geometry; no loved-place/adventure collection. Live/current UX needs freshness and sharing enforcement before integration. All new visuals are labeled samples. Next: user reviews Social and no-hold behavior in test.md, then resume Action integration boundaries. Screenshot evidence in docs/design-reference/2026-09-27-social.
+
 ### Tap-only navigation correction and Step 10a — ready for user review
 
 User removed pill hold/scrub navigation and authorized the next step. Replaced custom PrimitiveButtonStyle with ordinary semantic buttons (64×48 targets), removing hold-help/scrub recognizers and obsolete coordinate tests. Saved bookmark and category-pin gestures remain unchanged. Commit `c2a46a4`.

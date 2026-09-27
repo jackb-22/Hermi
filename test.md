@@ -2,7 +2,19 @@
 
 This is the user-facing test entry point. Product reference: [unified design schema](docs/HERMI_SCHEMA.md). Resume/checkpoint: [progress](PROGRESS.md).
 
-## Current review: tap navigation + Step 10a Action lifecycle
+## Current review: Social map clarification and no hold explanations
+
+Run the updated app with ⌘R in Xcode, with your connected iPhone selected.
+
+1. Map → Social: see a green pixel friend sprite at the sample current place, a pink heart at the sample loved place, a dotted green active-adventure route and a solid pink loved-adventure route. These are independent layers; a friend may have a shared place without a route. The sample-data label must remain visible above attribution.
+2. Watch green: blink, blink, pause, repeat. Enable iOS Reduce Motion: it remains steady. Pink hearts and paths stay steady. Tap a friend/heart to see its sample identity/context; no text should appear just from holding it.
+3. Switch Solo: all friend icons and both route kinds disappear. Switch Social back: they return without duplicating. Pan and zoom: icons remain tied to their geographic coordinates and the right toolbar stays aligned.
+4. Hold ordinary buttons, including Social, Plan, add/save, Profile controls and discovery pins: no functionality-description popover appears. Quick taps still work. Intentional actions are retained: hold My Plan bookmark for Save Plan, hold/drag category pin, and hold/reorder plan stops.
+5. Send a Social screenshot and a short recording if the blink timing or button behavior feels wrong.
+
+55 Swift tests and expanded map bridge tests pass; Simulator and unsigned iPhone builds pass (final screenshot-label adjustment is HTML-only and included in refreshed Simulator). Real friends/current presence/loves remain unconnected. The backend currently provides recent check-ins, not proof a friend is there now, and lacks loved-place/loved-adventure fields. Do not treat sample icons as actual people or live tracking. [Screenshots](docs/design-reference/2026-09-27-social/REVIEW.md).
+
+## Previous review: tap navigation + Step 10a Action lifecycle
 
 **Run on your iPhone:** open `apps/ios/HermiPreview/HermiPreview.xcodeproj` in Xcode. In the top toolbar select **HermiPreview** and your **connected physical iPhone**, not an iPhone Simulator. Click the triangle ▶ or press **⌘R with Xcode active**. Keep the phone unlocked during installation. This is a new build; reopening the old phone app alone will not update it.
 
