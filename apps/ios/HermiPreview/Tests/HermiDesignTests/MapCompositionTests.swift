@@ -2,9 +2,9 @@ import XCTest
 @testable import HermiDesign
 
 final class MapCompositionTests: XCTestCase {
-  func testMapStartsSelectedInCenterWithNoPlanOrSheet() {
+  func testMapStartsSelectedAtLeftWithNoPlanOrSheet() {
     let state = MapPreviewState()
-    XCTAssertEqual(HomePanel.allCases, [.feed, .map, .profile])
+    XCTAssertEqual(HomePanel.allCases, [.map, .feed, .profile])
     XCTAssertEqual(state.panel, .map)
     XCTAssertNil(state.sheet)
     XCTAssertTrue(state.showsPlan)
@@ -118,12 +118,19 @@ final class MapCompositionTests: XCTestCase {
     state.sheet = .saved; state.selectPlace("cafe"); state.goBack()
     XCTAssertEqual(state.sheet, .saved)
   }
-  func testPillSelectionClampsToPillSegments() {
-    XCTAssertEqual(HomeNavigationPill.panel(at: -20), .feed)
-    XCTAssertEqual(HomeNavigationPill.panel(at: 40), .feed)
-    XCTAssertEqual(HomeNavigationPill.panel(at: 110), .map)
-    XCTAssertEqual(HomeNavigationPill.panel(at: 190), .profile)
-    XCTAssertEqual(HomeNavigationPill.panel(at: 300), .profile)
+  func testPillSegmentsFollowMapFeedProfileOrder() {
+    XCTAssertEqual(HomePillLayout.panel(at: CGPoint(x: 38, y: 30)), .map)
+    XCTAssertEqual(HomePillLayout.panel(at: CGPoint(x: 110, y: 30)), .feed)
+    XCTAssertEqual(HomePillLayout.panel(at: CGPoint(x: 182, y: 30)), .profile)
+    XCTAssertEqual(HomePillLayout.panel(at: CGPoint(x: 0, y: 0)), .map)
+    XCTAssertEqual(HomePillLayout.panel(at: CGPoint(x: 220, y: 60)), .profile)
   }
 
+  func testScrubOutsidePillCancelsInsteadOfOpeningEdgeTab() {
+    for point in [CGPoint(x: -1, y: 30), CGPoint(x: 221, y: 30),
+                  CGPoint(x: 110, y: -1), CGPoint(x: 110, y: 61),
+                  CGPoint(x: CGFloat.nan, y: 30)] {
+      XCTAssertNil(HomePillLayout.panel(at: point))
+    }
+  }
 }
