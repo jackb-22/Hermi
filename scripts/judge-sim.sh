@@ -4,16 +4,23 @@
 #   sh scripts/judge-sim.sh           # one simulator, signed in as @ava
 #   sh scripts/judge-sim.sh --two     # plus a second simulator as @ben (to join ava's plan, see the README)
 #   sh scripts/judge-sim.sh --keep    # keep the app's data from an earlier run (default: fresh install)
+#   sh scripts/judge-sim.sh --two --as judge1,judge2   # your own account pair (see Accounts in the README)
 #
 # Needs a Mac with Xcode (16 or later) and an iOS Simulator runtime (Xcode → Settings → Components).
 # It asks for the demo token from our submission's testing instructions (or set HERMI_DEV_TOKEN).
 set -eu
 cd "$(dirname "$0")/.."
-two=0; keep=0
+two=0; keep=0; first_user=ava; second_user=ben; want_as=0
 for arg in "$@"; do
+  if [ "$want_as" = 1 ]; then
+    first_user=$(echo "$arg" | cut -d, -f1); second_user=$(echo "$arg" | cut -s -d, -f2)
+    [ -n "$second_user" ] || second_user=ben
+    want_as=0; continue
+  fi
   case "$arg" in
     --two) two=1 ;;
     --keep) keep=1 ;;
+    --as) want_as=1 ;;
     *) echo "unknown option: $arg"; exit 2 ;;
   esac
 done
@@ -45,9 +52,9 @@ launch() { # udid username
     sh apps/ios/HermiPreview/scripts/simulator-preview.sh
 }
 
-launch "$FIRST" ava
+launch "$FIRST" "$first_user"
 if [ "$two" = 1 ]; then
   if [ -z "$SECOND" ]; then echo "Only one iPhone simulator is installed; add another in Xcode → Window → Devices and Simulators."
-  else launch "$SECOND" ben; fi
+  else launch "$SECOND" "$second_user"; fi
 fi
 echo "✔ Hermi is open. Follow “Try Hermi” in README.md."

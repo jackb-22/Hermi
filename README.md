@@ -18,7 +18,7 @@ Social apps reward staying in: posting, scrolling and collecting likes from home
 
 ## Try Hermi
 
-> **You don't need to run any backend.** Ours is live, with real NYC places, AI, media storage and verification, at an HTTPS address the app is already configured for. All you need is the app and the **demo token** from our submission's testing instructions. The "Run the backend yourself" section at the bottom is only for developers.
+> **The backend is already running.** You don't need to start, install or configure any server. Our API, database and media storage are live right now, with real NYC places, AI, check-in verification and uploads, at an HTTPS address the app is already built to use. It stays up throughout judging. All you need is the app and the **demo token** from our submission's testing instructions. The "Run the backend yourself" section at the bottom is only for developers.
 
 > **Strongly recommended: use a real iPhone** (Option B or C). Hermi is built for touch: swiping the category pin, holding and dragging it onto the map, and pinch-zooming all feel natural on a phone and clumsy with a mouse.
 >
@@ -33,7 +33,7 @@ git clone https://github.com/jackb-22/Hermi.git && cd Hermi
 sh scripts/judge-sim.sh          # builds Hermi and opens it signed in as @ava
 sh scripts/judge-sim.sh --two    # …and a second simulator as @ben, to see the social side
 ```
-It asks for the demo token once. The first build takes a few minutes.
+It asks for the demo token once. The first build takes a few minutes. Several people testing at once? Each person or pair should use its own accounts: `sh scripts/judge-sim.sh --two --as judge1,judge2` (see [Accounts](#accounts)).
 
 In the Simulator, **Features → Location → Custom Location…** is how you "walk" between stops (coordinates in the route below). With no camera, the Simulator uses a clearly labelled sample photo.
 
@@ -51,6 +51,22 @@ You get the real camera and GPS. Free signing lasts 7 days.
 
 ### Option C: at our table
 We can install it on your iPhone by cable, or hand you our two phones, already signed in as ava and ben.
+
+### Accounts
+Every account below is a seeded, verified Columbia student with history, a Score and streaks, and **all of them are friends with each other**. Use one pair per tester; each place allows one check-in per account every 6 hours.
+
+| Pair | Accounts |
+|---|---|
+| Main | `ava` + `ben` |
+| Judge pairs | `judge1` + `judge2`, `judge3` + `judge4`, `judge5` + `judge6` |
+
+To switch accounts, go to Profile → ⚙︎ → **Server**, type the username and tap **Connect**. The @ava and @ben buttons are shortcuts.
+
+### If something looks off
+- **"Alex" and a SAMPLE badge:** you're in offline sample mode because the token hasn't been entered. Go to Profile → ⚙︎ → Server, paste the demo token, and tap **@ava** (or Connect).
+- **Check-in refused:** you're more than 150 m from the stop. Set the Simulator's location to the stop (see the table in the route), or walk there. "Already checked in" means that account used this place in the last 6 hours, so switch to another pair.
+- **Blank map:** the map tiles need internet.
+- **"Couldn't reach the server":** tell us. Our demo server runs on our laptop.
 
 ---
 
@@ -74,7 +90,7 @@ We can install it on your iPhone by cable, or hand you our two phones, already s
   - swipe it sideways to change category;
   - **tap** it to show that category **citywide**, and tap again for everything;
   - **hold and drag** it onto the map to drop a discovery pin.
-- **Find Lerner Hall with a pin.** It won't appear as a dot on its own; that's intentional, since pins are how you discover.
+- **Find Lerner Hall with a pin.** It usually won't appear as a dot on its own; that's intentional, since pins are how you discover.
   1. Alfred Lerner Hall is at **2920 Broadway at W 115th St**, on the west edge of Columbia's campus. Swipe the pin to **Culture** and drop it on campus there.
   2. The **Nearby** row lists culture places inside the circle, nearest first. Drag the radius slider to widen or narrow it.
   3. Open **Alfred Lerner Hall**: real photos, the would-go-again percentage and a review summary. Tap **+** to add it.
@@ -87,7 +103,7 @@ We can install it on your iPhone by cable, or hand you our two phones, already s
 - Tapping empty map closes a sheet.
 
 ### 2. Plan and invite
-- Open **My Plan** (top-right icon): both stops, with times and stay lengths.
+- Open **My Plan** (top-right icon): both stops. Tap a stop's time to set arrival and stay length.
   - **Hold a stop to reorder** it, and put Movement Harlem first.
   - Tap a stop to open its page on top of the plan.
 - **Hold the bookmark** → **Save plan** → name it → **Friends** → select **ben** → Save. It's synced to ava's account, and ben gets a real invitation.
@@ -106,12 +122,12 @@ Use the second simulator, or Profile → ⚙︎ → Server → **@ben**. Go to *
   - posts and plans open full screen;
   - hold a box to move it to a folder, and use **New folder** to create one.
 - **Social map** (Map, top-right people icon):
-  - friends' check-ins from the last 3 hours, **blinking** while they're there;
+  - friends' check-ins from the last 3 hours, **blinking** while they're there (ben's appear once he checks in during step 5);
   - friends' plan lines, dotted while planned and solid once done;
   - **"!"** markers for open plans from matched students.
 
 ### 5. The adventure (ava, then ben). Read the box above first.
-1. My Plan → **Go!**. The **Directions** screen shows the route, the next stop, its distance and walking time, and Open in Maps. Each stop is marked with how far away you are.
+1. My Plan → **Go!**, and **Allow** location when asked. The **Directions** screen shows the route, the next stop, its distance and walking time, and Open in Maps. Each stop is marked with how far away you are.
 2. **Try to cheat:** before moving anywhere, tap **Tap tag** at **Alfred Lerner Hall**. Hermi **refuses**: "You're … away from Alfred Lerner Hall. Walk there first: check-ins only work within 150 m." (Or "Waiting for your location" if the Simulator has none yet.)
 3. Set the Simulator's location to **Movement Harlem** and tap **Tap tag** → **+XP**. "Tap tag" is our in-app stand-in for tapping the venue's NFC tag.
 4. **Camera** → shutter. The photo is hashed, uploaded and **Verified** against your check-in's place and time. The Simulator uses a labelled sample photo; a phone uses the real camera.
@@ -173,15 +189,16 @@ archive/                 retired prototype and hosting config
 ```
 
 **Data:**
-- MongoDB Atlas holds places, users, plans, posts and saves, with a vector index for taste matching.
-- Timescale holds location points and XP events.
+- **MongoDB Atlas** holds places, users, plans, posts and saves. It uses geospatial queries for the map and **Atlas Vector Search** for find-someone taste matching.
+- **Tiger Data (TimescaleDB)** holds location points, check-ins, movement segments and XP events as time series. A continuous aggregate powers the rolling 30-day Score.
 - Media lives in S3-compatible storage (RustFS) and is served by the API.
 
 **Providers:**
-- Gemini: the planner.
-- open-meteo: weather.
-- C2PA: signed capture credentials.
-- Photon: iMessage group handoff.
+- **Google Gemini:** the planner (chips, scheduling, the Maps tool) and review summaries.
+- **Backboard:** preference memory.
+- **Photon Spectrum:** an iMessage group chat for each plan.
+- **Open-Meteo:** weather.
+- **C2PA:** content credentials for captures, when a signer is configured. Signing is off on the demo server.
 
 `CONTRACT.md` describes the API. `docs/INTEGRATION.md` records every app ↔ API decision and deferral.
 
