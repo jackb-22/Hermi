@@ -2,7 +2,23 @@
 
 This is the user-facing test entry point. Product reference: [unified design schema](docs/HERMI_SCHEMA.md). Resume/checkpoint: [progress](PROGRESS.md).
 
-## Current review: Step 2 — palette and composition; phone setup
+## Current review: Step 3 — single discovery pin
+
+You confirmed the earlier build works on your iPhone and authorized continuing. Step 3 is built for Simulator; installation on your phone is pending because Xcode currently reports it unavailable. Reconnect/unlock it and run the preview project with **⌘R**. See [iPhone instructions](docs/IPHONE_TESTING.md).
+
+1. **Drop:** hold the activity pin, slide vertically to choose a category, then drag left onto NYC land and release. The dropped pin contains the category icon; nearby results appear. Dropping does not add a plan stop.
+2. **Radius:** tap the dropped pin. Its vertical slider and X appear. The initial radius is 1 mile; the bottom/top are ¼/4 miles, with 1 mile at the midpoint. Nearby sample results update. Zooming the map must not change the selected radius.
+3. **Move:** drag the placed pin to another NYC land location. Its category and radius stay unchanged. It remains visible above the nearby panel after release.
+4. **Reject/cancel:** try moving it into the Hudson River or outside NYC. It returns to its last valid location. An invalid new drop must not replace it. Interrupt a drag and check that no extra pin or stuck ghost remains.
+5. **Remove:** tap the pin, then X. The pin/radius disappear; your Plan and Saved items remain unchanged. Close nearby details and pan/pinch normally.
+6. **Restore:** make a valid drop, change its radius, then close/reopen the normal app. The pin and radius should persist. At this checkpoint a second valid drop replaces the first; multiple pins and combined citywide filters arrive in Step 4.
+7. **Screenshot feedback:** send a screenshot of the selected pin/slider and the nearby panel, plus a short recording for any drag or gesture issue. Check quick navigation taps still work. We will correct this checkpoint before proceeding.
+
+Verification: 27 Swift tests pass, including NYC land/water fixtures, radius math, migration, rejected moves and coordinate projection. The JavaScript bridge harness passes; it mocks MapLibre/DOM and does not prove physical touch delivery. Mac, compact/large Simulator and unsigned physical-device builds passed. [Screenshot review](docs/design-reference/2026-09-27-step-3/REVIEW.md). Finger gestures, VoiceOver, haptics and on-device smoothness await your review. The offline shoreline mask is approximate, not proof of access to a property. No backend changes.
+
+For a deterministic **Simulator-only visual fixture**, launch with `--hermi-pin-review`; it does not read/write normal saved state. Remove that argument for persistence testing.
+
+## Previous review: Step 2 — palette and composition
 
 You authorized Step 2 while Step 1 touch acceptance remains pending. [iPhone setup instructions](docs/IPHONE_TESTING.md) are saved locally; Xcode is open to the correct preview project.
 
@@ -12,7 +28,7 @@ You authorized Step 2 while Step 1 touch acceptance remains pending. [iPhone set
 4. Open Profile: check the same paper/ink/lime palette, crisp icons, and readable header/navigation. Profile content structure is intentionally unchanged until its later checkpoint.
 5. On your phone, also run the Step 1 quick-tap/hold/scrub/cancel checklist below. Report layout with screenshots and gesture issues with a brief screen recording.
 
-Checks so far: 20 package tests pass; Mac and iPhone 17 Pro Max/16e simulator builds pass; physical-iPhone compilation passes with signing disabled. Map JavaScript syntax passes. Main text contrast against paper is 11.16:1; ink on lime 7.72:1; white on green 4.53:1. These are static token checks, not a full accessibility audit. Phone install remains blocked on device pairing/signing. Screenshot review is in [Step 2 evidence](docs/design-reference/2026-09-27-step-2/REVIEW.md).
+Checks so far: 20 package tests pass; Mac and iPhone 17 Pro Max/16e simulator builds pass; physical-iPhone compilation passes with signing disabled. Map JavaScript syntax passes. Main text contrast against paper is 11.16:1; ink on lime 7.72:1; white on green 4.53:1. These are static token checks, not a full accessibility audit. The user subsequently confirmed the Steps 1–2 build runs on their iPhone. Screenshot review is in [Step 2 evidence](docs/design-reference/2026-09-27-step-2/REVIEW.md).
 
 To access developer-only preview tools, add `--hermi-lab` under Xcode's scheme Run → Arguments Passed On Launch. Default launches show no developer menu. This does not change app data.
 

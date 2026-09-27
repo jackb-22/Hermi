@@ -21,6 +21,8 @@ The preview uses sample account/content data and public map tiles. Camera/outing
 
 ## Current setup status — 2026-09-27
 
-The iPhone is now detected over USB and successfully paired. The user selected a Personal Team in Xcode. A device-targeted build reports **Developer Mode disabled** as the current blocker. Enable it under Settings → Privacy & Security, restart the phone, and confirm. No app has been installed yet. The earlier generic unsigned iPhone compilation passed; a signed device build remains pending Developer Mode readiness. The current error does not establish that a laptop OS update is required.
+Pairing, Personal Team signing, Developer Mode and developer trust are complete. The user confirmed that the Steps 1–2 build runs on their iPhone. Step 3 compiles for a physical iPhone, but its installation is pending: the most recent device check reports the phone unavailable. Reconnect it, unlock it and select it in Xcode, then press ⌘R. No need to repeat account setup.
+
+Build troubleshooting: the first signed build encountered resource-fork/Finder metadata in the generated app bundle. Removing extended attributes from that generated `.build/phone/Build/Products/Debug-iphoneos/HermiPreview.app` only, then rebuilding, resolved it. Do not remove metadata from source files or personal folders.
 
 Sources: [Apple: run an app on a device](https://help.apple.com/xcode/mac/current/en.lproj/dev5a825a1ca.html), [Apple: Developer Mode](https://developer.apple.com/documentation/xcode/enabling-developer-mode-on-a-device), [Apple: signing workflow and Personal Team](https://help.apple.com/xcode/mac/current/en.lproj/dev60b6fbbc7.html).

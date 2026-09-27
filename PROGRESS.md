@@ -4,9 +4,15 @@ Updated: 2026-09-27. Branch: codex/cairn-frontend. No pushes authorized.
 
 ## Current checkpoint
 
-### iPhone pairing update — 2026-09-27
+### Step 3 — implementation complete; user review next
 
-Phone detected after the user accepted Trust This Computer; devicectl pairing succeeded. Personal Team is now selected in the project (user-owned signing settings; preserve). Device-targeted xcodebuild stopped because **Developer Mode is disabled**. User must enable Settings → Privacy & Security → Developer Mode, restart and confirm. No app installed yet. Retry signed build/install once enabled; no evidence yet that a laptop update is required. Do not advance frontend scope while handling this setup.
+User confirmed the Steps 1–2 app works on iPhone and authorized continuing. Implemented one persistent category-icon pin, frame-correct drop projection, draggable placement, selected-pin vertical radius editor/X, logarithmic 0.25–4-mile radius (1-mile midpoint), visible radius geometry and category/radius filtering of fixtures. Invalid new drops preserve the current pin; invalid moves restore it. Stable MapLibre marker identity and request/ID guards prevent stale changes. The single-pin checkpoint deliberately precedes Step 4 multiple pins and union filters.
+
+Bundled versioned NYC borough/hydrography land mask with water exclusions, source metadata and reproducible simplification script. Land validation is offline and approximate (~1 m simplification), not a property-access guarantee. No backend edits.
+
+27 Swift tests and mocked JavaScript bridge checks pass. Mac, large/compact Simulator and unsigned generic iPhone builds pass. Selected-pin screenshots saved under docs/design-reference/2026-09-27-step-3. Touch/haptics/VoiceOver/performance acceptance remains pending; test.md contains the next user checklist. Do not claim 60fps from screenshots.
+
+Phone setup is complete and the earlier build was installed and confirmed working. The device subsequently became unavailable; Step 3 is NOT yet installed on it. Reconnect/unlock and rerun the signed build/install when available. Personal signing/project and Xcode scheme changes remain user-owned and unstaged. Next: Step 3 phone test and feedback corrections before Step 4. Earlier touch/aesthetic acceptance is not inferred from “works on iPhone.”
 
 ### Step 2 — visual review and physical-phone setup
 
@@ -68,11 +74,11 @@ Remote repository is https://github.com/jackb-22/Hermi. Remote de17d60 reviewed 
 
 ## Environment
 
-Xcode: /Applications/Xcode.app (26.3). Use DEVELOPER_DIR per command; global xcode-select still points to CommandLineTools. Installed SDKs: iOS/macOS26.2; simulator runtime iOS26.3. Real-device signing is not configured. No live API environment has been accepted.
+Xcode: /Applications/Xcode.app (26.3). Use DEVELOPER_DIR per command; global xcode-select still points to CommandLineTools. Installed SDKs: iOS/macOS26.2; simulator runtime iOS26.3. Real-device signing is configured by the user; the earlier build runs on iPhone. No live API environment has been accepted.
 
 ## Next action
 
-Help complete iPhone pairing/signing, receive Step 1 touch and Step 2 visual feedback, and record it in test.md. Do not advance to Step 3 until reviewed. Reopen with `sh apps/ios/HermiPreview/scripts/simulator-preview.sh` from the repository root, or use the already-open Hermi Preview Mac window.
+Install Step 3 once the iPhone reconnects, follow the current test.md checklist, and correct feedback before Step 4. Simulator preview is available using `sh apps/ios/HermiPreview/scripts/simulator-preview.sh` from the repository root. Keep unrelated prototype/signing changes untouched; no pushes.
 
 ## Build notes
 

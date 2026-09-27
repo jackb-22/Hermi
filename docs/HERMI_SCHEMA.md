@@ -1,6 +1,6 @@
 # Hermi unified design schema
 
-Revision 6 · 2026-09-27 · Step 2 visual review authorized; Step 1 physical-touch acceptance remains pending.
+Revision 7 · 2026-09-27 · Step 3 implemented for review; user authorized continuation after confirming iPhone launch.
 
 ## Authority and mission
 
@@ -136,3 +136,7 @@ Backend gaps, persistence defaults, checkpoint order and screenshot acceptance a
 ### Step 2 review amendment
 
 The user authorized progressing to Step 2 because Mac interaction testing is difficult. This is authorization to implement, not evidence that Step 1 gestures passed on a physical phone. Keep both checklists pending until reviewed. The default top-left preview menu/wordmark is removed; developer controls are available only in a Debug launch with `--hermi-lab`. Attribution and honest sample-data notices remain visible. Existing shared pixel glyph geometry is preserved; Settings glyph is prepared for the later Settings checkpoint. Pin interior/category behavior still belongs to Steps 3–4.
+
+## Step 3 implementation checkpoint (2026-09-27)
+
+The isolated preview now implements a single persistent geographic discovery pin with an internal category glyph, drag/move, radius editor and explicit X removal. Radius uses miles (0.25–4, logarithmic midpoint 1), independent of map zoom. NYC land/water validation rejects invalid placements without deleting a valid existing pin. Replacing one pin is a temporary checkpoint behavior, not a product limit: multiple pins, citywide/geographic union filters and one floating indicator per visible category remain Step 4. No live discovery, tracking or backend capability is implied. Tests and physical-device acceptance remain distinct; see test.md.

@@ -1,12 +1,12 @@
 # Hermi approved frontend revision plan
 
-Approved 2026-09-27. Frontend branch: `codex/cairn-frontend`. No pushes. Current work: **Step 2**, explicitly authorized while Step 1 physical-touch acceptance remains pending. Source: user's approved technical plan and latest schema amendments. Preserve unrelated legacy prototype changes.
+Approved 2026-09-27. Frontend branch: `codex/cairn-frontend`. No pushes. Current work: **Step 3**, authorized after the user confirmed the preview runs on iPhone. Step 3 user acceptance and earlier detailed touch/aesthetic acceptance remain pending. Source: user's approved technical plan and latest schema amendments. Preserve unrelated legacy prototype changes.
 
 ## Architecture and decisions
 
 - Explicit HomeTab/SheetRoute/FeedQuery/ActionSessionState routing; per-screen toolbar intents. Native semantic buttons, minimum 44-point targets; navigation hold gestures originate only inside the pill.
 - Typed map bridge commands/events with stable pin IDs and request IDs; convert into web-view coordinates before unprojecting. Stable MapLibre marker instances, cancel stale query results, versioned NYC land mask including water exclusions.
-- DiscoveryPin stores ID, category, geographic coordinate and radius in meters. DiscoveryFilters stores independent optional citywide category plus pins and selected pin ID. Union category-wide matches with each category-and-radius match; deduplicate places. Zero filters retains general discovery. New citywide selection replaces only that selection. Miles UI, 0.25–4, logarithmic midpoint 1. Tap placed pin selects radius/X; X removes; invalid move restores prior coordinate.
+- DiscoveryPin stores ID, category, geographic coordinate and radius in miles, exposing meters for geographic calculations. DiscoveryFilters stores independent optional citywide category plus pins and selected pin ID. Union category-wide matches with each category-and-radius match; deduplicate places. Zero filters retains general discovery. New citywide selection replaces only that selection. Miles UI, 0.25–4, logarithmic midpoint 1. Tap placed pin selects radius/X; X removes; invalid move restores prior coordinate.
 - Native compact/medium/full sheets separate route from presentation state. Reusable feed/detail components explicitly distinguish global, place-specific and own-post context. Own-post context excludes friends' content.
 - Shared palette/icon tokens across SwiftUI and web map. Pixel category icons on all pins, one sticky extra category indicator per visible category.
 - Separate active draft, saved plans, saved items/folders and synchronization state. Stable plan/stop IDs; atomic local persistence, debounced text edits, 50-change durable local Undo per plan, account-scoped storage. Undo restores previous content as current state. No multi-device conflict resolution claims without a server contract.
