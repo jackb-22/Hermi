@@ -3,7 +3,7 @@
 # worker in one process against the production databases in .env.demo. Ctrl-C stops everything.
 #
 #   scripts/demo-up.sh                                  # cloudflared quick tunnel (the URL changes every run)
-#   NGROK_DOMAIN=<name>.ngrok-free.app scripts/demo-up.sh   # stable URL (ngrok's free static domain)
+#   NGROK_DOMAIN=<name>.ngrok-free.dev scripts/demo-up.sh   # stable URL (ngrok's free static domain)
 #
 # The laptop must stay awake and online; this keeps it from sleeping while the server runs.
 set -euo pipefail

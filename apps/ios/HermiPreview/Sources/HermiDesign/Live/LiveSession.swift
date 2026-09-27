@@ -10,7 +10,7 @@ struct LiveConfig: Equatable {
 
   /// Demo backend URL baked in, so a fresh install points at it; the dev token is never in source
   /// (enter it in Settings → Server, or launch with HERMI_DEV_TOKEN).
-  static let demoBaseURL = "https://applicants-marion-exploration-cabinet.trycloudflare.com"
+  static let demoBaseURL = "https://sampling-utmost-flounder.ngrok-free.dev"
   static let demoUsername = "ava"
   static let demoAccounts = ["ava", "ben"]
 

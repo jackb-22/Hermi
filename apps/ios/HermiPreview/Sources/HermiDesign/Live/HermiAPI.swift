@@ -65,6 +65,8 @@ struct HermiAPI {
     var request = URLRequest(url: url, timeoutInterval: 25)
     request.httpMethod = method
     request.setValue("application/json", forHTTPHeaderField: "Accept")
+    // ngrok's free tier can show a browser warning page; this header skips it for API calls.
+    request.setValue("1", forHTTPHeaderField: "ngrok-skip-browser-warning")
     if let token { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
     if let devToken, !devToken.isEmpty { request.setValue(devToken, forHTTPHeaderField: "x-dev-token") }
     if let body {

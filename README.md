@@ -147,7 +147,7 @@ pnpm --filter @itp/api exec tsx --env-file=../../.env scripts/seed-curated.ts --
 The phones reach the laptop through a public HTTPS tunnel. The API and worker run in one process against the production databases, and media is served by the API.
 ```bash
 cp .env.demo.example .env.demo      # production MONGO_URI / TIGER_URL, keys, two `openssl rand -hex 32` secrets
-NGROK_DOMAIN=<name>.ngrok-free.app scripts/demo-up.sh   # stable URL (without NGROK_DOMAIN: a new cloudflared URL each run)
+NGROK_DOMAIN=<name>.ngrok-free.dev scripts/demo-up.sh   # stable URL (without NGROK_DOMAIN: a new cloudflared URL each run)
 scripts/demo-checkin.sh ben "Butler"                    # give the Social map a fresh friend check-in
 ```
 Dev sign-in, used by the app's demo mode: `POST <url>/v1/auth/dev {"username":"ava"}` with header `x-dev-token: <DEV_TOKEN from .env.demo>`.
