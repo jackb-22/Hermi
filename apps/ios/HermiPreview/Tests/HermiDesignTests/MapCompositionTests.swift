@@ -96,4 +96,34 @@ final class MapCompositionTests: XCTestCase {
     XCTAssertEqual(state.savedIDs, ["garden"])
   }
 
+  func testFeedPlanToggleDoesNotChangeSavedOrOtherStops() {
+    var state = MapPreviewState()
+    state.toggleSave("garden"); state.addPlace("cafe")
+    state.togglePlan("garden")
+    XCTAssertEqual(state.planIDs, ["cafe", "garden"])
+    state.togglePlan("garden")
+    XCTAssertEqual(state.planIDs, ["cafe"])
+    XCTAssertEqual(state.savedIDs, ["garden"])
+    state.togglePlan("missing")
+    XCTAssertEqual(state.planIDs, ["cafe"])
+  }
+  func testReorderKeepsExplicitIDsAndSavedDetailReturnsToSaved() {
+    var state = MapPreviewState()
+    ["garden", "cafe", "gallery"].forEach { state.addPlace($0) }
+    state.movePlace("gallery", before: "garden")
+    XCTAssertEqual(state.planIDs, ["gallery", "garden", "cafe"])
+    state.movePlace("missing", before: "garden")
+    state.movePlace("garden", before: "garden")
+    XCTAssertEqual(state.planIDs, ["gallery", "garden", "cafe"])
+    state.sheet = .saved; state.selectPlace("cafe"); state.goBack()
+    XCTAssertEqual(state.sheet, .saved)
+  }
+  func testPillSelectionClampsToPillSegments() {
+    XCTAssertEqual(HomeNavigationPill.panel(at: -20), .feed)
+    XCTAssertEqual(HomeNavigationPill.panel(at: 40), .feed)
+    XCTAssertEqual(HomeNavigationPill.panel(at: 110), .map)
+    XCTAssertEqual(HomeNavigationPill.panel(at: 190), .profile)
+    XCTAssertEqual(HomeNavigationPill.panel(at: 300), .profile)
+  }
+
 }

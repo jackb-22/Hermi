@@ -2,7 +2,7 @@ import Foundation
 import CoreLocation
 
 enum HomePanel: String, CaseIterable, Codable { case feed = "Feed", map = "Map", profile = "Profile" }
-enum MapPreviewSheet: Equatable, Codable { case nearby, place(String), plan }
+enum MapPreviewSheet: Equatable, Codable { case nearby, place(String), plan, saved }
 
 struct MapSamplePlace: Identifiable {
   let id: String
@@ -83,13 +83,22 @@ struct MapPreviewState: Codable, Equatable {
   }
   mutating func selectPlace(_ id: String) {
     guard MapSamplePlace.find(id) != nil else { return }
-    returnSheet = sheet == .plan ? .plan : (discovery == nil && geographicDiscovery == nil ? nil : .nearby)
+    returnSheet = (sheet == .plan || sheet == .saved) ? sheet : (discovery == nil && geographicDiscovery == nil ? nil : .nearby)
     sheet = .place(id)
   }
   mutating func goBack() { sheet = returnSheet; returnSheet = nil }
   mutating func addPlace(_ id: String) {
     guard MapSamplePlace.find(id) != nil, !planIDs.contains(id) else { return }
     planIDs.append(id)
+  }
+  mutating func togglePlan(_ id: String) {
+    guard MapSamplePlace.find(id) != nil else { return }
+    if planIDs.contains(id) { removePlace(id) } else { addPlace(id) }
+  }
+  mutating func movePlace(_ id: String, before target: String) {
+    guard id != target, planIDs.contains(id), planIDs.contains(target) else { return }
+    planIDs.removeAll { $0 == id }
+    if let index = planIDs.firstIndex(of: target) { planIDs.insert(id, at: index) }
   }
   mutating func removePlace(_ id: String) { planIDs.removeAll { $0 == id } }
   mutating func toggleSave(_ id: String) {

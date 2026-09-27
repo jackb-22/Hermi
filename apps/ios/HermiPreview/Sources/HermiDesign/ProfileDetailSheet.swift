@@ -24,10 +24,10 @@ struct ProfileDetailSheet: View {
                   if draftAudience == audience { PixelIcon(name: "check").frame(width: 20, height: 20) }
                 }.padding(14).frame(minHeight: 48)
                   .background(draftAudience == audience ? HermiPalette.lime : HermiPalette.paper, in: PixelPanel(corner: 6))
-              }.buttonStyle(.plain).accessibilityAddTraits(draftAudience == audience ? .isSelected : [])
+              }.buttonStyle(.plain).controlHelp("Select \(audience) as the draft visibility. Save to apply the preview setting").accessibilityAddTraits(draftAudience == audience ? .isSelected : [])
             }
             Button("Save preview setting") { savedAudience = draftAudience; dismiss() }
-              .buttonStyle(.borderedProminent).tint(HermiPalette.green)
+              .buttonStyle(.borderedProminent).tint(HermiPalette.green).controlHelp("Save only this local preview preference; no route will be published")
             Text("This saves only the preview choice. No routes will be published.").font(.caption)
           case .stats:
             Text("Most visited places · ascending by visit count").font(.headline)
@@ -61,7 +61,7 @@ struct ProfileDetailSheet: View {
         }.padding(20)
       }.background(HermiPalette.paper)
         .navigationTitle(detail.rawValue)
-        .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
+        .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() }.controlHelp("Close this account panel") } }
     }.presentationDetents([.medium, .large])
       .onAppear { draftAudience = ["Private", "Friends", "Everyone"].contains(savedAudience) ? savedAudience : "Private" }
   }

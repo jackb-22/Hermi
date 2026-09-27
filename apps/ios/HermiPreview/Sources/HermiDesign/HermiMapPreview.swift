@@ -3,11 +3,9 @@ import SwiftUI
 /// Product fixtures stay local; the geographic basemap fetches public tiles.
 public struct HermiMapPreview: View {
   @State private var state = MapPreviewState()
-  @State private var pan = CGSize.zero
-  @GestureState private var drag = CGSize.zero
-  @State private var zoom: CGFloat = 1
-  @GestureState private var pinch: CGFloat = 1
   @State private var moving = false
+  @State private var friendsFeed = false
+  @State private var actionPreview = false
   @State private var restorePill: Task<Void, Never>?
   @State private var lab = false
   @State private var expanded = false
@@ -27,7 +25,7 @@ public struct HermiMapPreview: View {
       ZStack {
         switch state.panel {
         case .map: map(in: geometry.size).ignoresSafeArea()
-        case .feed: feed(in: geometry.size).ignoresSafeArea()
+        case .feed: FeedPager(state: $state, size: geometry.size, friendsOnly: friendsFeed, onMoving: beginMapGesture, onStopped: endMapGesture).ignoresSafeArea()
         case .profile: profile
         }
         VStack {
@@ -36,10 +34,12 @@ public struct HermiMapPreview: View {
         }.padding(.horizontal, 20).padding(.top, safeGeometry.safeAreaInsets.top + 8)
 
         if let sheet = state.sheet {
-          VStack {
-            Spacer()
-            bottomSheet(sheet, height: geometry.size.height)
-          }.transition(.move(edge: .bottom))
+          if sheet == .plan || sheet == .saved {
+            PlanPreviewPage(state: $state, saved: sheet == .saved, close: { state.sheet = nil }, go: { actionPreview = true })
+              .padding(.top, safeGeometry.safeAreaInsets.top)
+          } else {
+            VStack { Spacer(); bottomSheet(sheet, height: geometry.size.height) }.transition(.move(edge: .bottom))
+          }
         }
         VStack {
           Spacer()
@@ -53,6 +53,12 @@ public struct HermiMapPreview: View {
     }
     .background(HermiPalette.paper).foregroundStyle(HermiPalette.ink)
     .preferredColorScheme(.light)
+    .accessibilityHidden(actionPreview)
+    .overlay {
+      if actionPreview {
+        ActionModePreview(plan: state.planIDs) { actionPreview = false; state.sheet = .plan }
+      }
+    }
     .animation(reduceMotion || reduceMotionOverride ? nil : .easeOut(duration: 0.2), value: state.sheet)
     .animation(reduceMotion || reduceMotionOverride ? nil : .easeOut(duration: 0.15), value: moving)
     .sheet(isPresented: $lab) {
@@ -84,12 +90,15 @@ public struct HermiMapPreview: View {
     HStack(alignment: .top) {
       Menu {
         Text("Real geography · sample places")
-        Text("Composition review 01c")
+        Text("Interaction review 01e")
         Divider()
         Button("Component lab") { lab = true }
         Toggle("Reduce motion", isOn: $reduceMotionOverride)
         Button("Reset preview") {
           UserDefaults.standard.removeObject(forKey: "hermi.preview.routeAudience")
+          UserDefaults.standard.removeObject(forKey: "hermi.preview.stopTimes")
+          for place in MapSamplePlace.all { UserDefaults.standard.removeObject(forKey: "hermi.preview.invites.\(place.id)") }
+          friendsFeed = false
           state.reset(); mapCommand = MapCommand(action: "recenter"); expanded = false
           reduceMotionOverride = false; profileTab = "Adventures"
           restorePill?.cancel(); moving = false
@@ -118,14 +127,18 @@ public struct HermiMapPreview: View {
           expanded = false
         })
       }
-      Button { state.social.toggle(); state.switchPanel(.map) } label: {
+      Button {
+        if state.panel == .feed { friendsFeed.toggle() }
+        else { state.social.toggle(); state.switchPanel(.map) }
+      } label: {
         PixelIcon(name: "social").frame(width: 26, height: 26).frame(width: 52, height: 52)
-          .background(state.social ? HermiPalette.lime : HermiPalette.paper, in: PixelPanel(corner: 8))
-      }.accessibilityLabel(state.social ? "Social map. Switch to Solo" : "Solo map. Switch to Social")
+          .background((state.panel == .feed ? friendsFeed : state.social) ? HermiPalette.lime : HermiPalette.paper, in: PixelPanel(corner: 8))
+      }.accessibilityLabel(state.panel == .feed ? (friendsFeed ? "Friends feed. Show public" : "Public feed. Show friends") : (state.social ? "Social map. Switch to Solo" : "Solo map. Switch to Social"))
+        .controlHelp(state.panel == .feed ? "Toggle sample Feed between friends and public" : "Toggle Solo and Social map")
       Button { state.sheet = .plan; expanded = true } label: {
         PixelIcon(name: "plan").frame(width: 26, height: 26).frame(width: 52, height: 52)
           .background(HermiPalette.paper, in: PixelPanel(corner: 8))
-      }.accessibilityLabel("Plan and Saved, \(state.planIDs.count) places")
+      }.accessibilityLabel("My Plan, \(state.planIDs.count) places").controlHelp("Open My Plan. Saved is inside its bookmark button")
     }.buttonStyle(.plain)
   }
 
@@ -155,7 +168,7 @@ public struct HermiMapPreview: View {
     Button { mapCommand = MapCommand(action: action) } label: {
       PixelIcon(name: icon).frame(width: 20, height: 20).frame(width: 44, height: 44)
         .background(HermiPalette.paper, in: PixelPanel(corner: 6))
-    }.buttonStyle(.plain).accessibilityLabel(label)
+    }.buttonStyle(.plain).accessibilityLabel(label).controlHelp(label)
   }
 
   private func beginMapGesture() { restorePill?.cancel(); moving = true }
@@ -168,22 +181,9 @@ public struct HermiMapPreview: View {
   }
 
   private var navigationPill: some View {
-    HStack(spacing: 8) {
-      ForEach(HomePanel.allCases, id: \.self) { panel in
-        Button { state.switchPanel(panel); expanded = false } label: {
-          VStack(spacing: 3) {
-            NavigationSprite(panel: panel, selected: state.panel == panel).frame(width: 23, height: 23)
-            Text(panel.rawValue).font(.system(size: 10, weight: state.panel == panel ? .bold : .medium))
-          }.frame(width: 64, height: 48)
-            .foregroundStyle(state.panel == panel ? HermiPalette.paper : HermiPalette.ink)
-            .background(state.panel == panel ? HermiPalette.ink : .clear, in: Capsule())
-        }.buttonStyle(.plain).accessibilityLabel(panel.rawValue)
-          .accessibilityAddTraits(state.panel == panel ? .isSelected : [])
-          .accessibilityIdentifier("home.\(panel.rawValue.lowercased())")
-      }
-    }.padding(6).background(HermiPalette.paper, in: Capsule())
-      .overlay(Capsule().stroke(HermiPalette.ink.opacity(0.15), lineWidth: 1))
-      .shadow(color: HermiPalette.ink.opacity(0.12), radius: 12, y: 4)
+    HomeNavigationPill(selected: state.panel) { panel in
+      state.switchPanel(panel); expanded = false; moving = false
+    }
   }
 
   private func bottomSheet(_ sheet: MapPreviewSheet, height: CGFloat) -> some View {
@@ -201,7 +201,7 @@ public struct HermiMapPreview: View {
           switch sheet {
           case .nearby: nearbyContent
           case .place(let id): if let place = MapSamplePlace.find(id) { placeContent(place) }
-          case .plan: planContent
+          case .plan, .saved: EmptyView()
           }
         }.padding(.horizontal, 20).padding(.bottom, 10)
       }.scrollIndicators(.hidden)
@@ -213,7 +213,7 @@ public struct HermiMapPreview: View {
     .overlay(alignment: .topTrailing) {
       Button { state.sheet = nil; expanded = false } label: {
         PixelIcon(name: "close").frame(width: 14, height: 14).frame(width: 44, height: 36)
-      }.buttonStyle(.plain).accessibilityLabel("Close details").padding(.trailing, 8)
+      }.buttonStyle(.plain).accessibilityLabel("Close details").controlHelp("Close this place or discovery panel").padding(.trailing, 8)
     }
   }
 
@@ -241,12 +241,12 @@ public struct HermiMapPreview: View {
       HStack {
         Button { state.goBack() } label: {
           PixelIcon(name: "back").frame(width: 20, height: 20).frame(width: 44, height: 44)
-        }.buttonStyle(.plain).accessibilityLabel(state.returnSheet == .plan ? "Back to My plan" : "Back to nearby")
+        }.buttonStyle(.plain).accessibilityLabel(state.returnSheet == .plan ? "Back to My plan" : (state.returnSheet == .saved ? "Back to Saved" : "Back")).controlHelp("Return to the previous panel")
         Text(place.name).font(.headline).lineLimit(1)
         Spacer(minLength: 4)
         Button { state.toggleSave(place.id) } label: {
           PixelIcon(name: state.savedIDs.contains(place.id) ? "saved" : "save").frame(width: 20, height: 24).frame(width: 44, height: 44)
-        }.buttonStyle(.plain).accessibilityLabel(state.savedIDs.contains(place.id) ? "Unsave place" : "Save place")
+        }.buttonStyle(.plain).accessibilityLabel(state.savedIDs.contains(place.id) ? "Unsave place" : "Save place").controlHelp("Toggle this place in Saved, independently of My Plan")
       }
       HStack(spacing: 8) {
         ForEach(0..<3) { index in mediaTile(place.category, variant: index).frame(height: expanded ? 110 : 68) }
@@ -254,47 +254,16 @@ public struct HermiMapPreview: View {
       HStack {
         Text(place.category.rawValue).font(.caption).foregroundStyle(HermiPalette.secondary)
         Spacer()
-        Button { state.addPlace(place.id) } label: {
-          HStack { PixelIcon(name: state.planIDs.contains(place.id) ? "check" : "plus").frame(width: 14, height: 14); Text(state.planIDs.contains(place.id) ? "Added" : "Add") }
+        Button { state.togglePlan(place.id) } label: {
+          HStack { PixelIcon(name: state.planIDs.contains(place.id) ? "check" : "plus").frame(width: 14, height: 14); Text(state.planIDs.contains(place.id) ? "Remove" : "Add") }
             .font(.subheadline.weight(.semibold)).padding(.horizontal, 20).frame(height: 44)
             .background(HermiPalette.lime, in: Capsule())
-        }.buttonStyle(.plain).disabled(state.planIDs.contains(place.id))
+        }.buttonStyle(.plain).controlHelp("Toggle this place in My Plan without changing Saved")
       }
       if expanded {
         Divider()
         Text("Photos and verified reviews appear here.").font(.footnote).foregroundStyle(HermiPalette.secondary)
         Text("Sample place · no live hours or reviews loaded").font(.caption).foregroundStyle(HermiPalette.secondary)
-      }
-    }
-  }
-
-  private var planContent: some View {
-    VStack(alignment: .leading, spacing: 12) {
-      Text("My plan").font(.headline)
-      if state.planIDs.isEmpty {
-        Text("Choose a nearby place to add.").font(.subheadline).foregroundStyle(HermiPalette.secondary)
-      }
-      ForEach(Array(state.planIDs.enumerated()), id: \.element) { index, id in
-        if let place = MapSamplePlace.find(id) {
-          HStack(spacing: 10) {
-            Text("\(index+1)").font(.caption.bold()).frame(width: 24, height: 24).background(HermiPalette.lime, in: Circle())
-            Button(place.name) { state.selectPlace(id) }.buttonStyle(.plain).font(.subheadline)
-            Spacer()
-            Button { state.removePlace(id) } label: { PixelIcon(name: "minus").frame(width: 18, height: 18).frame(width: 44, height: 44) }
-              .buttonStyle(.plain).accessibilityLabel("Remove \(place.name)")
-          }
-        }
-      }
-      Divider()
-      Text("Saved").font(.headline)
-      if state.savedIDs.isEmpty { Text("Saved places appear here.").font(.caption).foregroundStyle(HermiPalette.secondary) }
-      ForEach(MapSamplePlace.all.filter { state.savedIDs.contains($0.id) }) { place in
-        Button { state.selectPlace(place.id) } label: {
-          HStack { BallpointPin(category: place.category).frame(width: 20, height: 28); Text(place.name); Spacer(); PixelIcon(name: "plus").frame(width: 14, height: 14) }.frame(minHeight: 44)
-        }.buttonStyle(.plain).accessibilityLabel("Open saved place \(place.name)")
-      }
-      if expanded {
-        Text("Timing and Start will be tested in the plan increment.").font(.footnote).foregroundStyle(HermiPalette.secondary)
       }
     }
   }
@@ -305,51 +274,6 @@ public struct HermiMapPreview: View {
       PixelIcon(name: variant == 2 ? "play" : "photo").frame(width: 23, height: 23).opacity(0.55)
     }.clipShape(RoundedRectangle(cornerRadius: 6))
       .accessibilityLabel(variant == 2 ? "Video placement" : "Photo placement")
-  }
-
-  private func feed(in size: CGSize) -> some View {
-    ZStack {
-      HermiPalette.green
-      // Size the 4:3 artwork before cropping; nested aspectRatio modifiers leave bands.
-      ParkPlacement()
-        .frame(width: max(size.width, size.height * 4 / 3),
-               height: max(size.height, size.width * 3 / 4))
-        .frame(width: size.width, height: size.height).clipped().opacity(0.9)
-      LinearGradient(colors: [.clear, .black.opacity(0.65)], startPoint: .center, endPoint: .bottom)
-      PixelIcon(name: "play").frame(width: 38, height: 38)
-        .accessibilityLabel("Video placement; playback is not integrated yet")
-      VStack(alignment: .leading, spacing: 12) {
-        Spacer()
-        HStack(alignment: .bottom) {
-          VStack(alignment: .leading, spacing: 6) {
-            Text("@alex").font(.subheadline.bold())
-            Text("A little detour.").font(.title3.weight(.medium))
-          }
-          Spacer()
-          VStack(spacing: 10) {
-            Button { state.toggleSave("garden") } label: {
-              PixelIcon(name: state.savedIDs.contains("garden") ? "saved" : "save")
-                .frame(width: 22, height: 26).frame(width: 44, height: 44)
-                .background(HermiPalette.paper, in: PixelPanel(corner: 6))
-            }.buttonStyle(.plain)
-              .accessibilityLabel(state.savedIDs.contains("garden") ? "Remove from Saved" : "Save for later")
-              .accessibilityValue(state.savedIDs.contains("garden") ? "Saved" : "Not saved")
-            Button { state.addPlace("garden") } label: {
-              PixelIcon(name: state.planIDs.contains("garden") ? "check" : "plus")
-                .frame(width: 22, height: 22).frame(width: 44, height: 44)
-                .background(state.planIDs.contains("garden") ? HermiPalette.lime : HermiPalette.paper, in: PixelPanel(corner: 6))
-            }.buttonStyle(.plain).disabled(state.planIDs.contains("garden"))
-              .accessibilityLabel(state.planIDs.contains("garden") ? "Added to plan" : "Add to plan")
-          }
-        }
-        Button { state.switchPanel(.map); state.selectPlace("garden") } label: {
-          HStack { BallpointPin(category: .nature).frame(width: 16, height: 22); Text("Riverside gardens"); Spacer() }
-            .font(.subheadline).foregroundStyle(HermiPalette.ink).padding(.horizontal, 12).frame(minHeight: 44)
-            .background(HermiPalette.paper, in: PixelPanel(corner: 6))
-        }.buttonStyle(.plain)
-        Text("SAMPLE MEDIA PLACEMENT").font(.system(size: 9, design: .monospaced)).opacity(0.8)
-      }.foregroundStyle(.white).padding(.horizontal, 24).padding(.bottom, 100)
-    }.clipped()
   }
 
   private var profile: some View {
@@ -371,7 +295,7 @@ public struct HermiMapPreview: View {
                 Text(detail == .score ? "250" : "—").font(.system(.headline, design: .monospaced))
                 Text(detail.rawValue).font(.caption)
               }.frame(maxWidth: .infinity).frame(minHeight: 48)
-            }.buttonStyle(.plain).accessibilityLabel(detail.rawValue)
+            }.buttonStyle(.plain).accessibilityLabel(detail.rawValue).controlHelp("Open \(detail.rawValue)")
           }
         }.padding(.horizontal, 24)
         HStack(spacing: 40) {
@@ -380,7 +304,7 @@ public struct HermiMapPreview: View {
               PixelIcon(name: tab == "Adventures" ? "route" : "grid").frame(width: 25, height: 25)
                 .frame(width: 64, height: 48)
                 .background(profileTab == tab ? HermiPalette.lime : .clear, in: PixelPanel(corner: 6))
-            }.buttonStyle(.plain).accessibilityLabel(tab).accessibilityAddTraits(profileTab == tab ? .isSelected : [])
+            }.buttonStyle(.plain).accessibilityLabel(tab).controlHelp("Show your \(tab.lowercased())").accessibilityAddTraits(profileTab == tab ? .isSelected : [])
           }
         }
         if profileTab == "Adventures" {
@@ -389,13 +313,13 @@ public struct HermiMapPreview: View {
               Button { profileDetail = .sharing } label: {
                 PixelIcon(name: "social").frame(width: 23, height: 23).frame(width: 44, height: 44)
                   .background(HermiPalette.paper, in: PixelPanel(corner: 6))
-              }.buttonStyle(.plain).accessibilityLabel("Adventure sharing settings").padding(12)
+              }.buttonStyle(.plain).accessibilityLabel("Adventure sharing settings").controlHelp("Choose Private, Friends or Everyone for your adventures").padding(12)
             }
             .overlay(alignment: .topTrailing) {
               Button { profileDetail = .stats } label: {
                 PixelIcon(name: "info").frame(width: 23, height: 23).frame(width: 44, height: 44)
                   .background(HermiPalette.paper, in: PixelPanel(corner: 6))
-              }.buttonStyle(.plain).accessibilityLabel("Adventure statistics").padding(12)
+              }.buttonStyle(.plain).accessibilityLabel("Adventure statistics").controlHelp("View your visits, coverage, steps and neighborhood statistics").padding(12)
             }
         } else {
           LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 3), count: 3), spacing: 3) {
@@ -403,7 +327,7 @@ public struct HermiMapPreview: View {
               let place = MapSamplePlace.all[index % MapSamplePlace.all.count]
               Button { postPlace = place.id } label: {
                 mediaTile(place.category, variant: index % 3).aspectRatio(0.8, contentMode: .fit)
-              }.buttonStyle(.plain).accessibilityLabel("Sample post at \(place.name)")
+              }.buttonStyle(.plain).accessibilityLabel("Sample post at \(place.name)").controlHelp("Open posts and reviews for \(place.name)")
             }
           }
           Text("Sample media placements").font(.caption)
@@ -414,7 +338,7 @@ public struct HermiMapPreview: View {
       .sheet(item: Binding(get: { postPlace.flatMap(MapSamplePlace.find) }, set: { postPlace = $0?.id })) { place in
         ScrollView {
           VStack(alignment: .leading, spacing: 20) {
-            HStack { Text(place.name).font(.title2.bold()); Spacer(); Button { postPlace = nil } label: { PixelIcon(name: "close").frame(width: 20, height: 20).frame(width: 44, height: 44) }.accessibilityLabel("Close post") }
+            HStack { Text(place.name).font(.title2.bold()); Spacer(); Button { postPlace = nil } label: { PixelIcon(name: "close").frame(width: 20, height: 20).frame(width: 44, height: 44) }.accessibilityLabel("Close post").controlHelp("Return to the posts grid") }
             Text("Your posts").font(.headline)
             HStack(spacing: 6) { ForEach(0..<3) { mediaTile(place.category, variant: $0).frame(height: 150) } }
             Text("Your review").font(.headline)

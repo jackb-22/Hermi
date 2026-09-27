@@ -27,7 +27,10 @@ struct PixelIcon: View {
     switch name {
     case "info": return ["   III   ","         ","   III   ","    II   ","    II   ","    II   ","  IIIIII "]
     case "social": return ["  III  III ","  III  III ","           "," IIIII IIII"," IIIII IIII"," IIIII IIII","  I I  I I ","  I I  I I "]
-    case "plan", "route": return ["III        ","I I IIIIII ","III I    I ","    I    I ","    I    I ","    IIII I ","       I   ","       I III","       I I I","       I III"]
+    case "plan": return ["   IIIIIIIIII", "  I         I", " I          I", "I           I", " I          I", "  I         I", "   IIIIIIIIII"]
+    case "clock": return ["   IIIII   "," II     II "," I   I   I ","I    I    I","I    III  I","I         I"," I       I "," II     II ","   IIIII   "]
+    case "camera": return ["   IIIII   ","IIIIIIIIIII","I         I","I   III   I","I  I   I  I","I   III   I","I         I","IIIIIIIIIII"]
+    case "route": return ["III        ","I I IIIIII ","III I    I ","    I    I ","    I    I ","    IIII I ","       I   ","       I III","       I I I","       I III"]
     case "grid": return ["III III III","III III III","III III III","           ","III III III","III III III","III III III","           ","III III III","III III III","III III III"]
     case "close": return ["II     II"," II   II ","  II II  ","   III   ","  II II  "," II   II ","II     II"]
     case "back": return ["   II    ","  II     "," II      ","IIIIIIIII"," II      ","  II     ","   II    "]
@@ -80,7 +83,7 @@ struct CategoryPinControl: View {
           if case .second(true, let drag?) = value, abs(drag.translation.width) > 55 { onDrop(drag.location) }
           showing = false; dragging = .zero
         })
-      .overlay(alignment: .trailing) {
+      .overlay(alignment: .topTrailing) {
         if showing && abs(dragging.width) < 55 {
           VStack(spacing: 4) {
             ForEach(-1...1, id: \.self) { offset in
@@ -90,7 +93,7 @@ struct CategoryPinControl: View {
                 CategorySprite(category: categories[index]).frame(width: 20, height: 20)
               }.frame(height: 36).opacity(offset == 0 ? 1 : 0.45)
             }
-          }.padding(10).background(HermiPalette.paper, in: PixelPanel(corner: 6)).offset(x: -62)
+          }.frame(width: 150).fixedSize(horizontal: true, vertical: true).padding(10).background(HermiPalette.paper, in: PixelPanel(corner: 6)).offset(x: -62)
             .allowsHitTesting(false)
         }
       }
