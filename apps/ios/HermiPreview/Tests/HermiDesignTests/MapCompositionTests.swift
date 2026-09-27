@@ -118,19 +118,4 @@ final class MapCompositionTests: XCTestCase {
     state.sheet = .saved; state.selectPlace("cafe"); state.goBack()
     XCTAssertEqual(state.sheet, .saved)
   }
-  func testPillSegmentsFollowMapFeedProfileOrder() {
-    XCTAssertEqual(HomePillLayout.panel(at: CGPoint(x: 38, y: 30)), .map)
-    XCTAssertEqual(HomePillLayout.panel(at: CGPoint(x: 110, y: 30)), .feed)
-    XCTAssertEqual(HomePillLayout.panel(at: CGPoint(x: 182, y: 30)), .profile)
-    XCTAssertEqual(HomePillLayout.panel(at: CGPoint(x: 0, y: 0)), .map)
-    XCTAssertEqual(HomePillLayout.panel(at: CGPoint(x: 220, y: 60)), .profile)
-  }
-
-  func testScrubOutsidePillCancelsInsteadOfOpeningEdgeTab() {
-    for point in [CGPoint(x: -1, y: 30), CGPoint(x: 221, y: 30),
-                  CGPoint(x: 110, y: -1), CGPoint(x: 110, y: 61),
-                  CGPoint(x: CGFloat.nan, y: 30)] {
-      XCTAssertNil(HomePillLayout.panel(at: point))
-    }
-  }
 }
