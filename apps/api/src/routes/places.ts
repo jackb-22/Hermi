@@ -22,6 +22,17 @@ export const NEAR_MIN_RESULTS = 5;
 export const NEAR_CAP_M = 1200; // 15-minute walk
 export const NEAR_TOP = 10;
 
+/**
+ * Which index answers a bbox. Zoomed out, most of a category is on screen, so walking it in rank order stops
+ * after the first few dozen (a whole-Manhattan screen examined 24k food places to sort them, now 75). Zoomed
+ * in, the few places in view are cheaper to find by location and sort.
+ */
+const RANK_SCAN_MIN_KM2 = 3;
+const RANK_INDEX = { category: 1, been: -1, confidence: -1, loc: '2dsphere' };
+const GEO_INDEX = { category: 1, loc: '2dsphere' };
+const bboxKm2 = (w: number, s: number, e: number, n: number) =>
+  (e - w) * 111.32 * Math.cos((((s + n) / 2) * Math.PI) / 180) * (n - s) * 110.57;
+
 export const placesRoutes: FastifyPluginAsyncZod = async (app) => {
   const { db, tiger, clock } = app.ctx;
 
@@ -67,12 +78,14 @@ export const placesRoutes: FastifyPluginAsyncZod = async (app) => {
         ],
       };
       const cats: readonly PinType[] = req.query.cat === 'all' ? PIN_TYPES : [req.query.cat];
+      const hint = bboxKm2(w, s, e, n) > RANK_SCAN_MIN_KM2 ? RANK_INDEX : GEO_INDEX;
       const lists = await Promise.all(
         cats.map(async (category) => {
           const found = await places(db)
             .find({ category, loc: { $geoWithin: { $geometry: polygon } }, ...ageFilter(u) })
             .sort({ been: -1, confidence: -1 })
             .limit(req.query.limit * 3)
+            .hint(hint)
             .toArray();
           return found
             .map((p) => ({ p, score: placeRank(p, u?.prefVector) }))

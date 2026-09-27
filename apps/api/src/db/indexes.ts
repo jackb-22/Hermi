@@ -20,6 +20,8 @@ const INDEXES: Record<string, IndexDescription[]> = {
   places: [
     { key: { loc: '2dsphere' } },
     { key: { category: 1, loc: '2dsphere' } },
+    // Map pins zoomed out: a category in rank order, filtered by the bbox on the index keys (see GET /places).
+    { key: { category: 1, been: -1, confidence: -1, loc: '2dsphere' } },
     { key: { overtureId: 1 }, unique: true, sparse: true },
   ],
   plans: [
