@@ -9,7 +9,6 @@ public struct HermiMapPreview: View {
   @State private var mapRevision = 0
   @State private var pinNotice: String?
   @State private var settings = false
-  @State private var actionPreview = false
   @State private var restorePill: Task<Void, Never>?
   @State private var lab = false
   @State private var panelLevel: DiscoveryPanelLevel = .compact
@@ -62,7 +61,7 @@ public struct HermiMapPreview: View {
 
         if let sheet = state.sheet {
           if sheet == .plan || sheet == .saved {
-            PlanPreviewPage(state: $state, saved: sheet == .saved, close: { state.sheet = nil }, go: { if state.canStartPlan { actionPreview = true } })
+            PlanPreviewPage(state: $state, saved: sheet == .saved, close: { state.sheet = nil }, go: { state.startActionPreview() })
               .padding(.top, safeGeometry.safeAreaInsets.top)
           } else {
             VStack { Spacer(); bottomSheet(sheet, height: geometry.size.height, safeTop: safeGeometry.safeAreaInsets.top) }.transition(.move(edge: .bottom))
@@ -80,10 +79,11 @@ public struct HermiMapPreview: View {
     }
     .background(HermiPalette.paper).foregroundStyle(HermiPalette.ink)
     .preferredColorScheme(.light)
-    .accessibilityHidden(actionPreview)
+    .accessibilityHidden(state.actionSession != nil)
+    .allowsHitTesting(state.actionSession == nil)
     .overlay {
-      if actionPreview {
-        ActionModePreview(plan: state.planIDs) { actionPreview = false; state.sheet = .plan }
+      if let session = state.actionSession {
+        ActionModePreview(session: session, selectMode: { state.actionSession?.mode = $0 }, end: { state.finishActionPreview() }, done: { state.dismissActionRecap() })
       }
     }
     .animation(reduceMotion || reduceMotionOverride ? nil : .easeOut(duration: 0.2), value: state.sheet)

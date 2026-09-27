@@ -79,6 +79,7 @@ struct MapPreviewState: Codable, Equatable {
   var storedFeedPreferences: FeedPreferences?
   var storedPrivacyPreferences: PrivacyPreferences?
   var savedFeedPlanIDs: [String: String]?
+  var actionSession: ActionPreviewSession?
 
   var showsPlan: Bool { true }
   var nearby: [MapSamplePlace] { matchingPlaces(MapSamplePlace.all) }
