@@ -128,13 +128,7 @@ struct RemoteMediaTile: View {
   let item: RemoteMediaItem
   var body: some View {
     ZStack(alignment: .bottomLeading) {
-      AsyncImage(url: item.isVideo ? item.posterURL : item.url) { phase in
-        switch phase {
-        case .success(let image): image.resizable().scaledToFill()
-        case .failure: ParkPlacement().overlay { PixelIcon(name: "photo").frame(width: 24, height: 24).opacity(0.5) }
-        default: ParkPlacement().overlay { ProgressView() }
-        }
-      }
+      CachedImage(url: item.isVideo ? item.posterURL : item.url)
       if item.isVideo {
         PixelIcon(name: "play").frame(width: 24, height: 24).padding(12)
           .background(HermiPalette.paper, in: PixelPanel(corner: 6)).padding(12)

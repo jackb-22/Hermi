@@ -163,6 +163,21 @@ Photos are assigned to seeded check-in places at random, so general NYC or campu
 - [ ] Videos and adventure routes: the code is ready (muted looping video that plays only on screen, route map for recap posts), but the current demo data has none. Check again after the curated seed.
 - [ ] Sample mode: the sample Feed still works, and "Everything" shows the sample posts and then the sample plans.
 
+### Step 7b: feedback fixes (filter colours, multi-part posts, no tree flash, Saved grid)
+- [ ] `check.sh` passes: 82 tests.
+- [ ] **Chevron colours:** Everything is white, Posts blue, Plans green.
+- [ ] **Multi-part posts:** a post with several photos, clips, a route or long text pages **sideways**, with dots at the top. Vertical swipes still move between posts. Clips play only on the visible part of the visible post. (Demo posts have one photo each; the curated seed will exercise this.)
+- [ ] **No tree flash:** while photos load you see a dark tile with a spinner, never the pixel trees. Scrolling back to a post shows its photo instantly (cached).
+- [ ] **Saved grid** (Profile → bookmark, or My Plan → Saved row → See all): two columns of boxes.
+  - Folders show a 2×2 mosaic. Posts show their photo (▶ for clips, 1/N for sets). Plans show a numbered route sketch. Places show a coloured pin tile.
+- [ ] Tap a **post**: it opens full screen, with X top-left, the parts swipe sideways, and the place button opens the place.
+- [ ] Tap a **plan**: full-screen route map with its stops, plus **Open in My Plan** and **Add stops**, and X top-left.
+- [ ] Tap a **folder**: the same grid of just its items, with **‹ Saved** top-left to go back.
+- [ ] **New folder** at top right creates a folder, which syncs.
+- [ ] **Hold any box** for Add to My Plan, Move to folder, Remove from folder (inside a folder) and Remove from Saved.
+- [ ] In My Plan's horizontal Saved row, tapping a post now opens it full screen too.
+- [ ] Confirmed on the server: **Sunday loop** has jenny **invited**.
+
 ---
 
 ## Deferred / deviations log
@@ -201,4 +216,5 @@ Items that are unconnected, need UI or backend work, or depart from `docs/HERMI_
 | D28 | Plans | Plans sync by comparing each change with the last synced snapshot. Arrival times the server computes are loaded on connect, not re-read after every edit, so between launches the timetable shows your own times. Visibility and invites are sent once, when a plan is saved; later sharing edits (Step 8 editor) stay local. Unbookmarking a saved plan doesn't delete it on the server. Plans you joined but don't host aren't listed in Saved. | Speed, and avoids re-sending invites. |
 | D29 | Feed | Only a post's first photo is shown, with no in-page media carousel. Videos are muted, with no sound toggle. An open plan's host name appears only when the host is a friend; the API gives just `hostId`. The end card's "Plan from Saved" (`POST /plans/from-saved`) isn't wired; the end page offers My Plan and Saved. Adventure lines are straight segments between stops unless the post carries a recorded route. | Speed. A host card on `Plan` would be a small backend addition. |
 | D30 | Design amendment | Feed content defaults to **Everything** (posts and plans mixed), and the chevron cycles Everything → Posts → Plans. The top-right audience toggle is labelled General / Friends. | User request, 2026-09-27. |
+| D31 | Saved / Feed | Places in Saved open the place sheet, not a full-screen view. A post gets a separate text page only when its text runs past about 90 characters or there's no media; shorter text stays the caption. Saved-row actions moved into a press-and-hold menu. Photos are cached in memory only. | Speed. Revisit with the curated content. |
 

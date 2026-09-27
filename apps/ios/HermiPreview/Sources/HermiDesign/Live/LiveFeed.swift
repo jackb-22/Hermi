@@ -24,6 +24,8 @@ struct LiveFeedCard: Identifiable, Equatable {
   /// "join" or "request" on open plans.
   var joinAction: String?
   var again: Bool?
+  /// Horizontal parts of this page: route, photos/clips, text page.
+  var slides: [FeedSlide] = []
 
   var isPlan: Bool { kind == .route || kind == .openPlan }
 
@@ -63,7 +65,8 @@ struct LiveFeedCard: Identifiable, Equatable {
     }
     return LiveFeedCard(id: "post:\(post.id)", kind: kind, authorID: post.author.id, author: post.author.name,
                         title: post.text ?? post.place?.name ?? "", placeIDs: placeIDs, media: media, route: route,
-                        postID: post.feedPost != nil ? post.id : nil, again: post.again)
+                        postID: post.feedPost != nil ? post.id : nil, again: post.again,
+                        slides: FeedSlide.build(media: media, text: post.text, hasRoute: route.count > 1))
   }
 
   static func from(_ plan: PlanDTO, action: String?) -> LiveFeedCard {
@@ -73,7 +76,7 @@ struct LiveFeedCard: Identifiable, Equatable {
                         author: host ?? (action == "request" ? "Open to verified students" : "A friend’s plan"),
                         title: plan.name, placeIDs: stops.map(\.id),
                         route: stops.map { GeoPoint(latitude: $0.loc.lat, longitude: $0.loc.lng) },
-                        planID: plan.id, joinAction: action ?? "join")
+                        planID: plan.id, joinAction: action ?? "join", slides: [.route])
   }
 }
 

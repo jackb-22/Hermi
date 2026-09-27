@@ -15,6 +15,7 @@ struct PlanPreviewPage: View {
   @State private var saveModal = false
   @State private var sharingModal = false
   @State private var saveFeedback: String?
+  @State private var viewingPost: SavedReference?
   private var warning: Bool { !state.timingConflicts.isEmpty }
   var body: some View {
     VStack(spacing: 16) {
@@ -58,7 +59,11 @@ struct PlanPreviewPage: View {
             .help(state.editingSavedPlan == nil ? "Tap to show Saved here. Hold to save the current plan" : "Tap for Saved. Hold for sharing draft preferences; edits autosave locally")
         }
       }.padding(.horizontal, 16)
-      if saved { savedList }
+      if saved {
+        SavedGrid(state: $state, feedback: saveFeedback, append: append) { id in
+          if state.openSavedPlan(id) { saveFeedback = nil; showDrawer = false }
+        }
+      }
       else {
         HStack(spacing: 12) {
           VStack(alignment: .leading, spacing: 3) {
@@ -131,6 +136,10 @@ struct PlanPreviewPage: View {
         })
       }
     }
+    .coverScreen(item: $viewingPost) { reference in
+      SavedViewer(state: $state, reference: reference, close: { viewingPost = nil },
+                  openPlan: { id in viewingPost = nil; _ = state.openSavedPlan(id) }, append: append)
+    }
     .sheet(item: $editor) { place in
       StopTimeEditor(place: place, value: times[place.id]) { state.setStopTime($0, for: place.id) }
     }
@@ -148,7 +157,7 @@ struct PlanPreviewPage: View {
         if didSave {
           state.library = library
           if let id = library.plans.last?.id { state.bindNewSavedPlan(id) }
-          saveFeedback = visibility == .solo ? "Plan saved locally." : "Plan draft saved locally. Nothing was shared or sent."
+          saveFeedback = LiveSession.shared.isLive ? (visibility == .friends ? "Plan saved. Invites sent." : "Plan saved to your account.") : (visibility == .solo ? "Plan saved locally." : "Plan draft saved locally. Nothing was shared or sent.")
         }
         return didSave
       }
@@ -251,7 +260,7 @@ struct PlanPreviewPage: View {
               Text(reference.kind.rawValue.uppercased()).font(.system(size: 10, design: .monospaced))
               Button { openSaved(reference) } label: {
                 Text(savedTitle(reference)).font(.subheadline.bold()).lineLimit(2).frame(maxWidth: .infinity, alignment: .leading)
-              }.disabled(reference.kind == .post)
+              }
                 .controlHelp(reference.kind == .plan ? "Open this saved plan for editing; preserve your current draft" : "Open place details")
               Spacer(minLength: 0)
               Button { append(reference) } label: {
@@ -286,53 +295,10 @@ struct PlanPreviewPage: View {
   }
 
   private func openSaved(_ reference: SavedReference) {
+    if reference.kind == .post { viewingPost = reference; return }
     if reference.kind == .plan {
       if state.openSavedPlan(reference.refID) { saveFeedback = nil; showDrawer = false }
     } else if reference.kind == .place { state.selectPlace(reference.refID) }
-  }
-
-  private var savedList: some View {
-    ScrollView {
-      LazyVStack(alignment: .leading, spacing: 18) {
-        if let saveFeedback { Text(saveFeedback).font(.caption).foregroundStyle(HermiPalette.green) }
-        if state.savedReferences.isEmpty { VStack(spacing: 12) { HermitBrandMark().frame(width: 56, height: 63); Text("Nothing saved yet. Bookmark places or save a plan.") }.padding(20) }
-        ForEach(state.library.folders) { folder in
-          DisclosureGroup("\(folder.name) · \(folder.items.count)") {
-            ForEach(folder.items) { reference in savedRow(reference) }
-          }.font(.headline)
-        }
-        let foldered = Set(state.library.folders.flatMap(\.items))
-        let loose = state.savedReferences.filter { !foldered.contains($0) }
-        if !loose.isEmpty {
-          Text("ALL SAVED").font(.system(size: 11, design: .monospaced)).foregroundStyle(HermiPalette.secondary)
-          ForEach(loose) { reference in savedRow(reference) }
-        }
-      }.padding(20)
-    }
-  }
-
-  private func savedRow(_ reference: SavedReference) -> some View {
-    HStack(spacing: 8) {
-      Text(reference.kind.rawValue.uppercased()).font(.system(size: 9, design: .monospaced))
-        .frame(width: 42, alignment: .leading)
-      Button { openSaved(reference) } label: {
-        Text(savedTitle(reference)).font(.subheadline).lineLimit(2).frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
-      }.disabled(reference.kind == .post)
-      Button { append(reference) } label: { PixelIcon(name: "plus").frame(width: 20, height: 20).frame(width: 44, height: 44) }
-        .accessibilityLabel("Add \(savedTitle(reference)) to current plan")
-        .controlHelp("Append places from this saved item; skip duplicates")
-      if !state.library.folders.isEmpty {
-        Menu {
-          ForEach(state.library.folders) { folder in
-            Button(folder.name) {
-              var library = state.library
-              if library.put(reference, in: folder.id) { state.library = library }
-            }
-          }
-        } label: { Image(systemName: "folder").frame(width: 36, height: 44) }
-          .accessibilityLabel("Move \(savedTitle(reference)) to folder")
-      }
-    }.padding(.horizontal, 12).background(HermiPalette.lime.opacity(0.25), in: PixelPanel(corner: 6))
   }
 }
 

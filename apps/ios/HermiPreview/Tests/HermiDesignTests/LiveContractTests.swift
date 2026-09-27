@@ -331,5 +331,38 @@ final class LiveContractTests: XCTestCase {
     // Content filter: posts vs plans (routes and open plans) vs everything.
     let isPlan = mapped.map(\.isPlan)
     XCTAssertEqual(isPlan, [false, false, true, false, true])
+    // Horizontal parts per page.
+    XCTAssertEqual(mapped[0].slides.map(\.id), ["media:m1"])
+    XCTAssertEqual(mapped[2].slides, [.route])
+    XCTAssertEqual(mapped[3].slides, [.text("Cozy")])
+    XCTAssertEqual(mapped[4].slides, [.route])
+  }
+
+  func testSlidesPutRouteFirstThenMediaThenLongText() {
+    let photo = RemoteMediaItem(id: "a", isVideo: false, url: nil, posterURL: nil)
+    let clip = RemoteMediaItem(id: "b", isVideo: true, url: nil, posterURL: nil)
+    let long = String(repeating: "A long review. ", count: 10)
+    XCTAssertEqual(FeedSlide.build(media: [photo, clip], text: long, hasRoute: true).map(\.id), ["route", "media:a", "media:b", "text"])
+    XCTAssertEqual(FeedSlide.build(media: [photo], text: "short caption", hasRoute: false).map(\.id), ["media:a"], "short captions stay in the overlay")
+    XCTAssertEqual(FeedSlide.build(media: [], text: "Just words", hasRoute: false), [.text("Just words")])
+    XCTAssertTrue(FeedSlide.build(media: [], text: nil, hasRoute: false).isEmpty)
+  }
+
+  func testRemoveFromSavedCoversPlacesPostsAndPlans() {
+    var state = MapPreviewState()
+    state.toggleSave("cafe")
+    state.togglePostBookmark("cafe-sam")
+    var library = state.library
+    XCTAssertTrue(library.savePlan(name: "Loop", folderID: nil, newFolder: "Weekend", visibility: .solo, friends: [], stops: ["cafe", "garden"], times: [:]))
+    state.library = library
+    let plan = SavedReference(kind: .plan, refID: state.library.plans[0].id.uuidString)
+    XCTAssertEqual(state.savedReferences.count, 3)
+    state.unsave(.init(kind: .place, refID: "cafe"))
+    state.unsave(.init(kind: .post, refID: "cafe-sam"))
+    state.unsave(plan)
+    XCTAssertTrue(state.savedReferences.isEmpty)
+    XCTAssertEqual(state.library.plans.count, 1, "unbookmarking keeps the plan's editing data")
+    XCTAssertTrue(state.library.folders[0].items.isEmpty)
+    XCTAssertEqual(state.savedTitle(plan), "Loop")
   }
 }

@@ -283,7 +283,7 @@ public struct HermiMapPreview: View {
         else { state.sheet = .plan; panelLevel = .full }
       } label: {
         PixelIcon(name: "plan").frame(width: 26, height: 26).frame(width: 34, height: 34)
-          .background(state.panel == .feed && state.feedOptions.content != .all ? HermiPalette.lime : HermiPalette.paper, in: PixelPanel(corner: 8))
+          .background(state.panel == .feed ? state.feedOptions.content.tint : HermiPalette.paper, in: PixelPanel(corner: 8))
         .frame(width: 44, height: 44).contentShape(Rectangle())
       }.accessibilityLabel(state.panel == .feed ? "Feed shows \(state.feedOptions.content.label). Change filter" : "My Plan, \(state.planIDs.count) places")
         .controlHelp(state.panel == .feed ? "Filter the Feed: everything, posts only or plans only" : "Open My Plan. Saved is inside its bookmark button")

@@ -81,28 +81,9 @@ struct LiveFeedPager: View {
     }.buttonStyle(.plain).clipped()
   }
 
-  @ViewBuilder
   private func background(_ card: LiveFeedCard, places: [MapSamplePlace]) -> some View {
-    switch card.kind {
-    case .photo:
-      AsyncImage(url: card.media.first?.url) { phase in
-        if let image = phase.image { image.resizable().scaledToFill() }
-        else { ParkPlacement().overlay { if phase.error == nil { ProgressView() } } }
-      }.frame(width: size.width, height: size.height).clipped()
-    case .video:
-      let clip = card.media.first { $0.isVideo }
-      FeedVideo(url: clip?.url, poster: clip?.posterURL, playing: current == card.id)
-        .frame(width: size.width, height: size.height).clipped()
-    case .route, .openPlan:
-      GeographicMap(state: MapPreviewState(), showsPlaces: false, routeLine: card.route, routeStops: places)
-        .frame(width: size.width, height: size.height).allowsHitTesting(false)
-    case .review:
-      ZStack {
-        HermiPalette.lavender
-        Text("“\(card.title)”").font(.title.bold()).multilineTextAlignment(.center).padding(40)
-          .foregroundStyle(HermiPalette.ink).offset(y: -80)
-      }
-    }
+    MediaSlidesView(slides: card.slides, route: card.route, routeStops: places, active: current == card.id)
+      .frame(width: size.width, height: size.height)
   }
 
   // MARK: Controls
@@ -242,3 +223,14 @@ final class LoopingPlayerView: UIView {
   }
 }
 #endif
+
+extension FeedContent {
+  /// Chevron colour per filter: white = everything, blue = posts only, green = plans only.
+  var tint: Color {
+    switch self {
+    case .all: return HermiPalette.paper
+    case .posts: return HermiPalette.lake
+    case .plans: return HermiPalette.lime
+    }
+  }
+}
