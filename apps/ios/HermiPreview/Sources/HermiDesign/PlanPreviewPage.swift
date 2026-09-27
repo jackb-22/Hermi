@@ -374,8 +374,8 @@ private struct ParticipantPreview: View {
     NavigationStack {
       Form {
         Section("Who's going") { Text("No confirmed attendees loaded.") }
-        Section("Invite existing friends · sample list") {
-          ForEach(["Alex", "Sam", "Riley"], id: \.self) { name in
+        Section(LiveSession.shared.isLive ? "Invite existing friends" : "Invite existing friends · sample list") {
+          ForEach(FriendDirectory.shared.names, id: \.self) { name in
             Toggle(name, isOn: Binding(get: { selected.contains(name) }, set: { if $0 { selected.insert(name) } else { selected.remove(name) } }))
           }
         }

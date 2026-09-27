@@ -139,6 +139,17 @@ Photos are assigned to seeded check-in places at random, so general NYC or campu
 - [ ] Sample mode: saving the sample places works locally as before, and nothing is sent to the server.
 - [ ] Any sync error shows briefly at the top of the map, e.g. "Couldn't save: …".
 
+### Step 6: plans sync to your account
+- [ ] `check.sh` passes: 79 tests.
+- [ ] Connected as jack: add 3 real places to My Plan, reorder them and change a stay length. Then fully quit the Simulator and rerun `check.sh --skip-tests`: the plan comes back in the same order.
+- [ ] **Accounts are separate:** connect as **jenny**. My Plan is empty, or shows jenny's own plan. Connect as jack again: jack's plan returns.
+- [ ] **Save Plan** (hold the bookmark in My Plan): name "Saturday loop", **Friends**, and select **jenny**. The friend list now shows jack's real friends: Quest Quinn, Pixel Pat, … and jenny.
+- [ ] Connect as jenny: jenny has an invite. Until the Feed arrives in Step 7, I can confirm this from the server; tell me when you've saved it.
+- [ ] Relaunch as jack: "Saturday loop" is in Saved and opens with its stops. Editing it autosaves to the server.
+- [ ] Remove every stop from the current draft: the server draft is cancelled, with no error notice.
+- [ ] Adding a 13th stop shows a notice: the server caps plans at 12 (D3).
+- [ ] Sample mode: plans with sample places stay local, exactly as before.
+
 ---
 
 ## Deferred / deviations log
@@ -174,4 +185,5 @@ Items that are unconnected, need UI or backend work, or depart from `docs/HERMI_
 | D25 | Place sheet | There's no walking time until the app has the user's location (Step 10); the server computes it from `lat`/`lng`. Recap and review posts without media show text only, with no route drawing. | Location comes with Action mode. |
 | D26 | Saved | Sync compares each change with the last synced snapshot and sends only the differences, in order. There's no retry on failure (a notice is shown) and no conflict handling across devices. Folder ID mappings aren't scoped per account on the device. Saved **plans** sync in Step 6. | Speed. |
 | D27 | Content | Jack will supply curated reviews, short videos and photos for places around Columbia, to fill place sheets and the Feed. Loading them needs a seed or import step, planned after the main flow. | Waiting on content. |
+| D28 | Plans | Plans sync by comparing each change with the last synced snapshot. Arrival times the server computes are loaded on connect, not re-read after every edit, so between launches the timetable shows your own times. Visibility and invites are sent once, when a plan is saved; later sharing edits (Step 8 editor) stay local. Unbookmarking a saved plan doesn't delete it on the server. Plans you joined but don't host aren't listed in Saved. | Speed, and avoids re-sending invites. |
 

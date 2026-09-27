@@ -33,7 +33,7 @@ struct PlanSharingDraftEditor: View {
           }
           if visibility == .friends {
             Text("Choose existing friends · sample list").font(.caption)
-            ForEach(["Alex", "Sam", "Riley"], id: \.self) { name in
+            ForEach(FriendDirectory.shared.names, id: \.self) { name in
               Button {
                 if friends.contains(name) { friends.remove(name) } else { friends.insert(name) }
               } label: {

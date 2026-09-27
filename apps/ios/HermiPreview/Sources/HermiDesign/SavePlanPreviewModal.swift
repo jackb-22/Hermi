@@ -63,8 +63,8 @@ struct SavePlanPreviewModal: View {
             }
           }
           if visibility == .friends {
-            Text("SELECT FRIENDS · SAMPLE LIST").font(.system(size: 10, design: .monospaced))
-            ForEach(["Alex", "Sam", "Riley"], id: \.self) { friend in
+            Text(LiveSession.shared.isLive ? "SELECT FRIENDS" : "SELECT FRIENDS · SAMPLE LIST").font(.system(size: 10, design: .monospaced))
+            ForEach(FriendDirectory.shared.names, id: \.self) { friend in
               Button {
                 if friends.contains(friend) { friends.remove(friend) } else { friends.insert(friend) }
               } label: {
@@ -73,8 +73,9 @@ struct SavePlanPreviewModal: View {
               }.accessibilityLabel("\(friends.contains(friend) ? "Deselect" : "Select") \(friend)")
             }
           }
-          Text(visibility == .solo ? "Saved on this device." :
-            "Local \(visibility.rawValue.lowercased()) draft only. No invitation or public post is sent.")
+          Text(LiveSession.shared.isLive
+            ? (visibility == .solo ? "Saved to your account." : visibility == .friends ? "Selected friends get an invite to join." : "Matched verified students can request to join.")
+            : (visibility == .solo ? "Saved on this device." : "Local \(visibility.rawValue.lowercased()) draft only. No invitation or public post is sent."))
             .font(.caption).foregroundStyle(HermiPalette.secondary)
           if error { Text("Check the name, folder and friend selection.").font(.caption).foregroundStyle(.red) }
         }.padding(20)

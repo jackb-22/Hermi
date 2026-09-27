@@ -248,4 +248,60 @@ final class LiveContractTests: XCTestCase {
     sync.apply(hydration, to: &state)
     XCTAssertEqual(state.library.folders.map(\.name), ["Mine"])
   }
+
+  static let planJSON = #"{"id":"01PLAN","name":"Bagels then the park","status":"planned","visibility":"friends","isHost":true,"hostId":"u","startAt":"2026-09-28T04:45:00.000Z","mode":"walk","stops":[{"id":"s1","index":0,"place":{"id":"01BAGEL","name":"Bagel shop","category":"food","tags":[],"loc":{"lat":40.806,"lng":-73.965},"address":null,"been":1,"wouldGoAgainPct":null},"slot":null,"label":"Bagel shop","stayMin":45,"staySource":"default","stayReason":null,"legMode":"walk","legMin":0,"legSource":"estimate","arriveAt":"2026-09-28T04:45:00.000Z","departAt":"2026-09-28T05:30:00.000Z","done":false,"checkinId":null},{"id":"s2","index":1,"place":{"id":"01PARK","name":"Park","category":"nature","tags":[],"loc":{"lat":40.808,"lng":-73.967},"address":null,"been":0,"wouldGoAgainPct":null},"slot":null,"label":"Park","stayMin":60,"staySource":"default","stayReason":null,"legMode":"walk","legMin":6,"legSource":"estimate","arriveAt":"2026-09-28T05:36:00.000Z","departAt":"2026-09-28T06:36:00.000Z","done":false,"checkinId":null}],"members":[{"userId":"j","name":"jenny","username":"jenny","spriteUrl":null,"status":"invited"}],"totals":{"km":1,"footKm":1,"legMin":6,"xpPreview":20,"endsAt":null},"issues":[],"ghostChanges":[],"matchCount":0,"shareUrl":"https://x/p/abc","textGroup":null,"createdAt":"2026-09-27T00:00:00.000Z","updatedAt":"2026-09-27T00:00:00.000Z"}"#
+
+  func testServerPlanMapsToLocalContentsAndSavedDraft() throws {
+    let plan = try HermiAPI.decoder.decode(PlanDTO.self, from: Data(Self.planJSON.utf8))
+    let contents = PlanSync.contents(from: plan)
+    XCTAssertEqual(contents.ids, ["01BAGEL", "01PARK"])
+    XCTAssertEqual(contents.times["01BAGEL"]?.durationMinutes, 45)
+    XCTAssertEqual(contents.times["01PARK"]?.arrival, HermiDates.parse("2026-09-28T05:36:00.000Z"))
+    let saved = PlanSync.savedDraft(from: plan)
+    XCTAssertEqual(saved.name, "Bagels then the park")
+    XCTAssertEqual(saved.visibility, .friends)
+    XCTAssertEqual(saved.friendNames, ["jenny"])
+    XCTAssertEqual(PlanSync.serverVisibility(.publicPlan), "find")
+  }
+
+  func testPlanSnapshotSkipsSamplePlansAndClampsStays() {
+    var state = MapPreviewState()
+    state.addPlace("cafe")
+    XCTAssertNil(PlanSnapshot.all(state)[PlanSync.draftKey], "sample stops never sync")
+    state.planIDs = ["01A", "01B"]
+    let start = Date(timeIntervalSince1970: 1_800_000_000)
+    state.stopTimes = ["01A": .init(arrival: start, durationMinutes: 500), "01B": .init(arrival: start, durationMinutes: 1)]
+    let snap = PlanSnapshot.all(state)[PlanSync.draftKey]
+    XCTAssertEqual(snap?.stops, ["01A", "01B"])
+    XCTAssertEqual(snap?.stays, [240, 5])
+    XCTAssertEqual(snap?.startAt, start)
+  }
+
+  @MainActor
+  func testConnectTakesServerPlansAndDropsAnotherAccountsDraft() throws {
+    let defaults = try XCTUnwrap(UserDefaults(suiteName: "hermi.tests.plan-sync"))
+    defaults.removePersistentDomain(forName: "hermi.tests.plan-sync")
+    let sync = PlanSync(defaults: defaults)
+    let plan = try HermiAPI.decoder.decode(PlanDTO.self, from: Data(Self.planJSON.utf8))
+    // jack had a live draft on this device; jenny connects with nothing on the server.
+    var state = MapPreviewState()
+    state.planIDs = ["01JACKS"]
+    sync.apply(PlanSync.Hydration(), account: "jack", to: &state)
+    XCTAssertEqual(state.planIDs, ["01JACKS"], "same account keeps its unsynced draft")
+    sync.apply(PlanSync.Hydration(), account: "jenny", to: &state)
+    XCTAssertTrue(state.planIDs.isEmpty, "another account's draft is not carried over")
+    // The server's saved plan arrives once, even when applied twice.
+    var hydration = PlanSync.Hydration()
+    hydration.saved = [plan]
+    sync.apply(hydration, account: "jenny", to: &state)
+    sync.apply(hydration, account: "jenny", to: &state)
+    XCTAssertEqual(state.library.plans.map(\.name), ["Bagels then the park"])
+    let local = try XCTUnwrap(state.library.plans.first).id.uuidString
+    XCTAssertEqual(sync.serverID(forKey: local), "01PLAN")
+    // A server draft becomes the current plan.
+    hydration.draft = plan
+    sync.apply(hydration, account: "jenny", to: &state)
+    XCTAssertEqual(state.planIDs, ["01BAGEL", "01PARK"])
+    XCTAssertEqual(sync.serverID(forKey: PlanSync.draftKey), "01PLAN")
+  }
 }

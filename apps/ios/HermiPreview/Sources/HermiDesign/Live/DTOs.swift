@@ -149,3 +149,35 @@ struct FoldersDTO: Decodable, Sendable {
 struct SaveResponseDTO: Decodable, Sendable {
   var copiedPlanId: String?
 }
+
+/// `Plan` (packages/shared/src/api/plans.ts): only what the app reads.
+struct PlanDTO: Decodable, Sendable {
+  struct Stop: Decodable, Sendable {
+    var id: String
+    var place: PlaceDTO?
+    var stayMin: Int?
+    var arriveAt: Date?
+  }
+  struct Member: Decodable, Sendable {
+    var userId: String
+    var name: String
+    var status: String
+  }
+  var id: String
+  var name: String
+  var status: String
+  var visibility: String?
+  var isHost: Bool?
+  var startAt: Date?
+  var stops: [Stop]
+  var members: [Member]?
+}
+
+struct PlansPageDTO: Decodable, Sendable {
+  var items: [PlanDTO]
+}
+
+struct FriendsDTO: Decodable, Sendable {
+  struct Friend: Decodable, Sendable { var user: UserCardDTO }
+  var items: [Friend]
+}

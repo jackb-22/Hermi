@@ -177,6 +177,7 @@ public struct HermiMapPreview: View {
       if let data = try? JSONEncoder().encode(value) { UserDefaults.standard.set(data, forKey: storageKey) }
       PlaceCatalog.shared.persist(referenced: value.referencedPlaceIDs)
       SavedSync.shared.push(value)
+      PlanSync.shared.push(value)
     }
     .task { _ = await Task.detached { NYCLandMask.shared.available }.value }
     .task { await LiveSession.shared.restore() }
@@ -187,13 +188,20 @@ public struct HermiMapPreview: View {
         PlaceCatalog.shared.refresh()
         // Pull saved places/posts/folders, then keep them in sync from this snapshot on.
         Task { @MainActor in
+          await FriendDirectory.shared.load()
           if let hydration = await SavedSync.shared.hydrate(), LiveSession.shared.isLive {
             SavedSync.shared.apply(hydration, to: &state)
           }
+          if let plans = await PlanSync.shared.hydrate(), let me = LiveSession.shared.me, LiveSession.shared.isLive {
+            PlanSync.shared.apply(plans, account: me.username, to: &state)
+          }
         }
       } else {
-        SavedSync.shared.reset()
+        SavedSync.shared.reset(); PlanSync.shared.reset()
       }
+    }
+    .onChange(of: PlanSync.shared.notice) { _, notice in
+      if let notice { pinNotice = notice }
     }
     .onChange(of: SavedSync.shared.notice) { _, notice in
       if let notice { pinNotice = notice }

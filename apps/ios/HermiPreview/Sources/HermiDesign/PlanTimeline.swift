@@ -31,7 +31,7 @@ extension MapPreviewState {
   mutating func setInviteDraft(_ value: Set<String>, for id: String) {
     guard planIDs.contains(id) else { return }
     var contents = planContents
-    contents.inviteDrafts[id] = value.intersection(["Alex", "Sam", "Riley"])
+    contents.inviteDrafts[id] = value.intersection(FriendDirectory.shared.names)
     applyPlanContents(contents)
   }
 }
