@@ -4,6 +4,18 @@ Updated: 2026-09-27. Branch: codex/cairn-frontend. No pushes authorized.
 
 ## Current checkpoint
 
+### Tap-only navigation correction and Step 10a — ready for user review
+
+User removed pill hold/scrub navigation and authorized the next step. Replaced custom PrimitiveButtonStyle with ordinary semantic buttons (64×48 targets), removing hold-help/scrub recognizers and obsolete coordinate tests. Saved bookmark and category-pin gestures remain unchanged. Commit `c2a46a4`.
+
+Implemented local Action lifecycle: immutable explicit-stop snapshot, one active preview, persisted Directions/Camera mode, guarded/idempotent end timestamp, confirmation, local recap and return to Map preserving plan. Underlying Home controls are hidden from accessibility and hit testing while Action is present. Normal state decoding restores active preview/recap; review fixtures intentionally reset. Commit `a775558`.
+
+55 tests pass; Simulator and unsigned iPhone builds pass. Simulator exercised Go, mode switch, end confirmation, recap and Map return, plus Home button navigation. Screenshots: [10a evidence](docs/design-reference/2026-09-27-step-10a/REVIEW.md). Physical phone install/touch and normal restart remain pending.
+
+Read-only remote check: Hermi HEAD `4694b46685cccc1660ea4c14f4131806b297b44f` (2026-09-27). Session/media contracts still require server session/verified check-in integration; end request has steps but no client end timestamp. Preview has no authenticated session/check-in adapter and uses sample place IDs, so real start/capture/upload cannot safely be connected to these fixtures. No backend changes, merges or pushes. No sensors are active; no real privacy, upload or XP claims.
+
+Next: collect tap-navigation and Step 10a feedback. Then 10b authenticated session/location permission and durable tracking integration, 10c real device camera/upload/recap, NFC last. Step 10 overall is not complete. Do not confuse preview recovery with production offline tracking recovery.
+
 ### Step 9 — Feed/Profile ready for local review
 
 User authorized the next increment. Implemented independent Friends/Public and Posts/Plans filters, full-screen sample plan cards, per-post bookmarks, private local copies of bookmarked plans, duplicate-safe explicit append and one-action Undo. Filter changes preserve active plan and do not navigate to My Plan. Profile rail now has Settings/Saved; sharing controls moved out of Adventures. Own post detail excludes friends’ media/reviews. Optional Codable preferences preserve older snapshots; legacy route audience migrates without enabling location sharing.

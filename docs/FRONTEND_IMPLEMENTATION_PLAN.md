@@ -1,10 +1,10 @@
 # Hermi approved frontend revision plan
 
-Approved 2026-09-27. Frontend branch: `codex/cairn-frontend`. No pushes. Current work: **Step 6**, authorized after Step 5 acceptance. Full Plan timeline, local stop metadata and Go-entry checkpoint are ready for user review. Source: user's approved technical plan and latest schema amendments. Preserve unrelated legacy prototype changes.
+Approved 2026-09-27. Frontend branch: `codex/cairn-frontend`. No pushes. Current work: **Step 10a**, local Action lifecycle review after the user's tap-only navigation correction. Source: user's approved technical plan and latest schema amendments. Preserve unrelated legacy prototype changes.
 
 ## Architecture and decisions
 
-- Explicit HomeTab/SheetRoute/FeedQuery/ActionSessionState routing; per-screen toolbar intents. Native semantic buttons, minimum 44-point targets; navigation hold gestures originate only inside the pill.
+- Explicit HomeTab/SheetRoute/FeedQuery/ActionSessionState routing; per-screen toolbar intents. Native semantic buttons, minimum 44-point targets; Home navigation is ordinary tapping only; no hold/scrub gestures.
 - Typed map bridge commands/events with stable pin IDs and request IDs; convert into web-view coordinates before unprojecting. Stable MapLibre marker instances, cancel stale query results, versioned NYC land mask including water exclusions.
 - DiscoveryPin stores ID, category, geographic coordinate and radius in miles, exposing meters for geographic calculations. DiscoveryFilters stores independent optional citywide category plus pins and selected pin ID. Union category-wide matches with each category-and-radius match; deduplicate places. Zero filters retains general discovery. New citywide selection replaces only that selection. Miles UI, 0.1–4, logarithmic, initial 1. Tap placed pin selects radius/X; X removes; invalid move restores prior coordinate.
 - Native compact/medium/full sheets separate route from presentation state. Reusable feed/detail components explicitly distinguish global, place-specific and own-post context. Own-post context excludes friends' content.
@@ -58,3 +58,12 @@ Keep implementation commits small and compiling; separate feedback fixes and che
 User supersedes the prior editor layout: recommendations use small category-colored dots; only discovery uses a pin. Tap empty map deselects without deleting the pin or recommendations. Selected pin exposes a small attached X and a background-free bottom-right radius slider above zoom/home. Those controls track compact/expanded panel height. Visual backgrounds shrink while touch targets remain. Direct vertical swipes on the source pin choose category with no menu; name below, decorative pixel chevrons at either side. User confirmed minimum 0.1 mile and retained maximum 4; default remains 1 mile. Remove sample-place map banner; fixture status remains documented in the test guide. Alignment amendment: all right-side tools share a fixed centerline (42 points from the right edge). No sideways shift. Contextual panel expansion reserves vertical space for the full rail; full-page My Plan is unchanged. Water/NYC validation unchanged. This amendment supersedes conflicting earlier control/radius wording.
 
 Step 5 clarification: horizontal source-pin swipes choose categories; hold ~0.3 seconds then drag places a pin. Handle-only compact/medium/full transitions keep content scrolling separate. Full panel hides map controls; collapse restores their original right-side centerline. Place-scoped posts remain in the current panel. Media/reviews remain integration gates; no fabricated rating values.
+
+## Step 10 sub-boundaries
+
+- 10a: tap-only navigation correction; local Action snapshot, mode persistence, End confirmation, preview recap and Home return. Ready for user review. No production session/sensor claims.
+- 10b: authenticated real-plan/session adapter, permission and interruption handling, durable observation journal/end boundary. Requires real IDs/auth and offline end-time contract resolution.
+- 10c: real iPhone capture/cancel, three-second ambient audio, capped video, authenticated upload/verification and real recap. Requires verified check-in context; never use fixture IDs.
+- NFC remains the final device boundary, including location-denied behavior.
+
+Remote contracts rechecked read-only at Hermi `4694b46685cccc1660ea4c14f4131806b297b44f`. Camera/session endpoints exist; preview integration is still missing. EndSessionBody lacks client endedAt, so the existing offline boundary gate remains unresolved. Native cancel presentation varies by OS: tapping outside the end-confirmation popover also cancels.

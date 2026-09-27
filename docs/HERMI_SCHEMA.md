@@ -1,6 +1,6 @@
 # Hermi unified design schema
 
-Revision 11 · 2026-09-27 · Step 9 implemented for local review.
+Revision 12 · 2026-09-27 · Tap-only navigation and Step 10a ready for review.
 
 ## Authority and mission
 
@@ -15,7 +15,7 @@ Each future change must name its requirement below. A conflicting product reques
 | ID | Rule |
 | --- | --- |
 | AUTH-01 | Explain → taste choices → Apple sign-in → school verification → profile setup → Home. Verification is mandatory; no skip or guest product entry. Restore the first incomplete step. |
-| NAV-01 | Home has Map / Feed / Profile, in that order; Map is initial. Switch by tapping the pill or holding/sliding horizontally within the pill and releasing. No global horizontal page gesture: map pan/zoom and vertical Feed paging remain independent. Hide the pill during map movement/feed paging and restore about 300 ms after motion ends. |
+| NAV-01 | Home has Map / Feed / Profile, in that order; Map is initial. Switch only by ordinary taps on the pill buttons; no hold-help or hold-and-slide navigation. No global horizontal page gesture: map pan/zoom and vertical Feed paging remain independent. Hide the pill during map movement/feed paging and restore about 300 ms after motion ends. |
 | NAV-02 | Action mode has Directions / Camera only, entered through Start or Head out. End leads to Recap; Post or Later leads Home. Feed is unavailable during Action. |
 | SHEET-01 | One sheet system supports peek, half, full, dismiss, and nested back. Peek leaves the map interactive. Dismiss preserves map and draft. |
 | MAP-01 | Real NYC geography with sparse labels, low-resolution terrain, crisp sprites and attribution. Solo initially; social data represents permitted check-ins/plans, never live friend tracking. |
@@ -173,3 +173,11 @@ A post bookmark stores the post, independently of the place's plan-membership to
 Profile header has Settings above Saved. Settings contains local route audience, location-sharing and live friend-visibility preferences. Cancel discards edits; saving with sharing off chooses Nobody. Older explicit route audience can migrate, but never enables live sharing. Own post detail is isolated from friends' content. No numerical rating is invented; absent review data remains a no-data state.
 
 Backend gates, read-only review: `packages/shared/src/api/feed.ts` has lat/lng query without audience/content selectors; `packages/shared/src/api/auth.ts` PatchMe lacks granular route/location/presence preferences; numeric review ratings remain unavailable. The preview makes no live privacy or publishing promise. Tests and screenshots validate local interaction only; phone acceptance and real integration are separate gates.
+
+## Tap-only navigation amendment and Step 10a
+
+User explicitly removes hold-and-slide from Map/Feed/Profile navigation. These three controls use ordinary button taps only, superseding every earlier pill scrub/hold-help requirement. Their labels and accessibility hints identify their destinations. This change does not remove My Plan bookmark hold or category-pin hold-to-drag.
+
+The first Step 10 boundary is a local Action lifecycle, not a real outing. Go requires a nonempty explicit plan and snapshots its stop IDs. One preview can be active; repeated start does not replace it. Directions/Camera use ordinary taps. An explicit confirmed End records the local preview boundary once and opens a clearly nonverified recap. Back to Map clears the preview while preserving plan contents. Normal local state persists active mode and ended recap; fixtures reset intentionally. Home interaction is unavailable under the Action surface.
+
+Production requirements are unchanged: tracked outings/GPS check-in need location permission; NFC without location stays a separate late integration gate. Real media requires immutable capture context and verified check-in/upload eligibility. No generated preview ID is used as a server session/check-in. Remote session/media contracts checked at `4694b46685cccc1660ea4c14f4131806b297b44f`; client end timestamp is still absent from EndSessionBody. The preview's missing auth/session/check-in adapter is frontend integration work, not proof the backend lacks these endpoints. No production permission, background tracking, camera or upload completion is claimed at 10a.

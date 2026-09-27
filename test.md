@@ -2,7 +2,20 @@
 
 This is the user-facing test entry point. Product reference: [unified design schema](docs/HERMI_SCHEMA.md). Resume/checkpoint: [progress](PROGRESS.md).
 
-## Current review: Step 9 — Feed filters and Profile privacy layout
+## Current review: tap navigation + Step 10a Action lifecycle
+
+**Run on your iPhone:** open `apps/ios/HermiPreview/HermiPreview.xcodeproj` in Xcode. In the top toolbar select **HermiPreview** and your **connected physical iPhone**, not an iPhone Simulator. Click the triangle ▶ or press **⌘R with Xcode active**. Keep the phone unlocked during installation. This is a new build; reopening the old phone app alone will not update it.
+
+1. **Tap navigation:** briefly tap Map, Feed, Profile, then Map again. Each selects directly, without holding. Holding/sliding across the pill no longer selects another page or opens help. Map pan/zoom and vertical Feed paging stay independent. Saved bookmark hold and category-pin hold-to-drag remain intentional and unchanged.
+2. **Go:** add at least one place, open My Plan and tap Go. Directions lists the current explicit stop order. Home tabs are inaccessible during Action; only Directions and Camera remain. Timing warnings still permit Go; an empty plan cannot start.
+3. **Camera boundary:** tap Camera and Directions normally. Camera explains that capture is unavailable in this layout preview. No photo, microphone, location permission or upload begins. This is not the real camera acceptance test.
+4. **End and cancel:** tap End. Dismiss the confirmation by tapping outside it (or Cancel/Keep exploring if shown by the OS): Action must remain open. Tap End again and confirm End preview. A preview recap lists planned stops, without inventing visited places, route, steps or XP. Tap Back to Map, open My Plan and confirm stops/times are unchanged.
+5. **Recovery:** on a normal launch, start Action, choose Camera, quit/reopen. The same preview and mode should return. End it, quit/reopen before Back to Map: recap should return. Back to Map clears only the completed Action preview. Simulator review fixtures intentionally reset; remove `--hermi-plan-review` to test recovery.
+6. **Feedback:** send screenshots of Directions and recap, plus a short recording if quick taps still feel wrong. Check on your phone at larger text size as well.
+
+55 Swift tests pass (two obsolete scrub tests removed, four Action lifecycle tests added); Simulator and unsigned iPhone builds pass. Simulator exercised Go → Camera → End → recap → Map and Home navigation buttons. [Visual evidence](docs/design-reference/2026-09-27-step-10a/REVIEW.md). Physical touch timing and normal-run restart remain for user acceptance. This completes **10a only**: location permission/interruption, real camera/ambient audio/video, authenticated upload and server recap are still pending; NFC remains last.
+
+## Previous review: Step 9 — Feed filters and Profile privacy layout
 
 Run HermiPreview in Xcode with **⌘R** on your iPhone. Simulator is running the nonpersistent `--hermi-feed-review` fixture (one café stop); remove that argument for normal restart testing. From `apps/ios/HermiPreview`, the fixture command is `sh scripts/simulator-preview.sh --hermi-feed-review`.
 
