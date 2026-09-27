@@ -2,21 +2,23 @@
 
 This is the user-facing test entry point. Product reference: [unified design schema](docs/HERMI_SCHEMA.md). Resume/checkpoint: [progress](PROGRESS.md).
 
-## Current review: Step 3 — single discovery pin
+## Current review: Step 3 corrections — lighter map controls
 
-You confirmed the earlier build works on your iPhone and authorized continuing. Step 3 is built for Simulator; installation on your phone is pending because Xcode currently reports it unavailable. Reconnect/unlock it and run the preview project with **⌘R**. See [iPhone instructions](docs/IPHONE_TESTING.md).
+Build/install with the HermiPreview project, your iPhone selected, **⌘R**. The agent's latest phone check still reports unavailable; corrected build is running in Simulator. These steps replace the previous Step 3 checklist.
 
-1. **Drop:** hold the activity pin, slide vertically to choose a category, then drag left onto NYC land and release. The dropped pin contains the category icon; nearby results appear. Dropping does not add a plan stop.
-2. **Radius:** tap the dropped pin. Its vertical slider and X appear. The initial radius is 1 mile; the bottom/top are ¼/4 miles, with 1 mile at the midpoint. Nearby sample results update. Zooming the map must not change the selected radius.
-3. **Move:** drag the placed pin to another NYC land location. Its category and radius stay unchanged. It remains visible above the nearby panel after release.
-4. **Reject/cancel:** try moving it into the Hudson River or outside NYC. It returns to its last valid location. An invalid new drop must not replace it. Interrupt a drag and check that no extra pin or stuck ghost remains.
-5. **Remove:** tap the pin, then X. The pin/radius disappear; your Plan and Saved items remain unchanged. Close nearby details and pan/pinch normally.
-6. **Restore:** make a valid drop, change its radius, then close/reopen the normal app. The pin and radius should persist. At this checkpoint a second valid drop replaces the first; multiple pins and combined citywide filters arrive in Step 4.
-7. **Screenshot feedback:** send a screenshot of the selected pin/slider and the nearby panel, plus a short recording for any drag or gesture issue. Check quick navigation taps still work. We will correct this checkpoint before proceeding.
+1. Swipe **up/down directly on the top-right pin**, without holding. Category/icon changes and its name stays underneath; no menu appears. Small pixel chevrons flank the pin. Tap still toggles category-only filtering.
+2. Drag the category pin sideways onto NYC land. It is selected automatically. Recommendations are small category-colored dots, not pins. Tap a dot to open its place.
+3. Check the **transparent slider at bottom right above +/−/home**, and the small **X attached to the placed pin**. Radius spans **0.1–4 miles**, logarithmically; new pins still start at 1 mile (no longer the midpoint). Zoom does not change radius.
+4. Tap empty map: slider, X and radius overlay disappear; pin and recommendation dots remain. Tap the placed pin to edit again. Drag it to move. Water/outside-NYC drops still reject and restore the previous valid position.
+5. Open/collapse/expand the panel: +/−/home move above it. On expansion the upper toolbar shifts slightly left to leave a separate control column, and the pin stays above the panel. Nothing should overlap or become unclickable. Close the panel and verify controls return down.
+6. Check reduced visible button backgrounds with unchanged icon size; quick taps should remain easy. No “SAMPLE PLACES · REAL MAP” banner. Map attribution remains available.
+7. Remove via the pin's X: Plan/Saved stay unchanged. Normal app restart retains valid pin/radius. Test navigation tap/hold and map pan/pinch for regression.
 
-Verification: 27 Swift tests pass, including NYC land/water fixtures, radius math, migration, rejected moves and coordinate projection. The JavaScript bridge harness passes; it mocks MapLibre/DOM and does not prove physical touch delivery. Mac, compact/large Simulator and unsigned physical-device builds passed. [Screenshot review](docs/design-reference/2026-09-27-step-3/REVIEW.md). Finger gestures, VoiceOver, haptics and on-device smoothness await your review. The offline shoreline mask is approximate, not proof of access to a property. No backend changes.
+Send screenshots of selected/deselected/expanded-panel states; send a short recording for category swipes, drop, move or cancellation problems. This remains single-pin Step 3; no advancement to Step 4 yet.
 
-For a deterministic **Simulator-only visual fixture**, launch with `--hermi-pin-review`; it does not read/write normal saved state. Remove that argument for persistence testing.
+Validation: 27 Swift tests pass; JavaScript bridge checks cover dots, deselection without deletion, radius endpoints, rejected moves and panel offset. Simulator build passes. Screenshots under [revision evidence](docs/design-reference/2026-09-27-step-3-revision/REVIEW.md). Real touch delivery, haptics, accessibility and frame pacing need your phone test. Content remains local fixtures; land validation is approximate. No backend changes.
+
+Debug `--hermi-pin-review` seeds a selected pin without reading/writing normal saved state; remove that argument for persistence testing.
 
 ## Previous review: Step 2 — palette and composition
 

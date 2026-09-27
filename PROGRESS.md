@@ -4,6 +4,13 @@ Updated: 2026-09-27. Branch: codex/cairn-frontend. No pushes authorized.
 
 ## Current checkpoint
 
+### Step 3 feedback revision — ready for re-test
+
+User rejected the first Step 3 control layout. Implemented colored recommendation dots; tap-away deselection; transparent bottom-right slider; small pin-attached X; dynamic panel clearance for zoom/home; reduced visible button backgrounds with retained touch areas; immediate vertical category swipes with category label and side chevrons; removed sample-place map banner. User selected 0.1–4 miles; keep 1-mile default. Screenshot review caught an expanded-panel toolbar overlap; separated toolbar/control columns and reveal pin when panel height changes.
+
+27 Swift tests and expanded JS bridge tests passed; Simulator build passed. Phone remains unavailable for install. Revised test.md is authoritative for this review; previous Step 3 screenshots describe the superseded version. No Step 4, backend changes, or push. Next: install when phone connects and collect revised Step 3 gesture/screenshots feedback.
+
+
 ### Step 3 — implementation complete; user review next
 
 User confirmed the Steps 1–2 app works on iPhone and authorized continuing. Implemented one persistent category-icon pin, frame-correct drop projection, draggable placement, selected-pin vertical radius editor/X, logarithmic 0.25–4-mile radius (1-mile midpoint), visible radius geometry and category/radius filtering of fixtures. Invalid new drops preserve the current pin; invalid moves restore it. Stable MapLibre marker identity and request/ID guards prevent stale changes. The single-pin checkpoint deliberately precedes Step 4 multiple pins and union filters.
