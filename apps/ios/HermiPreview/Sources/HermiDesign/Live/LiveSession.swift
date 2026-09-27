@@ -114,6 +114,9 @@ final class LiveSession {
   var hasSavedLogin: Bool { config.jwt != nil && config.url != nil }
 
   @MainActor
+  func replaceMe(_ updated: MeDTO) { if me?.id == updated.id { me = updated } }
+
+  @MainActor
   func disconnect() {
     config.jwt = nil; config.save()
     me = nil; status = .sample

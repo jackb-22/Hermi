@@ -178,6 +178,19 @@ Photos are assigned to seeded check-in places at random, so general NYC or campu
 - [ ] In My Plan's horizontal Saved row, tapping a post now opens it full screen too.
 - [ ] Confirmed on the server: **Sunday loop** has jenny **invited**.
 
+### Step 8: Profile (header, score, rank, friends, stats, explored map, posts, account toggles)
+- [ ] `check.sh` passes: 83 tests. The bridge check also prints "Explored bridge passed".
+- [ ] Profile header: **Friends 9 · Score 1088 · Rank #3** (jack's seeded numbers).
+- [ ] Tap **Score**: a cairn of **8 stones**, 1088, "+357 XP in the last 7 days", 30 daily bars, and "211 XP expires by 2026-10-04…".
+- [ ] Tap **Rank**: Friends #3 of 10 with the friends board (you highlighted), and Columbia #4 of 67 with the campus top 10.
+- [ ] Tap **Friends**: 9 friends with @username, score, week streak and "Last out: <place> · <time ago>".
+- [ ] **Adventures** tab: jack's **explored tiles** (57 lime squares near Columbia) fill the map, labelled "EXPLORED · 57 TILES". The sample route is gone.
+- [ ] **Info (i)** on Adventures: Manhattan explored 1.3%, places visited 33, on foot 9.4 km, 12,232 steps, 38.9 h outside, borough bars, most-visited places and "Out with most".
+- [ ] **Posts** tab: "No posts yet…" (jack has none until Step 12). Posts from Step 12 will appear here and open full screen.
+- [ ] Pull down on Profile (and on any detail sheet) to refresh.
+- [ ] Settings → Server → **ACCOUNT**: toggle **Ghost mode** and **Open to plans**, then relaunch. Both stay as set, because they're saved on the server.
+- [ ] Sample mode: Profile shows Alex / 250 / "—" and the sample route, as before.
+
 ---
 
 ## Deferred / deviations log
@@ -217,4 +230,5 @@ Items that are unconnected, need UI or backend work, or depart from `docs/HERMI_
 | D29 | Feed | Only a post's first photo is shown, with no in-page media carousel. Videos are muted, with no sound toggle. An open plan's host name appears only when the host is a friend; the API gives just `hostId`. The end card's "Plan from Saved" (`POST /plans/from-saved`) isn't wired; the end page offers My Plan and Saved. Adventure lines are straight segments between stops unless the post carries a recorded route. | Speed. A host card on `Plan` would be a small backend addition. |
 | D30 | Design amendment | Feed content defaults to **Everything** (posts and plans mixed), and the chevron cycles Everything → Posts → Plans. The top-right audience toggle is labelled General / Friends. | User request, 2026-09-27. |
 | D31 | Saved / Feed | Places in Saved open the place sheet, not a full-screen view. A post gets a separate text page only when its text runs past about 90 characters or there's no media; shorter text stays the caption. Saved-row actions moved into a press-and-hold menu. Photos are cached in memory only. | Speed. Revisit with the curated content. |
+| D32 | Profile | Adventures shows explored tiles, not recorded routes (no route-history endpoint, D13). The profile photo is still the bundled crab (no upload, D12). Friend rows don't open friend profiles yet. The "least visited" and neighbourhood stats from the design have no API. | Backend gaps; speed. |
 

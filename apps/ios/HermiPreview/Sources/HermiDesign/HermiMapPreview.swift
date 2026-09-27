@@ -23,6 +23,7 @@ public struct HermiMapPreview: View {
   @State private var mapCommand: MapCommand?
   @State private var postPlace: String?
   @State private var profileDetail: ProfileDetail?
+  @State private var profilePost: SavedReference?
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @Environment(\.scenePhase) private var scenePhase
   private var pinReviewFixture: Bool {
@@ -197,7 +198,7 @@ public struct HermiMapPreview: View {
           }
         }
       } else {
-        SavedSync.shared.reset(); PlanSync.shared.reset(); LiveFeed.shared.reset()
+        SavedSync.shared.reset(); PlanSync.shared.reset(); LiveFeed.shared.reset(); LiveProfile.shared.reset()
       }
     }
     .onChange(of: PlanSync.shared.notice) { _, notice in
@@ -522,7 +523,7 @@ public struct HermiMapPreview: View {
           ForEach([ProfileDetail.friends, .score, .rank]) { detail in
             Button { profileDetail = detail } label: {
               VStack(spacing: 5) {
-                Text(detail == .score ? "250" : "—").font(.system(.headline, design: .monospaced))
+                Text(headerValue(detail)).font(.system(.headline, design: .monospaced))
                 Text(detail.rawValue).font(.caption)
               }.frame(maxWidth: .infinity).frame(minHeight: 48)
             }.buttonStyle(.plain).accessibilityLabel(detail.rawValue).controlHelp("Open \(detail.rawValue)")
@@ -538,7 +539,8 @@ public struct HermiMapPreview: View {
           }
         }
         if profileTab == "Adventures" {
-          GeographicMap(state: MapPreviewState(), adventure: true).frame(height: 520)
+          GeographicMap(state: MapPreviewState(), adventure: true,
+                        exploredTiles: LiveSession.shared.isLive ? LiveProfile.shared.tilePairs : []).frame(height: 520)
             .overlay(alignment: .topTrailing) {
               Button { profileDetail = .stats } label: {
                 PixelIcon(name: "info").frame(width: 23, height: 23).frame(width: 44, height: 44)
@@ -546,6 +548,9 @@ public struct HermiMapPreview: View {
               }.buttonStyle(.plain).accessibilityLabel("Adventure statistics").controlHelp("View your visits, coverage, steps and neighborhood statistics").padding(12)
             }
         } else {
+          if LiveSession.shared.isLive {
+            livePostsGrid
+          } else {
           LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 3), count: 3), spacing: 3) {
             ForEach(0..<12) { index in
               let place = MapSamplePlace.fixtures[index % MapSamplePlace.fixtures.count]
@@ -555,9 +560,16 @@ public struct HermiMapPreview: View {
             }
           }
           Text("Sample media placements").font(.caption)
+          }
         }
       }.padding(.top, 135).padding(.bottom, 130)
     }.background(HermiPalette.paper).ignoresSafeArea()
+      .refreshable { await LiveProfile.shared.load(force: true) }
+      .task { await LiveProfile.shared.load() }
+      .coverScreen(item: $profilePost) { reference in
+        SavedViewer(state: $state, reference: reference, close: { profilePost = nil },
+                    openPlan: { _ in profilePost = nil }, append: { _ = state.appendSaved($0) })
+      }
       .sheet(item: $profileDetail) { detail in ProfileDetailSheet(detail: detail) }
       .sheet(isPresented: $settings) {
         ProfileSettingsPage(preferences: state.privacyOptions) { state.privacyOptions = $0 }
@@ -574,6 +586,42 @@ public struct HermiMapPreview: View {
           }.padding(20)
         }.background(HermiPalette.paper).presentationDetents([.medium, .large])
       }
+  }
+}
+
+extension HermiMapPreview {
+  /// Friends | Score | Rank header values: live account numbers, or the sample preview's.
+  fileprivate func headerValue(_ detail: ProfileDetail) -> String {
+    guard LiveSession.shared.isLive else { return detail == .score ? "250" : "—" }
+    let live = LiveProfile.shared
+    switch detail {
+    case .friends: return live.profile?.friendCount.map(String.init) ?? "—"
+    case .score: return (live.score?.score ?? live.profile?.score?.score).map(String.init) ?? "—"
+    case .rank: return live.score?.ranks?.friends.map { "#\($0.rank)" } ?? "—"
+    case .stats: return ""
+    }
+  }
+
+  /// Own posts from the account, newest first; a tile opens the post full screen.
+  @ViewBuilder
+  fileprivate var livePostsGrid: some View {
+    let posts = LiveProfile.shared.posts
+    if posts.isEmpty {
+      VStack(spacing: 10) {
+        HermitBrandMark().frame(width: 50, height: 56)
+        Text(LiveProfile.shared.loading ? "Loading posts…" : "No posts yet. Post from a recap after your next outing.")
+          .font(.subheadline).multilineTextAlignment(.center)
+      }.padding(30)
+    } else {
+      LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 3), count: 3), spacing: 3) {
+        ForEach(posts) { post in
+          Button { profilePost = SavedReference(kind: .post, refID: post.id) } label: {
+            SavedThumbnail(state: state, reference: SavedReference(kind: .post, refID: post.id))
+              .aspectRatio(0.8, contentMode: .fit).clipped()
+          }.buttonStyle(.plain).accessibilityLabel("Your post at \(MapSamplePlace.find(post.placeID)?.name ?? "a place")")
+        }
+      }
+    }
   }
 }
 

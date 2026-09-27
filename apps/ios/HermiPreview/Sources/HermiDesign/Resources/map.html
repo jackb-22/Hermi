@@ -47,7 +47,7 @@ map.addControl(new maplibregl.AttributionControl({compact:true}),'bottom-right')
 map.on('load',()=>{loaded=true;error.style.display='none';map.addSource('social-routes',{type:'geojson',data:empty});
 map.addLayer({id:'social-current',type:'line',source:'social-routes',filter:['==','kind','current'],paint:{'line-color':palette.green,'line-width':4,'line-dasharray':[1,2]}});
 map.addLayer({id:'social-loved',type:'line',source:'social-routes',filter:['==','kind','loved'],paint:{'line-color':'#D66C9B','line-width':4}});
-map.addSource('adventure',{type:'geojson',data:empty});map.addLayer({id:'adventure',type:'line',source:'adventure',paint:{'line-color':palette.green,'line-width':4,'line-dasharray':[2,1]}});map.addSource('discovery-radius',{type:'geojson',data:empty});map.addLayer({id:'discovery-radius-fill',type:'fill',source:'discovery-radius',paint:{'fill-color':palette.lime,'fill-opacity':0.13}});map.addLayer({id:'discovery-radius-line',type:'line',source:'discovery-radius',paint:{'line-color':palette.green,'line-width':2,'line-dasharray':[3,2]}});map.addSource('places',{type:'geojson',data:empty});map.addLayer({id:'places',type:'symbol',source:'places',layout:{'icon-image':['get','icon'],'icon-allow-overlap':true,'icon-ignore-placement':true}});renderHermi(pending);send({type:'ready'});send({type:'viewport',...viewport()})});
+map.addSource('explored',{type:'geojson',data:empty});map.addLayer({id:'explored-fill',type:'fill',source:'explored',paint:{'fill-color':palette.lime,'fill-opacity':0.75,'fill-antialias':false}});map.addLayer({id:'explored-line',type:'line',source:'explored',paint:{'line-color':palette.green,'line-width':1}});map.addSource('adventure',{type:'geojson',data:empty});map.addLayer({id:'adventure',type:'line',source:'adventure',paint:{'line-color':palette.green,'line-width':4,'line-dasharray':[2,1]}});map.addSource('discovery-radius',{type:'geojson',data:empty});map.addLayer({id:'discovery-radius-fill',type:'fill',source:'discovery-radius',paint:{'fill-color':palette.lime,'fill-opacity':0.13}});map.addLayer({id:'discovery-radius-line',type:'line',source:'discovery-radius',paint:{'line-color':palette.green,'line-width':2,'line-dasharray':[3,2]}});map.addSource('places',{type:'geojson',data:empty});map.addLayer({id:'places',type:'symbol',source:'places',layout:{'icon-image':['get','icon'],'icon-allow-overlap':true,'icon-ignore-placement':true}});renderHermi(pending);send({type:'ready'});send({type:'viewport',...viewport()})});
 map.on('error',()=>{error.style.display='block';send({type:'error'})});
 map.on('idle',()=>{if(map.areTilesLoaded()){error.style.display='none';send({type:'ready'})}});
 map.on('move',()=>{positionEditor();updateCategoryIndicators();const now=Date.now();if(now-lastViewportSent>250){lastViewportSent=now;send({type:'viewport',...viewport()})}});
@@ -69,6 +69,20 @@ function placeAt(point){
  let best=null,bestD=Infinity;
  for(const f of found){const c=f.geometry.coordinates,p=map.project({lng:c[0],lat:c[1]}),d=Math.hypot(p.x-point.x,p.y-point.y);if(d<bestD){bestD=d;best=f.properties.id}}
  return best;
+}
+// Profile Adventures: explored zoom-18 tiles as pixel squares; the camera fits them once per set.
+let exploredSignature='';
+function tilePolygon(x,y){const n=2**18,lng=v=>v/n*360-180,lat=v=>Math.atan(Math.sinh(Math.PI*(1-2*v/n)))*180/Math.PI;
+ return [[lng(x),lat(y)],[lng(x+1),lat(y)],[lng(x+1),lat(y+1)],[lng(x),lat(y+1)],[lng(x),lat(y)]]}
+function renderExplored(tiles){
+ const signature=JSON.stringify(tiles);
+ if(signature===exploredSignature)return;
+ exploredSignature=signature;
+ if(!tiles){map.getSource('explored').setData(empty);return}
+ const rings=tiles.map(t=>tilePolygon(t[0],t[1]));
+ map.getSource('explored').setData({type:'FeatureCollection',features:rings.map(r=>({type:'Feature',properties:{},geometry:{type:'Polygon',coordinates:[r]}}))});
+ const all=rings.flat(),bounds=all.reduce((b,c)=>b.extend(c),new maplibregl.LngLatBounds(all[0],all[0]));
+ map.fitBounds(bounds,{padding:60,maxZoom:16,duration:0});
 }
 // Feed plan/adventure: numbered stops on the route; the camera fits the route once per route.
 let routeSignature='',routeMarkers=[];
@@ -222,10 +236,12 @@ window.renderHermi=data=>{pending=data;if(!loaded)return;
  renderDiscovery();
  const coords=[[-73.9699,40.8067],[-73.9682,40.8074],[-73.9655,40.8085],[-73.9641,40.8066],[-73.9624,40.8073]];
  const route=data.route&&data.route.line&&data.route.line.length?data.route:null;
- const line=data.adventure?coords:route&&route.line.length>1?route.line:null;
+ const explored=data.adventure&&data.tiles&&data.tiles.length?data.tiles:null;
+ renderExplored(explored);
+ const line=data.adventure&&!explored?coords:route&&route.line.length>1?route.line:null;
  map.getSource('adventure').setData(line?{type:'FeatureCollection',features:[{type:'Feature',properties:{},geometry:{type:'LineString',coordinates:line}}]}:empty);
  renderRoute(route);
- document.querySelector('.notice').textContent=data.adventure?'SAMPLE ROUTE · NOT RECORDED GPS':data.social?'SAMPLE SOCIAL · NOT LIVE':'';
+ document.querySelector('.notice').textContent=data.adventure?(explored?`EXPLORED · ${explored.length} TILES`:'SAMPLE ROUTE · NOT RECORDED GPS'):data.social?'SAMPLE SOCIAL · NOT LIVE':'';
  document.querySelector('.notice').style.display=data.adventure||data.social?'block':'none';
 };
 window.commandHermi=c=>{

@@ -111,3 +111,13 @@ context.renderHermi({places:[],social:false});
 assert.equal(map.getSource('adventure').data.features.length,0);assert.ok(stops.every(m=>m.removed));
 console.log('Route bridge passed: feed route line, numbered stops, fit once, clear.');
 
+// Profile Adventures: explored tiles replace the sample route and fit once.
+context.renderHermi({places:[],social:false,adventure:true,tiles:[[77210,98474],[77211,98471]]});
+assert.equal(map.getSource('explored').data.features.length,2);
+assert.equal(map.getSource('adventure').data.features.length,0);
+assert.ok(map.lastFit.b.sw[0]<-73.9&&map.lastFit.b.sw[1]>40.7);
+assert.equal(nodes.get('.notice').textContent,'EXPLORED · 2 TILES');
+context.renderHermi({places:[],social:false,adventure:true});
+assert.equal(map.getSource('explored').data.features.length,0);assert.equal(map.getSource('adventure').data.features.length,1);
+console.log('Explored bridge passed: tiles as squares, sample route hidden, fit, label.');
+

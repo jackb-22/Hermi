@@ -16,6 +16,8 @@ struct GeographicMap: View {
   var revision = 0
   var bottomInset: CGFloat = 110
   var adventure = false
+  /// Explored zoom-18 tiles as [x, y] (Profile Adventures, from GET /tiles). Empty shows the sample route.
+  var exploredTiles: [[Int]] = []
   var showsPlaces = true
   /// A plan or adventure drawn as a line with numbered stops (Feed pages); the map fits it.
   var routeLine: [GeoPoint] = []
@@ -57,6 +59,7 @@ struct GeographicMap: View {
        "radiusMiles": pin.radiusMiles, "color": PinArtwork.hex(pin.category), "category": pin.category.rawValue]
     }
     result["discoveries"] = pins
+    if adventure && !exploredTiles.isEmpty { result["tiles"] = exploredTiles }
     if !routeLine.isEmpty {
       result["route"] = [
         "line": routeLine.map { [$0.longitude, $0.latitude] },

@@ -190,8 +190,84 @@ struct PlansPageDTO: Decodable, Sendable {
 }
 
 struct FriendsDTO: Decodable, Sendable {
-  struct Friend: Decodable, Sendable { var user: UserCardDTO }
+  struct Friend: Decodable, Sendable {
+    var user: UserCardDTO
+    var streak: StreakDTO?
+    var score: Int?
+    var lastCheckin: LastCheckinDTO?
+  }
   var items: [Friend]
+}
+
+struct StreakDTO: Decodable, Equatable, Sendable {
+  var weeks: Int
+  var lit: Bool?
+  var hangouts: Int?
+}
+
+struct LastCheckinDTO: Decodable, Equatable, Sendable {
+  var placeId: String?
+  var placeName: String
+  var at: Date
+}
+
+/// `Score`: rolling 30-day XP, 7-day change, daily bars, what expires next and ranks.
+struct ScoreDTO: Decodable, Sendable {
+  struct Day: Decodable, Sendable { var day: String; var xp: Int }
+  struct Expiring: Decodable, Sendable { var xp: Int; var by: String? }
+  struct Rank: Decodable, Sendable { var rank: Int; var of: Int; var campus: String? }
+  struct Ranks: Decodable, Sendable { var friends: Rank?; var campus: Rank? }
+  var score: Int
+  var delta7d: Int?
+  var sparkline: [Day]
+  var expiring: Expiring?
+  var ranks: Ranks?
+}
+
+/// `GET /profile/:id`.
+struct ProfileDTO: Decodable, Sendable {
+  struct Counts: Decodable, Sendable { var posts: Int?; var plans: Int?; var placesVisited: Int? }
+  var user: UserCardDTO
+  var friendCount: Int?
+  var streak: StreakDTO?
+  var score: ScoreDTO?
+  var lastCheckin: LastCheckinDTO?
+  var counts: Counts?
+}
+
+/// `GET /stats`: private stats for your own profile.
+struct StatsDTO: Decodable, Sendable {
+  struct TopPlace: Decodable, Sendable { var placeId: String; var name: String; var category: String?; var visits: Int }
+  struct Person: Decodable, Sendable { var user: UserCardDTO; var hangouts: Int?; var streakWeeks: Int? }
+  struct OnFoot: Decodable, Sendable { var monthKm: Double?; var allTimeKm: Double?; var monthSteps: Int?; var allTimeSteps: Int? }
+  struct Borough: Decodable, Sendable { var name: String; var colored: Int; var total: Int; var pct: Double }
+  struct Hours: Decodable, Sendable { var month: Double?; var allTime: Double? }
+  var topPlaces: [TopPlace]
+  var peopleMost: [Person]
+  var onFoot: OnFoot?
+  var boroughs: [Borough]
+  var hoursOut: Hours?
+}
+
+/// `GET /tiles`: explored zoom-18 map tiles.
+struct TilesDTO: Decodable, Sendable {
+  struct Tile: Decodable, Sendable { var x: Int; var y: Int }
+  var zoom: Int
+  var tiles: [Tile]
+  var count: Int?
+  var manhattanPct: Double?
+}
+
+struct LeaderboardDTO: Decodable, Sendable {
+  struct Entry: Decodable, Sendable { var rank: Int; var user: UserCardDTO; var score: Int; var isMe: Bool? }
+  struct Me: Decodable, Sendable { var rank: Int; var score: Int }
+  var items: [Entry]
+  var me: Me?
+}
+
+struct PatchMeBody: Encodable {
+  var ghostMode: Bool?
+  var openToPlans: Bool?
 }
 
 /// One Feed card. `action` is a string on plan cards ("join" / "request") and an object on the end card.

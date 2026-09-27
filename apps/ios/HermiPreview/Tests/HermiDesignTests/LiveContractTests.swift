@@ -365,4 +365,39 @@ final class LiveContractTests: XCTestCase {
     XCTAssertTrue(state.library.folders[0].items.isEmpty)
     XCTAssertEqual(state.savedTitle(plan), "Loop")
   }
+
+  func testProfileScoreStatsTilesAndBoardsDecode() throws {
+    let user = #"{"id":"01JACK","name":"jack","username":"jack","spriteUrl":null,"photoUrl":null,"verified":true,"campus":"Columbia"}"#
+    let score = #"{"userId":"01JACK","score":1088,"delta7d":357,"sparkline":[{"day":"2026-08-29","xp":0},{"day":"2026-08-30","xp":72}],"expiring":{"xp":211,"by":"2026-10-04"},"ranks":{"friends":{"rank":3,"of":10},"campus":{"rank":4,"of":67,"campus":"Columbia"}}}"#
+    let profile = #"{"user":\#(user),"isMe":true,"isFriend":false,"friendCount":9,"streak":null,"score":\#(score),"lastCheckin":{"placeId":"p","placeName":"Bettolona","at":"2026-09-26T16:41:21.943Z"},"counts":{"posts":0,"plans":4,"placesVisited":33}}"#
+    let decoded = try HermiAPI.decoder.decode(ProfileDTO.self, from: Data(profile.utf8))
+    XCTAssertEqual(decoded.friendCount, 9)
+    XCTAssertEqual(decoded.score?.score, 1088)
+    XCTAssertEqual(decoded.score?.ranks?.friends?.rank, 3)
+    XCTAssertEqual(decoded.score?.ranks?.campus?.of, 67)
+    XCTAssertEqual(decoded.counts?.placesVisited, 33)
+    XCTAssertEqual(decoded.lastCheckin?.placeName, "Bettolona")
+    XCTAssertEqual(HermiStoneScale.count(1088), 8, "8 stones: thresholds 25·n·(n+1)/2 → 900 ≤ 1088 < 1125")
+
+    let stats = #"{"topPlaces":[{"placeId":"p1","name":"Le Petit Senegal","category":"culture","visits":1}],"peopleMost":[{"user":\#(user),"hangouts":21,"streakWeeks":12}],"onFoot":{"monthKm":9.4,"allTimeKm":9.8,"monthSteps":12232,"allTimeSteps":12689},"boroughs":[{"name":"Manhattan","colored":57,"total":4330,"pct":1.3}],"hoursOut":{"month":38.9,"allTime":40.8}}"#
+    let decodedStats = try HermiAPI.decoder.decode(StatsDTO.self, from: Data(stats.utf8))
+    XCTAssertEqual(decodedStats.onFoot?.monthSteps, 12232)
+    XCTAssertEqual(decodedStats.boroughs.first?.pct, 1.3)
+    XCTAssertEqual(decodedStats.peopleMost.first?.hangouts, 21)
+
+    let tiles = #"{"userId":"01JACK","zoom":18,"tiles":[{"x":77210,"y":98474},{"x":77211,"y":98471}],"count":2,"bounds":{"minX":77210,"minY":98471,"maxX":77211,"maxY":98474},"manhattanPct":1.3,"boroughs":[]}"#
+    let decodedTiles = try HermiAPI.decoder.decode(TilesDTO.self, from: Data(tiles.utf8))
+    XCTAssertEqual(decodedTiles.tiles.count, 2)
+    XCTAssertEqual(decodedTiles.manhattanPct, 1.3)
+
+    let board = #"{"scope":"friends","campus":"Columbia","items":[{"rank":1,"user":\#(user),"score":1406,"isMe":false}],"me":{"rank":3,"score":1088}}"#
+    let decodedBoard = try HermiAPI.decoder.decode(LeaderboardDTO.self, from: Data(board.utf8))
+    XCTAssertEqual(decodedBoard.me?.rank, 3)
+    XCTAssertEqual(decodedBoard.items.first?.score, 1406)
+
+    let friends = #"{"items":[{"user":\#(user),"streak":{"weeks":14,"lit":true,"endsThisWeek":false,"hangouts":21,"since":"2026-06-18T08:36:08.743Z"},"score":872,"lastCheckin":{"placeId":"p","placeName":"Wordcruncher Disc","at":"2026-09-25T17:28:42.722Z"}}],"nextCursor":null}"#
+    let decodedFriends = try HermiAPI.decoder.decode(FriendsDTO.self, from: Data(friends.utf8))
+    XCTAssertEqual(decodedFriends.items.first?.streak?.weeks, 14)
+    XCTAssertEqual(decodedFriends.items.first?.score, 872)
+  }
 }

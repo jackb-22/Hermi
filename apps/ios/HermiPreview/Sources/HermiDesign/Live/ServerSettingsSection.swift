@@ -6,6 +6,7 @@ struct ServerSettingsSection: View {
   @State private var baseURL: String
   @State private var devToken: String
   @State private var username: String
+  @State private var accountError: String?
 
   init() {
     let config = LiveSession.shared.config
@@ -41,6 +42,19 @@ struct ServerSettingsSection: View {
       }
       if !live.isLive, live.hasSavedLogin, live.status != .connecting {
         Text("Saved login for @\(live.config.username) is not active.").font(.caption)
+      }
+      if let me = live.me, live.isLive {
+        Divider().padding(.vertical, 4)
+        Text("ACCOUNT").font(.system(size: 10, design: .monospaced))
+        Toggle("Ghost mode (hide your check-ins from friends)", isOn: Binding(
+          get: { me.ghostMode ?? false },
+          set: { value in Task { accountError = await live.updateMe(ghostMode: value) } }
+        )).tint(HermiPalette.green).font(.subheadline)
+        Toggle("Open to plans (verified students can match you to Find-someone plans)", isOn: Binding(
+          get: { me.openToPlans ?? false },
+          set: { value in Task { accountError = await live.updateMe(openToPlans: value) } }
+        )).tint(HermiPalette.green).font(.subheadline)
+        if let accountError { Text(accountError).font(.caption).foregroundStyle(HermiPalette.error) }
       }
       if case .failed(let message) = live.status {
         Text(message).font(.caption).foregroundStyle(HermiPalette.error)
