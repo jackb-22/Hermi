@@ -4,6 +4,12 @@ Updated: 2026-09-27. Branch: codex/cairn-frontend. No pushes authorized.
 
 ## Current checkpoint
 
+### Approved plan Step 1 — navigation implementation ready for user test
+
+2026-09-27: user approved the revision plan and requested only Step 1. Consolidated approved decisions in docs/FRONTEND_IMPLEMENTATION_PLAN.md and schema revision 5. Replaced the pill-level high-priority recognizer with button-scoped exclusive tap/hold handling; Map / Feed / Profile order; rectangular 64×48 hit areas; stationary hold help without navigation; held slide commits a different destination only inside pill bounds; cancellation preserves current page. Accessibility activation and selected traits retained. Other controls' existing help recognizers remain outside this navigation-only change.
+
+20 package tests passed; iPhone build/install/launch and Mac build passed. Simulator accessibility click navigation to Feed/Profile succeeded. Saved before/after screenshots under docs/design-reference/2026-09-27-step-1. Physical tap timing, hold/scrub/cancel, larger text, VoiceOver and map/Feed gesture isolation await user test; no user acceptance claimed. Coordinate click attempts were inconclusive. test.md has the active six-step checklist. Next: receive Step 1 feedback, fix/retest as needed; do not start Step 2 yet. The backend rating issue remains pending Step 0 follow-up; no backend code changed, no pushes.
+
 ### Active correction: 01e — Feed gestures, full Plan and Action entry
 
 User requests Add/remove toggle, long-hold explanations, notched Plan icon, vertical Feed, hold/slide Home navigation without intercepting map pan, full Plan timeline with reorder/time/reminders/attendees, separate Saved, and Go!/Action. Implemented local preview: 4 finite Feed cards plus end, two-card Friends filter; Save/Add independent toggles; hold helpers; pill-only long-hold selection; full/compact Plan, separate grouped Saved; time/duration/reminder draft persistence; stop drag/drop plus accessibility reorder; participant draft with explicit no-send semantics; Go enters Directions/Camera-only Action preview, no sensors/capture/tracking. Camera/invites/reminders/live directions remain integration gates.
@@ -54,7 +60,7 @@ Xcode: /Applications/Xcode.app (26.3). Use DEVELOPER_DIR per command; global xco
 
 ## Next action
 
-Receive the user's revision01b feedback and record it in test.md. Fix only this increment and repeat relevant checks. Do not advance to live navigation/map integration until the user accepts this visual foundation. Reopen with `sh apps/ios/HermiPreview/scripts/simulator-preview.sh` from the repository root, or use the already-open Hermi Preview Mac window.
+Receive the user's Step 1 navigation feedback and record it in test.md. Fix only this increment and repeat relevant checks. Do not advance to Step 2 until accepted. Reopen with `sh apps/ios/HermiPreview/scripts/simulator-preview.sh` from the repository root, or use the already-open Hermi Preview Mac window.
 
 ## Build notes
 

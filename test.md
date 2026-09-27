@@ -2,7 +2,26 @@
 
 This is the user-facing test entry point. Product reference: [unified design schema](docs/HERMI_SCHEMA.md). Resume/checkpoint: [progress](PROGRESS.md).
 
-## Current review: 01e — test these small groups in order
+## Current review: approved plan Step 1 — navigation only
+
+The updated build is installed in iPhone Simulator. To reopen from the repository root:
+
+```sh
+sh apps/ios/HermiPreview/scripts/simulator-preview.sh
+```
+
+1. **Quick taps:** tap Map → Feed → Profile → Map, then repeat quickly. Each short tap should switch once on release, without holding. Order must be Map / Feed / Profile.
+2. **Hold help:** while on Map, hold Feed for about 0.35 seconds without sliding, then release. Stay on Map; Feed help remains briefly. Tap Feed normally to open it.
+3. **Hold and slide:** begin on Map's button, hold until guidance appears, slide onto Profile and release. Profile opens once. A stationary hold must not act like a tap.
+4. **Cancel:** hold and slide above/below or beyond either side of the pill, then release. The current page must remain; no edge-tab clamping or stuck highlight.
+5. **Separate gestures:** pan/pinch Map and swipe Feed vertically outside the pill. Neither should change the selected Home tab.
+6. **Accessibility:** enable VoiceOver and activate each named tab; selection should be announced. Check larger text for clipped help or unreachable controls.
+
+Pass/fail and screenshot feedback: reply with the test number and what happened. For gesture bugs, a short recording is more useful than a still image. Do not advance to Step 2 until this checkpoint is accepted.
+
+Verification: 20 package state tests passed; iPhone build/install/launch and Mac build passed. Simulator accessibility click activation opened Feed and Profile. Unit tests cover segment ordering and off-pill/nonfinite cancellation boundaries. They do not validate physical gesture timing. Coordinate-only click attempts did not establish reliable physical tap behavior; quick finger taps, hold/scrub, VoiceOver, larger text and pan/pinch remain user acceptance tests. Screenshots: [Step 1 evidence](docs/design-reference/2026-09-27-step-1/REVIEW.md). No backend integration changes.
+
+## Previous review: 01e — test these small groups in order
 
 **A. Feed and explanations**
 1. Tap Feed. Swipe upward over media: a new full-height sample post and place name appear. Swipe down to return. Four posts end at “You’re caught up”; Friends filter has two samples. This is layout/paging, not video playback.

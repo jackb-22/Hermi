@@ -1,6 +1,6 @@
 # Hermi unified design schema
 
-Revision 4 · 2026-09-26 · Confirmed product decisions consolidated. Initial gallery composition rejected; map-first revision 01c is under review.
+Revision 5 · 2026-09-27 · Approved incremental revision plan; Step 1 navigation is under review.
 
 ## Authority and mission
 
@@ -15,7 +15,7 @@ Each future change must name its requirement below. A conflicting product reques
 | ID | Rule |
 | --- | --- |
 | AUTH-01 | Explain → taste choices → Apple sign-in → school verification → profile setup → Home. Verification is mandatory; no skip or guest product entry. Restore the first incomplete step. |
-| NAV-01 | Home has Feed / Map / Profile; Map is initial. Switch by tapping the pill or holding/sliding horizontally within the pill and releasing. No global horizontal page gesture: map pan/zoom and vertical Feed paging remain independent. Hide the pill during map movement/feed paging and restore about 300 ms after motion ends. |
+| NAV-01 | Home has Map / Feed / Profile, in that order; Map is initial. Switch by tapping the pill or holding/sliding horizontally within the pill and releasing. No global horizontal page gesture: map pan/zoom and vertical Feed paging remain independent. Hide the pill during map movement/feed paging and restore about 300 ms after motion ends. |
 | NAV-02 | Action mode has Directions / Camera only, entered through Start or Head out. End leads to Recap; Post or Later leads Home. Feed is unavailable during Action. |
 | SHEET-01 | One sheet system supports peek, half, full, dismiss, and nested back. Peek leaves the map interactive. Dismiss preserves map and draft. |
 | MAP-01 | Real NYC geography with sparse labels, low-resolution terrain, crisp sprites and attribution. Solo initially; social data represents permitted check-ins/plans, never live friend tracking. |
@@ -53,7 +53,7 @@ Home → discovery → place → Add → explicit plan → edit/schedule/save/sh
 
 ### Confirmed correction: composition first
 
-The user rejected the gallery-led interface for missing the board's form: “The 3 button pill. Map center visual. ... maximizing the visual not content/info/text.” Home must open as an edge-to-edge map with a floating Feed / Map / Profile pill at the bottom, Map centered and selected. Category discovery and Social controls sit along the right edge. There is no landing-page headline, tagline, horizontal category strip, persistent card or developer toolbar occupying the main map. Details are disclosed in a compact bottom sheet after interaction. Plan (notched chevron) and Social are permanent upper-right controls, including before any pin is dropped. Plan includes Saved and explicit added destinations; saving alone never adds a destination. Testing controls move to a small preview menu; the old component gallery is a secondary lab, not the product landing screen.
+The user rejected the gallery-led interface for missing the board's form: “The 3 button pill. Map center visual. ... maximizing the visual not content/info/text.” Home must open as an edge-to-edge map with a floating Map / Feed / Profile pill at the bottom, Map at left and initially selected. Category discovery and Social controls sit along the right edge. There is no landing-page headline, tagline, horizontal category strip, persistent card or developer toolbar occupying the main map. Details are disclosed in a compact bottom sheet after interaction. Plan (notched chevron) and Social are permanent upper-right controls, including before any pin is dropped. Plan includes Saved and explicit added destinations; saving alone never adds a destination. Testing controls move to a small preview menu; the old component gallery is a secondary lab, not the product landing screen.
 
 Feed composition is media-first with a compact place/action overlay. Profile retains a large map area with compact identity/Score controls. These review shells do not imply that feed playback, pagination, historical stats or social integration have passed their later gates. Revision01b is corrective work within the first visual review, not acceptance of increments02–07.
 
@@ -114,3 +114,20 @@ Backend gates for the clarified Profile/Social remain: own timestamped route his
 - Stop ellipsis: confirmed attendees plus invite-existing-friends flow. This is consistent with in-person-established friendship; it does not authorize remote friend requests or in-app DMs. Preview invitees are draft-only, distinct from confirmed attendees.
 - Go!: requires an explicit nonempty plan. The local review exposes Directions/Camera-only Action layout; no real trip is started. End preview returns to Plan. Real Start/End, recap, camera permissions/capture and notifications remain future integration gates. Product End still follows NAV-02/TRACK-02, not the preview shortcut.
 - Notifications/reminders requested: editing a reminder preference alone is not delivery. Real implementation must handle permission states, schedule/update/cancel by stable stop ID, timezone changes, stale reminders on reorder/removal, and backend/device duplication before enabling delivery. Current preview schedules none.
+
+
+## Approved revision plan — 2026-09-27
+
+The user approved [the incremental implementation plan](FRONTEND_IMPLEMENTATION_PLAN.md). Its current decisions supersede conflicting historical revision notes above. Implementation and acceptance are separate: only Step 1 is being implemented now.
+
+- NAV-01 amendment: Map / Feed / Profile; quick release activates once, stationary hold explains without navigating, hold-and-slide selects a different segment on release. Releasing outside the pill cancels. Hold help persists briefly after release. Map/Feed gestures outside the pill never switch tabs. Each navigation button has a 64×48-point rectangular hit area, semantic button activation and selection traits.
+- Visual amendment: brighter unified pixel palette, full-screen map/media, no user-facing top-left wordmark. These changes belong to Step 2.
+- Discovery amendment: multiple geographic pins (including repeated categories), land-only NYC placement, independent optional citywide category filter; combine matches by union and deduplicate place IDs. Pins include category icons, with one extra floating category indicator per visible category. Tap a placed pin to edit its radius and expose an X; X deletes. This supersedes tap-to-delete. Radius is 0.25–4 miles, logarithmic, initial midpoint 1 mile; independent of zoom. Placed pins remain draggable.
+- Sheets: native compact/medium/full presentation, X dismisses place details, contextual place Feed stays in the sheet rather than changing the main tab.
+- Plans: explicit places only, nonempty to start, no product maximum. Save Plan opens name/folder/visibility inputs for a new plan; saved plans autosave edits and support Undo. Friends means selected existing friends and explicit Save & invite; autosave never resends invites. Public distribution must wait for a matching backend contract. Stable plan and stop IDs own scheduling state.
+- Saved: mixed-content folders, separate horizontal drawer toggle in Plan, plus adds linked places or appends saved itinerary stops in order. Skip already-present places; unlocated images remain inspiration until tied to an explicit place. Saving is independent of plan membership.
+- Feed: bookmark saves content and plus toggles active-plan membership. Social switches Friends/Public. Feed chevron filters plans/adventures instead of opening My Plan. Numerical ratings await backend schema; create the requested backend issue, do not implement rating prompts/schema now.
+- Profile: Settings gear and Saved bookmark. Sharing/privacy controls move into Settings; live visibility is verified check-in presence, not continuous GPS. Own post detail excludes friends' content. Own Adventures remains own routes; friend routes require opt-in sharing.
+- Go!/Action: accessible from a nonempty Plan, Directions/Camera only. Location denial blocks tracking/GPS check-in; NFC alternative remains required and tested last. No fake live capability.
+
+Backend gaps, persistence defaults, checkpoint order and screenshot acceptance are recorded in the implementation plan. No later checkpoint is authorized to bypass user testing just because its code compiles.
