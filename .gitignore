@@ -13,3 +13,5 @@ apps/api/data/
 # Any env file with real values (only the example is committed)
 .env.*
 !.env.example
+!.env.*.example
+.demo/
