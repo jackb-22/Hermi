@@ -4,6 +4,11 @@ Updated: 2026-09-27. Branch: codex/cairn-frontend. No pushes authorized.
 
 ## Current checkpoint
 
+### Single right-hand column correction
+
+User requested local rerun and a clean vertical stack. Removed the expanded-panel sideways toolbar shift; normalized upper toolbar, slider and zoom/home to the same 42-point right inset centerline. Contextual panel expansion reserves 460 points for the rail to avoid overlap rather than creating a second column. My Plan remains full-page. Simulator rebuilt/launched; compact, expanded and closed states inspected and saved under docs/design-reference/2026-09-27-step-3-alignment. JS bridge checks pass. Attribution moved below the map buttons after the closed-panel screenshot exposed overlap. Next: user reviews running local preview; no Step 4.
+
+
 ### Step 3 feedback revision — ready for re-test
 
 User rejected the first Step 3 control layout. Implemented colored recommendation dots; tap-away deselection; transparent bottom-right slider; small pin-attached X; dynamic panel clearance for zoom/home; reduced visible button backgrounds with retained touch areas; immediate vertical category swipes with category label and side chevrons; removed sample-place map banner. User selected 0.1–4 miles; keep 1-mile default. Screenshot review caught an expanded-panel toolbar overlap; separated toolbar/control columns and reveal pin when panel height changes.

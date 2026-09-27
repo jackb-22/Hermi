@@ -10,7 +10,7 @@ Build/install with the HermiPreview project, your iPhone selected, **⌘R**. The
 2. Drag the category pin sideways onto NYC land. It is selected automatically. Recommendations are small category-colored dots, not pins. Tap a dot to open its place.
 3. Check the **transparent slider at bottom right above +/−/home**, and the small **X attached to the placed pin**. Radius spans **0.1–4 miles**, logarithmically; new pins still start at 1 mile (no longer the midpoint). Zoom does not change radius.
 4. Tap empty map: slider, X and radius overlay disappear; pin and recommendation dots remain. Tap the placed pin to edit again. Drag it to move. Water/outside-NYC drops still reject and restore the previous valid position.
-5. Open/collapse/expand the panel: +/−/home move above it. On expansion the upper toolbar shifts slightly left to leave a separate control column, and the pin stays above the panel. Nothing should overlap or become unclickable. Close the panel and verify controls return down.
+5. Open/collapse/expand the panel: +/−/home move above it. All right-side tools stay on one fixed vertical centerline. Expansion leaves room for the complete control stack; the pin stays above the panel. Nothing should overlap or become unclickable. Close the panel and verify controls return down.
 6. Check reduced visible button backgrounds with unchanged icon size; quick taps should remain easy. No “SAMPLE PLACES · REAL MAP” banner. Map attribution remains available.
 7. Remove via the pin's X: Plan/Saved stay unchanged. Normal app restart retains valid pin/radius. Test navigation tap/hold and map pan/pinch for regression.
 

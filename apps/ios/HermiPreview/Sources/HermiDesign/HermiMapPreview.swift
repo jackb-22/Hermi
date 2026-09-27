@@ -150,8 +150,7 @@ public struct HermiMapPreview: View {
       }
       Spacer()
       mapTools(in: size)
-        .padding(.trailing, state.panel == .map && expanded && state.sheet != nil && state.sheet != .plan && state.sheet != .saved ? 60 : 0)
-        .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: expanded)
+        .frame(width: 44)
     }
   }
 
@@ -238,13 +237,20 @@ public struct HermiMapPreview: View {
         mapButton("plus", label: "Zoom in", action: "in")
         mapButton("minus", label: "Zoom out", action: "out")
         mapButton("locate", label: "Recenter on Columbia", action: "recenter")
-      }.padding(.trailing, 18).padding(.bottom, mapControlsBottom(in: size))
+      }.padding(.trailing, 20).padding(.bottom, mapControlsBottom(in: size))
         .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: mapControlsBottom(in: size))
     }
   }
   private func mapControlsBottom(in size: CGSize) -> CGFloat {
     guard let sheet = state.sheet, sheet != .plan, sheet != .saved else { return 110 }
-    return (expanded ? size.height * 0.65 : min(300, size.height * 0.39)) + 8
+    return discoveryPanelHeight(in: size.height) + 8
+  }
+
+  // Reserve one vertical rail: category/social/plan, radius, then zoom/home.
+  // Contextual panels grow only into the remaining space; My Plan stays full-page.
+  private func discoveryPanelHeight(in height: CGFloat) -> CGFloat {
+    let compact = min(300, height * 0.39)
+    return expanded ? max(compact, min(height * 0.65, height - 460)) : compact
   }
 
   private func mapButton(_ icon: String, label: String, action: String) -> some View {
@@ -291,7 +297,7 @@ public struct HermiMapPreview: View {
       }.scrollIndicators(.hidden)
       Spacer(minLength: 70)
     }
-    .frame(height: expanded ? height*0.65 : min(300, height*0.39))
+    .frame(height: discoveryPanelHeight(in: height))
     .frame(maxWidth: .infinity)
     .background(HermiPalette.paper, in: UnevenRoundedRectangle(topLeadingRadius: 24, topTrailingRadius: 24))
     .overlay(alignment: .topTrailing) {
