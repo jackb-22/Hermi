@@ -41,6 +41,8 @@ const Env = z.object({
   CDN_BASE_URL: optStr,
   /** direct: app PUTs to a presigned S3 URL. api: app PUTs to the API, which stores it (use when S3 is not reachable from the phone, e.g. local dev over a tunnel). */
   MEDIA_UPLOAD_MODE: z.enum(['direct', 'api']).default('direct'),
+  /** cdn: media URLs point at CDN_BASE_URL (Spaces CDN) or S3 presigned GETs. api: the API serves them at /media/<key> (no CDN, or storage the phone cannot reach). */
+  MEDIA_DELIVERY: z.enum(['cdn', 'api']).default('cdn'),
 
   APPLE_TEAM_ID: optStr,
   APPLE_BUNDLE_ID: optStr,
@@ -72,5 +74,7 @@ export type Config = z.infer<typeof Env> & { devRoutes: boolean };
 
 export function loadConfig(env: Record<string, string | undefined> = process.env): Config {
   const c = Env.parse(env);
+  // Served by the API: every public media URL (renditions, profile photos) is /media/<key> on this server.
+  if (c.MEDIA_DELIVERY === 'api') c.CDN_BASE_URL = `${c.PUBLIC_BASE_URL.replace(/\/$/, '')}/media`;
   return { ...c, devRoutes: c.DEV_ROUTES || c.NODE_ENV !== 'production' };
 }

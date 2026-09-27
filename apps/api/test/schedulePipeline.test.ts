@@ -154,20 +154,19 @@ describe('POST /plans/:id/schedule', () => {
   });
 
   test('hours, AI stays and walking legs are fetched at once, not one after another', async () => {
-    const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+    /** Resolves to `f()` after `ms`. */
+    const slow =
+      <A extends unknown[], R>(ms: number, f: (...a: A) => Promise<R>) =>
+      async (...a: A) => {
+        await new Promise((r) => setTimeout(r, ms));
+        return f(...a);
+      };
     const saved = { ...t.ctx.providers };
     const { hours, eta, llm } = saved;
     Object.assign(t.ctx.providers, {
-      hours: { name: 'slow', hours: async (p: never) => (await wait(150), hours.hours(p)) },
-      eta: {
-        name: 'slow',
-        eta: async (...a: Parameters<EtaProvider['eta']>) => (await wait(100), eta.eta(...a)),
-      },
-      llm: Object.assign(Object.create(llm), {
-        stayLengths: async (...a: Parameters<typeof llm.stayLengths>) => (
-          await wait(400), llm.stayLengths(...a)
-        ),
-      }),
+      hours: { name: 'slow', hours: slow(150, hours.hours.bind(hours)) },
+      eta: { name: 'slow', eta: slow(100, eta.eta.bind(eta)) },
+      llm: Object.assign(Object.create(llm), { stayLengths: slow(400, llm.stayLengths.bind(llm)) }),
     });
     const [far] = await insertPlaces(t.ctx.db, [
       placeDoc({ name: 'Unscheduled Gallery', category: 'culture', at: offset(ORIGIN, 0, 600) }),

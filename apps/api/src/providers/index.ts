@@ -49,5 +49,7 @@ export function createProviders(c: Config): Providers {
 }
 
 /** One line per provider for boot logs and /health debugging. */
-export const describeProviders = (p: Providers) =>
-  Object.fromEntries(Object.entries(p).map(([k, v]) => [k, (v as { name: string }).name]));
+export const describeProviders = (p: Providers) => ({
+  ...Object.fromEntries(Object.entries(p).map(([k, v]) => [k, (v as { name: string }).name])),
+  mediaDelivery: p.storage.delivery,
+});
