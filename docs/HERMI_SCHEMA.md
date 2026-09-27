@@ -1,6 +1,6 @@
 # Hermi unified design schema
 
-Revision 2 · 2026-09-26 · Confirmed product decisions consolidated. Initial gallery composition rejected; map-first revision 01b is under review.
+Revision 3 · 2026-09-26 · Confirmed product decisions consolidated. Initial gallery composition rejected; map-first revision 01c is under review.
 
 ## Authority and mission
 
@@ -37,9 +37,9 @@ Each future change must name its requirement below. A conflicting product reques
 | SCORE-01 | Score is rolling 30-day XP; exploration is lifetime. Show exact Score, seven-day delta, 30 bars, expiry and friend/campus ranks. No global rank. |
 | SCORE-02 | Stone threshold n = 25*n*(n+1)/2. A downward threshold crossing can blow the top stone away. Unchanged refreshes and decreases within a threshold never replay removal. Preserve large counts rather than cap at 16. |
 | FEED-01 | Finite vertically paged feed: verified photo/clip/review/recap cards and eligible open plans. Only active media plays; prefetch is not seen. Place and bookmark actions; no likes/comments. The end offers planning from Saved. |
-| PROFILE-01 | Own profile: Score, explored map, Posts/Plans/Saved, private stats, editing and settings. Friends cannot see private traces, Saved or private people-most stats. A deliberately published recap route is separate from private trace access. |
+| PROFILE-01 | Own profile: Score, two icon tabs only: Adventures and Posts. Adventures shows only own geographic route history. Its info icon opens visit counts (ascending), percentage of New York covered, steps, most/least visited borough and neighborhood. The account header has Friends | Score | Rank; Friends is the entry to friend profiles/routes. Posts is a three-column media grid; a tile opens its place’s own media/review and friends’ posts/reviews if available. Saved belongs in Plan, not a third Profile tab. Private stats, editing and settings remain separate. Friends cannot see private traces, Saved or private people-most stats. A deliberately published route is separate from private trace access. Adventures provides Private/Friends/Everyone sharing controls, private by default; publishing requires explicit user action and backend confirmation. |
 | SAFE-01 | Report/block, ghost mode, open-to-plans, notifications and account deletion follow confirmed server state. Account switching cannot reuse another account's credentials, drafts or upload journal. |
-| PREVIEW-01 | Sample mode is clearly labeled, deterministic and network-free. It cannot award XP, verify presence or mutate a live account. Visual acceptance and integration acceptance are separate. |
+| PREVIEW-01 | Product fixtures are clearly labeled and deterministic. The geographic preview may fetch public OpenFreeMap tiles; no Hermi account/backend requests or sensor access occur. It cannot award XP, verify presence or mutate a live account. Visual acceptance and integration acceptance are separate. |
 
 ## Navigation and decision framework
 
@@ -53,9 +53,15 @@ Home → discovery → place → Add → explicit plan → edit/schedule/save/sh
 
 ### Confirmed correction: composition first
 
-The user rejected the gallery-led interface for missing the board's form: “The 3 button pill. Map center visual. ... maximizing the visual not content/info/text.” Home must open as an edge-to-edge map with a floating Feed / Map / Profile pill at the bottom, Map centered and selected. Category discovery and Social controls sit along the right edge. There is no landing-page headline, tagline, horizontal category strip, persistent card or developer toolbar occupying the main map. Details are disclosed in a compact bottom sheet after interaction. My plan appears once planning/discovery begins; its content still contains explicit added places only. Testing controls move to a small preview menu; the old component gallery is a secondary lab, not the product landing screen.
+The user rejected the gallery-led interface for missing the board's form: “The 3 button pill. Map center visual. ... maximizing the visual not content/info/text.” Home must open as an edge-to-edge map with a floating Feed / Map / Profile pill at the bottom, Map centered and selected. Category discovery and Social controls sit along the right edge. There is no landing-page headline, tagline, horizontal category strip, persistent card or developer toolbar occupying the main map. Details are disclosed in a compact bottom sheet after interaction. Plan and Social are permanent upper-right controls, including before any pin is dropped. Plan includes Saved and explicit added destinations; saving alone never adds a destination. Testing controls move to a small preview menu; the old component gallery is a secondary lab, not the product landing screen.
 
 Feed composition is media-first with a compact place/action overlay. Profile retains a large map area with compact identity/Score controls. These review shells do not imply that feed playback, pagination, historical stats or social integration have passed their later gates. Revision01b is corrective work within the first visual review, not acceptance of increments02–07.
+
+### Revision 01c: geographic map and corrected controls
+
+User's six corrections: (1) continuous geographic pan in both axes and zoom in/out, not moving a bounded illustration; (2) shared pixel geometry for pins and action icons; (3) map/media backgrounds extend behind system safe areas with controls kept reachable; (4) compact colored ballpoint pin, hold ~300ms for selection haptic, vertical slide temporarily reveals categories, release commits choice, hold/drag horizontally onto map drops at the projected coordinate; (5) Adventures and Posts icon tabs, three-column post grid and place-specific modal, Saved within Plan; (6) permanent upper-right Social and Plan controls. Default Adventures. VoiceOver supports category adjustment without a drag. Simulator cannot establish physical haptic quality.
+
+Clarification: remove friends maps from own Adventures. Friends is accessed from the account header. Social mode on Home Map includes past places, planned/wanted places and ongoing-trip status. Ongoing status does not establish permission for live location tracking. Confirmed privacy amendment: completed routes/places are private by default and shared only by user choice. Profile Adventures has a persistent left-side Social/sharing icon opening Private / Friends / Everyone (public). Friend views and Social must respect this audience; an ongoing trip status does not expose live coordinates. The preview saves only a local audience preference and never publishes. Friends currently has a no-data state. Sample own routes are explicitly marked, never claimed to be recorded GPS. Real profile history/media/review aggregation depends on backend integration.
 
 Pixel-game treatment applies throughout custom UI: terrain, icons, sprites, large numbers/headings, card edges, controls, progress, charts and empty states. Preserve native gestures, scrolling, text input and system dialogs. Use readable system body text and inputs. Do not rasterize body text or permission dialogs. Use a restrained youthful palette with one dominant accent per component, ample quiet space, and no antique parchment/borders.
 
@@ -92,3 +98,9 @@ One active increment. Implement → automated verification → scoped local comm
 Save files continuously. Record progress, known failures and exact next action in `PROGRESS.md` at meaningful checkpoints. Keep `test.md` as the user's entry point. Local commits preserve history but are not off-device backup. Never reset, clean or overwrite unrelated work to make a build pass.
 
 Review feedback is pending until recorded; silence is not approval. Build success is not visual or device acceptance. Stable components retain regression coverage while later reviews become broader.
+
+## Revision 01c implementation dependencies
+
+The MapLibre 5.6.0 JS/CSS renderer and license are bundled locally. Public geographic tiles come from OpenFreeMap; renderer pixelRatio 0.5 and nearest-neighbor canvas display provide low-resolution terrain while custom native/web pins share the same pixel matrix. This is no longer a network-free map preview. Sample place coordinates remain explicitly labeled fixtures and are filtered within 1.5km of a geographic discovery pin; public tiles do not supply Hermi recommendations or verified venues. Sources: https://openfreemap.org/quick_start/ and https://maplibre.org/maplibre-gl-js/docs/API/type-aliases/MapOptions/.
+
+Backend gates for the clarified Profile/Social remain: own timestamped route history; enforcement of private/friends/public route audience; past/planned/wanted/ongoing friend activity and permissions; place-scoped own/friend posts and reviews; visit counts; actual steps; agreed NY coverage denominator; borough/neighborhood aggregation and tie/empty-state semantics. Display unknown values as unavailable, never invented statistics. No backend code changed.

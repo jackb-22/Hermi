@@ -4,7 +4,11 @@ Updated: 2026-09-26. Branch: codex/cairn-frontend. No pushes authorized.
 
 ## Current checkpoint
 
-### Active correction: 01b
+### Active correction: 01c
+
+User rejected bounded illustration, mismatched pin icons, safe-area white bands, category arrows, incorrect Profile tabs and conditional Plan. Implementing geographic MapLibre/OpenFreeMap with bundled pinned renderer, shared pixel ballpoint pins, hold/vertical selection, permanent Plan/Social, edge-to-edge backgrounds, Adventures/Posts with grid/modal and Saved in Plan. User clarified own Adventures only with stats/info; header Friends | Score | Rank leads separately to friend routes. Clarification implemented. Friend sharing confirmed opt-in: Private / Friends / Everyone via persistent left-side Adventures control. Implemented local preview preference with explicit Save; no live publishing or private friend access. Backend untouched. 16 state tests passed; Mac/iPhone builds passed, real tiles/zoom/layout and Profile grid/modal inspected. Fixed safe-area status overlap and UTF-8 attribution. Latest Profile/sharing revision is built for Mac/iPhone; user review in test.md is next. Full pin gesture/haptic/accessibility/offline/sharing-save checks remain pending; no visual acceptance. Simulator reported active user interaction, so agent UI control stopped. Latest build-only checks preserve the user’s running session; rerun simulator-preview.sh after user review to install any subsequent minor reset/pin-anchor corrections. No acceptance or pushes.
+
+### Previous correction: 01b
 
 The user rejected the text/card-led gallery as inconsistent with their Miro layout. `../My First Board.pdf` has now been text-extracted and visually inspected, including detailed main map and feed/plan regions. Current work replaces the launch view with a map-first composition, right-side category/social controls, bottom Feed/Map/Profile pill and contextual sheets. Component lab moves behind the preview menu. Default map is labeled illustration/sample, not live geography. Preserve prior work and do not advance to backend/device features.
 

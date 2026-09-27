@@ -1,6 +1,6 @@
 # Hermi visual foundation
 
-Revision 01b: an isolated, network-free SwiftUI map-first composition following My First Board.pdf. The component gallery remains available through the hermi preview menu. Reusable HermiDesign components have no dependency on the legacy prototype, backend, credentials or device permissions. User decisions are in ../../../docs/HERMI_SCHEMA.md; acceptance is recorded in ../../../test.md.
+Revision 01c follows the board's map-first layout and the user's six corrections. HermiDesign is independent of the old prototype/backend. The map now uses real geographic coordinates and public OpenFreeMap tiles via bundled MapLibre 5.6.0, styled with a low-resolution canvas and shared pixel pins. Account content stays labeled sample data. Decisions: ../../../docs/HERMI_SCHEMA.md. Current user tests: ../../../test.md.
 
 From this directory:
 
@@ -12,8 +12,8 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swift test --disa
 
 For Xcode's canvas, open HermiPreview.xcodeproj and Sources/HermiDesign/HermiMapPreview.swift; use its `#Preview`. Select the HermiPreview scheme and an installed iPhone simulator to Run. The Mac executable is a separate fallback for visual testing.
 
-The preview launches on Map with the bottom Feed / Map / Profile pill. Right-side category controls filter sample markers or drag a discovery pin onto the illustrated map. Selecting a place opens a compact media sheet; only Add inserts an explicit place in My plan. Preview state persists under hermi.preview.map-composition.v1. Reset clears the plan and discovery, restores Food / Solo / Map, and recenters the illustration. The component lab retains its separate foundation preferences.
+The preview launches on Map. Pan and pinch freely, or use pixel zoom/recenter controls. Hold the ballpoint pin, slide vertically to choose a category, release; hold and drag horizontally onto the map to discover. No placeholder plan stops are inserted. Social and Plan remain visible; Saved lives in Plan. Profile has Friends | Score | Rank plus Adventures/Posts icon tabs. Adventures contains own routes with an info/stats entry; Posts is a three-column sample grid opening place-specific media/review sheets.
 
-Map, Feed and Profile use original vector artwork and labeled sample media placements. No live geography, video playback, device permissions or backend writes are integrated here. Social markers are samples. This increment tests composition and local navigation, not complete product features. The system Reduce Motion setting is respected.
+Tiles need internet. The preview has no account backend connection, GPS recording, real post playback or verified friend history. Route sharing is opt-in through a persistent left-side Adventures icon, private by default. Private/Friends/Everyone saves only a local preview setting; live publishing is not connected. Physical haptics require iPhone. State persists under hermi.preview.map-composition.v1; Reset clears local plans/discovery. The old component gallery remains in the preview menu. Source/license details are in Sources/HermiDesign/Resources/README.md.
 
 Public app branding is Hermi. The existing repository folder and old prototype files still use Cairn until their respective increments migrate them; do not mass-rename or discard them.

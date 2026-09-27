@@ -2,7 +2,26 @@
 
 This is the user-facing test entry point. Product reference: [unified design schema](docs/HERMI_SCHEMA.md). Resume/checkpoint: [progress](PROGRESS.md).
 
-## Current review: 01b — map-first composition
+## Current review: 01c — geography, pin gesture and Profile
+
+The updated app is in Simulator. Reopen from `apps/ios/HermiPreview` with `sh scripts/simulator-preview.sh`. Public map tiles need internet; account places, posts and routes are labeled samples. No Hermi backend writes or location permission.
+
+1. **Map**: drag north/south/east/west; zoom out several levels, zoom back in and recenter. Use +/− or hold Option in Simulator to pinch. Geography should extend continuously, and map pins should stay at their coordinates. No top/bottom white bands; controls should avoid the status bar.
+2. **Pin**: hold the upper-right ballpoint pin for ~0.3 seconds, slide up/down through categories, release. Only temporary options appear while held; the selected pin changes color. Tap to filter/unfilter. Hold again and drag left onto the map to discover at the dropped coordinate. Physical haptic feel requires iPhone; Simulator cannot validate it.
+3. **Discovery**: dropping never adds a plan destination. Open a nearby sample place, explicitly Add, close and reopen Plan. Drop far from Columbia: no nearby sample results, no invented place.
+4. **Permanent controls**: Social and Plan stay upper-right on Home panels. Open Plan before adding anything. Save a place, then find it under Plan → Saved; it must not silently enter My plan. Social markers are sample check-ins; full friend activity awaits integration.
+5. **Profile header**: Friends | Score | Rank are separate entries. Friends has an honest no-data state. Score is a labeled sample; unavailable ranks stay blank.
+6. **Adventures**: only your own map here. Tap the pixel info icon for visit counts ascending, NY coverage, steps and most/least visited borough/neighborhood. Real stats are unavailable rather than invented. The persistent left-side sharing icon opens Private / Friends / Everyone; choose and save a preview setting, reopen and check persistence. Dismiss without saving must preserve the previous choice. No route is actually published.
+7. **Posts**: exactly one other icon tab. Check the three-column grid. Tap a tile: its place modal has your media/review and friends’ media/reviews sections, with no-data states. Close to return to the grid. No Saved/Profile third tab.
+8. **Regression**: Feed remains media-first; pill selection/back/close work. Test larger text, VoiceOver category adjustment, Reduce Motion, and relaunch. Map failure should offer Retry while Plan remains available.
+
+Verification: 16 state tests passed; Mac and iPhone builds passed. Geographic map render, zoom-out and safe-area layout inspected. Adventures and three-column grid/place modal inspected. Hands-on pan/pinch, held-pin drag, haptics, sharing-save/cancel, offline retry and accessibility acceptance remain pending. Agent interaction stopped when Simulator reported the user was interacting; the app was left available for user testing. Sharing is confirmed opt-in, private by default; only a local preview preference is implemented, with no publishing/private friend access.
+
+## Previous review: 01b — map-first composition
+
+Status: changes requested; replaced by 01c below the same visual review boundary.
+
+### Archived 01b checklist
 
 User feedback on 01: the gallery did not follow `My First Board.pdf`; maximize the map/visual area and use the three-button pill. Revision01b implements that correction. The previous gallery remains behind **hermi → Component lab**. It is not the product home screen.
 
