@@ -7,6 +7,9 @@ struct PlaceFeedPost: Identifiable, Equatable {
   let author: String
   let caption: String
   let mediaCount: Int
+  static func find(_ id: String) -> Self? {
+    MapSamplePlace.all.lazy.flatMap { samples(for: $0.id) }.first { $0.id == id }
+  }
   static func samples(for placeID: String) -> [Self] {
     guard MapSamplePlace.find(placeID) != nil else { return [] }
     return [
@@ -20,11 +23,23 @@ struct PlaceFeedPost: Identifiable, Equatable {
 /// Participates in the panel's vertical scroll; each post owns only horizontal media.
 struct PlaceFeedContent: View {
   let place: MapSamplePlace
+  var savedPostIDs: Set<String> = []
+  var togglePostSave: ((String) -> Void)?
   var body: some View {
     LazyVStack(alignment: .leading, spacing: 22) {
       ForEach(PlaceFeedPost.samples(for: place.id)) { post in
         VStack(alignment: .leading, spacing: 8) {
-          Text(post.author).font(.subheadline.weight(.semibold))
+          HStack {
+            Text(post.author).font(.subheadline.weight(.semibold))
+            Spacer()
+            if let togglePostSave {
+              Button { togglePostSave(post.id) } label: {
+                PixelIcon(name: savedPostIDs.contains(post.id) ? "saved" : "save")
+                  .frame(width: 18, height: 22).frame(width: 44, height: 44)
+              }.accessibilityLabel(savedPostIDs.contains(post.id) ? "Unsave post by \(post.author)" : "Save post by \(post.author)")
+                .controlHelp("Save this post and its media placeholder to Saved")
+            }
+          }
           ScrollView(.horizontal) {
             HStack(spacing: 8) {
               ForEach(0..<post.mediaCount, id: \.self) { index in

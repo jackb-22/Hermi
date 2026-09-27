@@ -72,6 +72,7 @@ struct MapPreviewState: Codable, Equatable {
   var stopTimes: [String: PreviewStopTime]?
   var stopInviteDrafts: [String: Set<String>]?
   var savedIDs: Set<String> = []
+  var savedLibrary: SavedLibrary? // Optional so older local snapshots still decode.
 
   var showsPlan: Bool { true }
   var nearby: [MapSamplePlace] { matchingPlaces(MapSamplePlace.all) }
@@ -163,7 +164,13 @@ struct MapPreviewState: Codable, Equatable {
   }
   mutating func toggleSave(_ id: String) {
     guard MapSamplePlace.find(id) != nil else { return }
-    if savedIDs.contains(id) { savedIDs.remove(id) } else { savedIDs.insert(id) }
+    if savedIDs.contains(id) {
+      savedIDs.remove(id)
+      if var library = savedLibrary {
+        for index in library.folders.indices { library.folders[index].items.removeAll { $0.kind == .place && $0.refID == id } }
+        savedLibrary = library
+      }
+    } else { savedIDs.insert(id) }
   }
   mutating func reset() { self = MapPreviewState() }
 }
