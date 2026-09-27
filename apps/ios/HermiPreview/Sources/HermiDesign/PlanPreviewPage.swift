@@ -10,6 +10,9 @@ struct PlanPreviewPage: View {
   @State private var participants: MapSamplePlace?
   @State private var help = false
   @State private var compact = false
+  @State private var showDrawer = false
+  @State private var saveModal = false
+  @State private var saveFeedback: String?
   private var warning: Bool { !state.timingConflicts.isEmpty }
   var body: some View {
     VStack(spacing: 16) {
@@ -30,6 +33,16 @@ struct PlanPreviewPage: View {
           .accessibilityLabel("Close planning").controlHelp("Close planning and return to your previous page")
         Text(saved ? "Saved" : "My Plan").font(.title2.bold())
         Spacer()
+        if !saved {
+          Button("Save Plan") { saveModal = true }
+            .font(.caption.bold()).padding(.horizontal, 8).frame(height: 36)
+            .background(HermiPalette.lime, in: PixelPanel(corner: 5))
+            .accessibilityLabel("Save Plan").controlHelp("Name and save this plan into a folder")
+          Button { showDrawer.toggle() } label: {
+            Image(systemName: showDrawer ? "chevron.up" : "chevron.down").font(.caption.bold()).frame(width: 32, height: 40)
+          }.accessibilityLabel(showDrawer ? "Collapse Saved drawer" : "Expand Saved drawer")
+            .controlHelp("Browse saved places, posts and plans horizontally")
+        }
         Button { state.sheet = saved ? .plan : .saved } label: {
           PixelIcon(name: saved ? "saved" : "save").frame(width: 22, height: 26).frame(width: 44, height: 44)
         }.accessibilityLabel(saved ? "Return to My Plan" : "Open Saved")
@@ -37,6 +50,10 @@ struct PlanPreviewPage: View {
       }.padding(.horizontal, 16)
       if saved { savedList }
       else {
+        if showDrawer { savedDrawer }
+        if let saveFeedback {
+          Text(saveFeedback).font(.caption).padding(.horizontal, 18).accessibilityAddTraits(.updatesFrequently)
+        }
         HStack {
           Button { help.toggle() } label: { PixelIcon(name: "clock").frame(width: 24, height: 24).frame(width: 44, height: 44) }
             .accessibilityLabel("Timeline help").controlHelp("Tap a time to edit. Hold a stop and move it to reorder")
@@ -96,6 +113,19 @@ struct PlanPreviewPage: View {
         state.setInviteDraft($0, for: place.id)
       }, remove: { state.removePlace(place.id) })
     }
+    .sheet(isPresented: $saveModal) {
+      SavePlanPreviewModal(folders: state.library.folders, stopCount: state.planIDs.count) { name, folderID, newFolder, visibility, friends in
+        var library = state.library
+        let didSave = library.savePlan(name: name, folderID: folderID, newFolder: newFolder,
+                                       visibility: visibility, friends: friends, stops: state.planIDs,
+                                       times: state.stopTimes ?? [:])
+        if didSave {
+          state.library = library
+          saveFeedback = visibility == .solo ? "Plan saved locally." : "Plan draft saved locally. Nothing was shared or sent."
+        }
+        return didSave
+      }
+    }
   }
 
   private func stopRow(_ place: MapSamplePlace) -> some View {
@@ -132,27 +162,90 @@ struct PlanPreviewPage: View {
         }
     }
   }
+  private var savedDrawer: some View {
+    VStack(alignment: .leading, spacing: 6) {
+      Text("SAVED · SWIPE SIDEWAYS").font(.system(size: 10, design: .monospaced)).foregroundStyle(HermiPalette.secondary)
+        .padding(.leading, 20)
+      ScrollView(.horizontal) {
+        LazyHStack(spacing: 10) {
+          ForEach(state.savedReferences) { reference in
+            VStack(alignment: .leading, spacing: 10) {
+              Text(reference.kind.rawValue.uppercased()).font(.system(size: 10, design: .monospaced))
+              Text(savedTitle(reference)).font(.subheadline.bold()).lineLimit(2).frame(maxWidth: .infinity, alignment: .leading)
+              Spacer(minLength: 0)
+              Button { append(reference) } label: {
+                PixelIcon(name: "plus").frame(width: 18, height: 18).frame(width: 40, height: 40)
+                  .background(HermiPalette.lime, in: PixelPanel(corner: 5))
+              }.accessibilityLabel("Add \(savedTitle(reference)) to current plan")
+                .controlHelp("Append explicit places; existing stops are skipped")
+            }.padding(10).frame(width: 138, height: 128)
+              .background(HermiPalette.category(MapSamplePlace.find(reference.refID)?.category ?? .culture).opacity(0.3), in: PixelPanel(corner: 6))
+          }
+          if state.savedReferences.isEmpty { Text("Nothing saved yet").font(.caption).frame(height: 90) }
+        }.padding(.horizontal, 18)
+      }.scrollIndicators(.hidden).frame(height: 138)
+    }.accessibilityElement(children: .contain)
+  }
+
+  private func savedTitle(_ reference: SavedReference) -> String {
+    switch reference.kind {
+    case .place: return MapSamplePlace.find(reference.refID)?.name ?? "Unavailable place"
+    case .post:
+      guard let post = PlaceFeedPost.find(reference.refID) else { return "Unavailable post" }
+      return "\(post.author) · \(MapSamplePlace.find(post.placeID)?.name ?? "Post")"
+    case .plan: return state.library.plan(reference.refID)?.name ?? "Unavailable plan"
+    }
+  }
+
+  private func append(_ reference: SavedReference) {
+    let result = state.appendSaved(reference)
+    saveFeedback = result.unavailable > 0 ? "Some places are unavailable." :
+      result.added > 0 ? "Added \(result.added) stop\(result.added == 1 ? "" : "s")\(result.skipped > 0 ? " · \(result.skipped) already in plan" : "")." :
+      "Already in your plan."
+  }
+
   private var savedList: some View {
     ScrollView {
       LazyVStack(alignment: .leading, spacing: 18) {
-        if state.savedIDs.isEmpty { Text("No saved places yet.").padding(20) }
-        ForEach(HermiCategory.allCases, id: \.self) { category in
-          let places = MapSamplePlace.all.filter { $0.category == category && state.savedIDs.contains($0.id) }
-          if !places.isEmpty {
-            Text(category.rawValue).font(.caption.bold()).foregroundStyle(HermiPalette.secondary)
-            ForEach(places) { place in
-              HStack {
-                Button(place.name) { state.selectPlace(place.id) }.frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
-                  .controlHelp("Open saved place \(place.name)")
-                Button { state.togglePlan(place.id) } label: { PixelIcon(name: state.planIDs.contains(place.id) ? "check" : "plus").frame(width: 20, height: 20).frame(width: 44, height: 44) }
-                  .accessibilityLabel(state.planIDs.contains(place.id) ? "Remove \(place.name) from plan" : "Add \(place.name) to plan")
-                  .controlHelp("Toggle this saved place in My Plan; keep it saved")
-              }.padding(.horizontal, 14).background(HermiPalette.lime.opacity(0.25), in: Capsule())
-            }
-          }
+        if let saveFeedback { Text(saveFeedback).font(.caption).foregroundStyle(HermiPalette.green) }
+        if state.savedReferences.isEmpty { Text("Nothing saved yet. Bookmark places or save a plan.").padding(20) }
+        ForEach(state.library.folders) { folder in
+          DisclosureGroup("\(folder.name) · \(folder.items.count)") {
+            ForEach(folder.items) { reference in savedRow(reference) }
+          }.font(.headline)
+        }
+        let foldered = Set(state.library.folders.flatMap(\.items))
+        let loose = state.savedReferences.filter { !foldered.contains($0) }
+        if !loose.isEmpty {
+          Text("ALL SAVED").font(.system(size: 11, design: .monospaced)).foregroundStyle(HermiPalette.secondary)
+          ForEach(loose) { reference in savedRow(reference) }
         }
       }.padding(20)
     }
+  }
+
+  private func savedRow(_ reference: SavedReference) -> some View {
+    HStack(spacing: 8) {
+      Text(reference.kind.rawValue.uppercased()).font(.system(size: 9, design: .monospaced))
+        .frame(width: 42, alignment: .leading)
+      Button { if reference.kind == .place { state.selectPlace(reference.refID) } } label: {
+        Text(savedTitle(reference)).font(.subheadline).lineLimit(2).frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
+      }.disabled(reference.kind != .place)
+      Button { append(reference) } label: { PixelIcon(name: "plus").frame(width: 20, height: 20).frame(width: 44, height: 44) }
+        .accessibilityLabel("Add \(savedTitle(reference)) to current plan")
+        .controlHelp("Append places from this saved item; skip duplicates")
+      if !state.library.folders.isEmpty {
+        Menu {
+          ForEach(state.library.folders) { folder in
+            Button(folder.name) {
+              var library = state.library
+              if library.put(reference, in: folder.id) { state.library = library }
+            }
+          }
+        } label: { Image(systemName: "folder").frame(width: 36, height: 44) }
+          .accessibilityLabel("Move \(savedTitle(reference)) to folder")
+      }
+    }.padding(.horizontal, 12).background(HermiPalette.lime.opacity(0.25), in: PixelPanel(corner: 6))
   }
 }
 

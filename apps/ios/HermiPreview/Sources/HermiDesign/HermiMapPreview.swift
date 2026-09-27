@@ -21,7 +21,7 @@ public struct HermiMapPreview: View {
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   private var pinReviewFixture: Bool {
     #if DEBUG
-    ProcessInfo.processInfo.arguments.contains("--hermi-pin-review") || ProcessInfo.processInfo.arguments.contains("--hermi-multipin-review") || ProcessInfo.processInfo.arguments.contains("--hermi-plan-review")
+    ProcessInfo.processInfo.arguments.contains("--hermi-pin-review") || ProcessInfo.processInfo.arguments.contains("--hermi-multipin-review") || ProcessInfo.processInfo.arguments.contains("--hermi-plan-review") || ProcessInfo.processInfo.arguments.contains("--hermi-saved-review")
     #else
     false
     #endif
@@ -109,13 +109,25 @@ public struct HermiMapPreview: View {
           state.category = .food
         }
         editingPinID = state.discoveryPins.first?.id
-        if ProcessInfo.processInfo.arguments.contains("--hermi-plan-review") {
+        if ProcessInfo.processInfo.arguments.contains("--hermi-plan-review") || ProcessInfo.processInfo.arguments.contains("--hermi-saved-review") {
           state.planIDs = ["cafe", "gallery", "garden"]
           state.stopTimes = [:]; state.stopInviteDrafts = [:]
           let start = Calendar.current.startOfDay(for: Date()).addingTimeInterval(12 * 3600)
           state.setStopTime(.init(arrival: start, reminderMinutes: 15), for: "cafe")
           state.setStopTime(.init(arrival: start.addingTimeInterval(1800)), for: "gallery")
           state.setStopTime(.init(arrival: start.addingTimeInterval(7200), durationMinutes: 30), for: "garden")
+          if ProcessInfo.processInfo.arguments.contains("--hermi-saved-review") {
+            state.toggleSave("books"); state.toggleSave("tea")
+            var library = SavedLibrary()
+            _ = library.savePost("cafe-alex")
+            _ = library.savePlan(name: "Saturday loop", folderID: nil, newFolder: "Weekend ideas",
+                                 visibility: .solo, friends: [], stops: ["cafe", "garden"],
+                                 times: state.stopTimes ?? [:])
+            if let index = library.folders.indices.first {
+              library.folders[index].items.append(.init(kind: .post, refID: "cafe-alex"))
+            }
+            state.library = library
+          }
           state.sheet = .plan
         }
         return
@@ -395,7 +407,14 @@ public struct HermiMapPreview: View {
           .accessibilityLabel(state.planIDs.contains(place.id) ? "Remove from plan" : "Add to plan")
           .controlHelp("Toggle this place in My Plan without changing Saved")
       }
-      PlaceFeedContent(place: place)
+      PlaceFeedContent(place: place, savedPostIDs: Set(state.library.posts.map(\.refID))) { id in
+        var library = state.library
+        if library.posts.contains(where: { $0.refID == id }) {
+          library.posts.removeAll { $0.refID == id }
+          for index in library.folders.indices { library.folders[index].items.removeAll { $0.kind == .post && $0.refID == id } }
+        } else { _ = library.savePost(id) }
+        state.library = library
+      }
         .id(place.id)
 
     }
