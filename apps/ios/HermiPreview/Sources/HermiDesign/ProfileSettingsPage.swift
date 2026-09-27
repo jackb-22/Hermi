@@ -17,6 +17,8 @@ struct ProfileSettingsPage: View {
       }
       ScrollView {
         VStack(alignment: .leading, spacing: 20) {
+          ServerSettingsSection()
+          Divider()
           Text("PRIVACY · LOCAL PREFERENCES").font(.system(size: 10, design: .monospaced))
           Text("Adventure sharing").font(.headline)
           HStack {
