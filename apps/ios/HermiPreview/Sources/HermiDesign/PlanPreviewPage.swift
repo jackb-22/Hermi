@@ -11,6 +11,7 @@ struct PlanPreviewPage: View {
   @State private var help = false
   @State private var compact = false
   @State private var showDrawer = false
+  @State private var showSaveOptions = false
   @State private var saveModal = false
   @State private var saveFeedback: String?
   private var warning: Bool { !state.timingConflicts.isEmpty }
@@ -33,20 +34,27 @@ struct PlanPreviewPage: View {
           .accessibilityLabel("Close planning").controlHelp("Close planning and return to your previous page")
         Text(saved ? "Saved" : "My Plan").font(.title2.bold())
         Spacer()
-        if !saved {
-          Button("Save Plan") { saveModal = true }
-            .font(.caption.bold()).padding(.horizontal, 8).frame(height: 36)
-            .background(HermiPalette.lime, in: PixelPanel(corner: 5))
-            .accessibilityLabel("Save Plan").controlHelp("Name and save this plan into a folder")
-          Button { showDrawer.toggle() } label: {
-            Image(systemName: showDrawer ? "chevron.up" : "chevron.down").font(.caption.bold()).frame(width: 32, height: 40)
-          }.accessibilityLabel(showDrawer ? "Collapse Saved drawer" : "Expand Saved drawer")
-            .controlHelp("Browse saved places, posts and plans horizontally")
+        if saved {
+          Button { state.sheet = .plan } label: {
+            PixelIcon(name: "saved").frame(width: 22, height: 26).frame(width: 44, height: 44)
+          }.accessibilityLabel("Return to My Plan")
+            .controlHelp("Close full Saved list and return to My Plan")
+        } else {
+          PixelIcon(name: "save").frame(width: 22, height: 26).frame(width: 44, height: 44)
+            .contentShape(Rectangle())
+            .gesture(LongPressGesture(minimumDuration: 0.4).exclusively(before: TapGesture()).onEnded { gesture in
+              switch gesture {
+              case .first(let held): if held { showSaveOptions = true }
+              case .second: showDrawer.toggle()
+              }
+            })
+            .accessibilityLabel(showDrawer ? "Hide Saved row" : "Show Saved row")
+            .accessibilityHint("Tap for Saved inside My Plan. Hold for Save current plan")
+            .accessibilityAddTraits(.isButton)
+            .accessibilityAction { showDrawer.toggle() }
+            .accessibilityAction(named: "Save current plan") { showSaveOptions = true }
+            .controlHelp("Tap to show Saved here. Hold to save the current plan")
         }
-        Button { state.sheet = saved ? .plan : .saved } label: {
-          PixelIcon(name: saved ? "saved" : "save").frame(width: 22, height: 26).frame(width: 44, height: 44)
-        }.accessibilityLabel(saved ? "Return to My Plan" : "Open Saved")
-          .controlHelp(saved ? "Close Saved and return to My Plan" : "Open saved places without changing My Plan")
       }.padding(.horizontal, 16)
       if saved { savedList }
       else {
@@ -126,6 +134,33 @@ struct PlanPreviewPage: View {
         return didSave
       }
     }
+    .overlay {
+      if showSaveOptions {
+        ZStack(alignment: .topTrailing) {
+          Color.black.opacity(0.08).contentShape(Rectangle())
+            .onTapGesture { showSaveOptions = false }
+            .accessibilityLabel("Dismiss save options")
+            .accessibilityAddTraits(.isButton)
+          VStack(alignment: .leading, spacing: 10) {
+            Text("SAVE").font(.system(size: 10, design: .monospaced).bold())
+              .foregroundStyle(HermiPalette.secondary)
+            Button {
+              showSaveOptions = false
+              saveModal = true
+            } label: {
+              HStack(spacing: 8) {
+                PixelIcon(name: "save").frame(width: 17, height: 20)
+                Text("Save current plan").font(.subheadline.bold())
+              }.frame(minHeight: 44)
+            }.accessibilityLabel("Save current plan")
+              .controlHelp("Name this plan, choose a folder and set visibility")
+          }.padding(14).frame(width: 210, alignment: .leading)
+            .background(HermiPalette.paper, in: PixelPanel(corner: 7))
+            .overlay(PixelPanel(corner: 7).stroke(HermiPalette.ink.opacity(0.2)))
+            .padding(.top, 86).padding(.trailing, 18)
+        }
+      }
+    }
   }
 
   private func stopRow(_ place: MapSamplePlace) -> some View {
@@ -164,8 +199,15 @@ struct PlanPreviewPage: View {
   }
   private var savedDrawer: some View {
     VStack(alignment: .leading, spacing: 6) {
-      Text("SAVED · SWIPE SIDEWAYS").font(.system(size: 10, design: .monospaced)).foregroundStyle(HermiPalette.secondary)
-        .padding(.leading, 20)
+      HStack {
+        Text("SAVED · SWIPE SIDEWAYS").font(.system(size: 10, design: .monospaced))
+          .foregroundStyle(HermiPalette.secondary)
+        Spacer()
+        Button("See all") { state.sheet = .saved }
+          .font(.caption.bold()).foregroundStyle(HermiPalette.green)
+          .accessibilityLabel("Open full Saved list")
+          .controlHelp("Open all saved folders and items")
+      }.padding(.horizontal, 20)
       ScrollView(.horizontal) {
         LazyHStack(spacing: 10) {
           ForEach(state.savedReferences) { reference in
