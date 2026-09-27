@@ -58,7 +58,7 @@ assert.equal(nodes.get('pin-editor').style.bottom,'656px');assert.equal(nodes.ge
 for(const [value,expected] of [['0',0.1],['1',4]]){nodes.get('pin-radius').value=value;nodes.get('pin-radius').listeners.input();assert.equal(messages.at(-1).miles,expected)}
 console.log('Map bridge passed: dots, tap-away, panel clearance, 0.1–4 radius, readiness, CSS coordinate scaling, bounds, stable drag marker, rejected-move restore, radius and remove.');
 
-// Multiple pins retain marker identities, individual values and one visible badge per category.
+// Multiple pins retain marker identities and individual values without redundant badges.
 const food2={...pin,id:'food-2',lng:-73.963,radiusMiles:0.1};
 const nature={...pin,id:'nature-1',category:'Nature',lng:-73.962,radiusMiles:4};
 const multi={...payload,discoveries:[pin,food2,nature],discovery:pin,editingDiscovery:true};
@@ -66,20 +66,16 @@ context.renderHermi(multi);
 const live=()=>markers.filter(m=>m.options.draggable&&!m.removed);
 assert.equal(live().length,3);
 const firstMarker=live().find(m=>m.pinID===pin.id), secondMarker=live().find(m=>m.pinID===food2.id);
-assert.equal(live().filter(m=>m.categoryBadge.style.display==='block').length,2);
-assert.equal(firstMarker.categoryBadge.style.display,'block');assert.equal(secondMarker.categoryBadge.style.display,'none');
 context.renderHermi({...multi,discovery:food2});assert.equal(nodes.get('radius-value').textContent,'0.1 mi');
 assert.equal(live().find(m=>m.pinID===pin.id),firstMarker);
 nodes.get('pin-radius').value='1';nodes.get('pin-radius').listeners.input();assert.equal(messages.at(-1).id,food2.id);
 // Move prior representative off screen: badge transfers to visible same-category pin.
 map.projectOverride=p=>({x:p.lng===pin.lng?-100:200,y:350});map.events.move();
-assert.equal(firstMarker.categoryBadge.style.display,'none');assert.equal(secondMarker.categoryBadge.style.display,'block');
-map.projectOverride=null;map.events.move();assert.equal(secondMarker.categoryBadge.style.display,'block');
 map.events.click();context.renderHermi({...multi,discovery:undefined,editingDiscovery:false});assert.equal(live().length,3);
 assert.equal(nodes.get('pin-editor').style.display,'none');
 context.renderHermi({...multi,discoveries:[pin,nature],discovery:nature});
 assert.equal(secondMarker.removed,true);assert.equal(live().length,2);assert.equal(nodes.get('radius-value').textContent,'4 mi');
-console.log('Multi-pin bridge passed: identities, independent selection, radius target, deselection, removal and sticky visible category badges.');
+console.log('Multi-pin bridge passed: identities, independent selection, radius target, deselection, removal without duplicate badges.');
 
 // Social uses explicit supplied sharing data; Solo removes routes and markers.
 const socialMarkers=[{id:'sam-now',kind:'current',name:'Sample shared current place',lng:-73.9654,lat:40.8073},{id:'riley-love',kind:'loved',name:'Sample loved place',lng:-73.967,lat:40.808}];
@@ -133,3 +129,8 @@ assert.equal(nodes.get('.notice').textContent,'SOCIAL · 1 OUT · 1 PLAN · CHEC
 liveSocial[1].options.element.onclick({stopPropagation(){}});assert.equal(messages.at(-1).type,'socialInfo');assert.equal(messages.at(-1).id,'open:p');
 console.log('Live social bridge passed: planned/done lines, recent and quest markers, live label, tap.');
 
+
+assert.ok(html.includes(".pin{z-index:20"));
+assert.ok(html.includes("pointer-events:none!important;z-index:1"));
+assert.equal(markers.filter(m=>m.options.element.className==='landmark').length,5);
+assert.ok(!html.includes("category-indicator"));
