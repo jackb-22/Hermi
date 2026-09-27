@@ -1,4 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
+import { type AppContext, Clock } from '../src/context.ts';
+import { syncDevClock } from '../src/services/devClock.ts';
 import { setupTestApp } from './helpers.ts';
 
 describe('deployment with DEV_TOKEN', () => {
@@ -77,5 +79,24 @@ describe('production without DEV_TOKEN', () => {
       (await t.app.inject({ method: 'POST', url: '/v1/dev/clock', payload: { reset: true } }))
         .statusCode,
     ).toBe(403);
+  });
+});
+
+describe('dev clock across processes', () => {
+  let t: Awaited<ReturnType<typeof setupTestApp>>;
+  beforeAll(async () => {
+    t = await setupTestApp();
+  });
+  afterAll(() => t.teardown());
+
+  test('the worker follows the clock the API shifted, so jobs see the same time', async () => {
+    const worker: AppContext = { ...t.ctx, clock: new Clock() };
+    await t.app.inject({ method: 'POST', url: '/v1/dev/clock', payload: { advanceMs: 7_200_000 } });
+    expect(worker.clock.offsetMs).toBe(0);
+    await syncDevClock(worker);
+    expect(worker.clock.offsetMs).toBe(7_200_000);
+    await t.app.inject({ method: 'POST', url: '/v1/dev/clock', payload: { reset: true } });
+    await syncDevClock(worker);
+    expect(worker.clock.offsetMs).toBe(0);
   });
 });

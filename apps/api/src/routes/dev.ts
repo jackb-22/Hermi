@@ -4,6 +4,7 @@ import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { bearer, requireAuth } from '../plugins/auth.ts';
 import { devGuard } from '../plugins/devGuard.ts';
+import { saveDevClock } from '../services/devClock.ts';
 import { nudgeFor, weeklyNudge } from '../services/nudges.ts';
 import { places } from '../services/places.ts';
 import { hashSecret, newSecret, newTagId, tags } from '../services/tags.ts';
@@ -27,7 +28,7 @@ export const devRoutes: FastifyPluginAsyncZod = async (app) => {
       schema: {
         tags: ['dev'],
         summary:
-          'Shift the server clock (streaks, score decay, time-compressed walk replays). Global to the process.',
+          'Shift the server clock (streaks, score decay, time-compressed walk replays). Global: the worker follows it within 2 s.',
         body: ClockBody,
         response: { 200: ClockResponse },
       },
@@ -36,6 +37,7 @@ export const devRoutes: FastifyPluginAsyncZod = async (app) => {
       if (req.body.reset) clock.offsetMs = 0;
       if (req.body.offsetMs !== undefined) clock.offsetMs = req.body.offsetMs;
       if (req.body.advanceMs !== undefined) clock.offsetMs += req.body.advanceMs;
+      await saveDevClock(app.ctx);
       return { now: clock.now().toISOString(), offsetMs: clock.offsetMs };
     },
   );

@@ -2,6 +2,7 @@ import { closeContext, createContext, ensureSchema } from './boot.ts';
 import { registerHooks } from './hooks.ts';
 import { handlers } from './jobs/handlers.ts';
 import { Worker } from './jobs/queue.ts';
+import { followDevClock, syncDevClock } from './services/devClock.ts';
 import { startGroupChat } from './services/groupChat.ts';
 import { scheduleWeeklyNudge } from './services/nudges.ts';
 
@@ -10,6 +11,8 @@ import { scheduleWeeklyNudge } from './services/nudges.ts';
 registerHooks();
 const ctx = await createContext();
 if (ctx.config.AUTO_MIGRATE) await ensureSchema(ctx, console.log);
+await syncDevClock(ctx);
+followDevClock(ctx);
 const worker = new Worker(ctx, handlers);
 worker.start();
 startGroupChat(ctx);

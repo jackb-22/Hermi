@@ -2,11 +2,13 @@ import { buildApp } from './app.ts';
 import { closeContext, createContext, ensureSchema } from './boot.ts';
 import { handlers } from './jobs/handlers.ts';
 import { Worker } from './jobs/queue.ts';
+import { syncDevClock } from './services/devClock.ts';
 import { startGroupChat } from './services/groupChat.ts';
 import { scheduleWeeklyNudge } from './services/nudges.ts';
 
 const ctx = await createContext();
 if (ctx.config.AUTO_MIGRATE) await ensureSchema(ctx, console.log);
+await syncDevClock(ctx);
 const app = await buildApp(ctx);
 // Dev convenience: one process runs API and worker. Production runs the worker as its own component.
 const worker = ctx.config.RUN_WORKER === 'inline' ? new Worker(ctx, handlers) : null;
