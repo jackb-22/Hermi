@@ -31,53 +31,65 @@ export const socialMapRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     async (req) => {
       const now = clock.now();
-      const me = await getUser(db, req.userId);
-      const [friends, blocked] = await Promise.all([friendIds(db, me._id), blockedIds(db, me._id)]);
+      const [me, friends, blocked] = await Promise.all([
+        getUser(db, req.userId),
+        friendIds(db, req.userId),
+        blockedIds(db, req.userId),
+      ]);
       const box = req.query.bbox?.split(',').map(Number) as
         | [number, number, number, number]
         | undefined;
       const inBox = (p: { lat: number; lng: number }) =>
         !box || (p.lng >= box[0] && p.lat >= box[1] && p.lng <= box[2] && p.lat <= box[3]);
 
-      // Friends out right now (last check-in within 3 h), unless they are in ghost mode.
-      const visibleFriends = (
-        await users(db)
-          .find({ _id: { $in: friends }, ghostMode: { $ne: true }, deletedAt: { $exists: false } })
-          .toArray()
-      ).filter((u) => !blocked.includes(u._id));
-      const { rows } = visibleFriends.length
-        ? await tiger.query<{
-            user_id: string;
-            place_id: string;
-            time: Date;
-            plan_id: string | null;
-          }>(
-            `select distinct on (user_id) user_id, place_id, time, plan_id from checkins
-             where user_id = any($1) and time > $2 and time <= $3 order by user_id, time desc`,
-            [visibleFriends.map((u) => u._id), new Date(now.getTime() - OUT_WINDOW_MS), now],
-          )
-        : { rows: [] };
-      const placeDocs = new Map(
-        (
-          await places(db)
-            .find({ _id: { $in: rows.map((r) => r.place_id) } })
+      // Friends out right now (last check-in within 3 h), unless they are in ghost mode. Runs alongside the plans.
+      const friendsOutP = (async () => {
+        const visibleFriends = (
+          await users(db)
+            .find({
+              _id: { $in: friends },
+              ghostMode: { $ne: true },
+              deletedAt: { $exists: false },
+            })
             .toArray()
-        ).map((p) => [p._id, p]),
-      );
-      const byUser = new Map(visibleFriends.map((u) => [u._id, u]));
-      const friendsOut = rows.flatMap((r) => {
-        const p = placeDocs.get(r.place_id);
-        const u = byUser.get(r.user_id);
-        if (!p || !u || !inBox(fromGeoJSONPoint(p.loc))) return [];
-        return [
-          {
-            user: toUserCard(u, config),
-            place: { id: p._id, name: p.name, loc: fromGeoJSONPoint(p.loc) },
-            at: r.time.toISOString(),
-            planId: r.plan_id,
-          },
-        ];
-      });
+        ).filter((u) => !blocked.includes(u._id));
+        const { rows } = visibleFriends.length
+          ? await tiger.query<{
+              user_id: string;
+              place_id: string;
+              time: Date;
+              plan_id: string | null;
+            }>(
+              `select distinct on (user_id) user_id, place_id, time, plan_id from checkins
+             where user_id = any($1) and time > $2 and time <= $3 order by user_id, time desc`,
+              [visibleFriends.map((u) => u._id), new Date(now.getTime() - OUT_WINDOW_MS), now],
+            )
+          : { rows: [] };
+        const placeDocs = new Map(
+          (
+            await places(db)
+              .find({ _id: { $in: rows.map((r) => r.place_id) } })
+              .toArray()
+          ).map((p) => [p._id, p]),
+        );
+        const byUser = new Map(visibleFriends.map((u) => [u._id, u]));
+        const friendsOut = rows.flatMap((r) => {
+          const p = placeDocs.get(r.place_id);
+          const u = byUser.get(r.user_id);
+          if (!p || !u || !inBox(fromGeoJSONPoint(p.loc))) return [];
+          return [
+            {
+              user: toUserCard(u, config),
+              place: { id: p._id, name: p.name, loc: fromGeoJSONPoint(p.loc) },
+              at: r.time.toISOString(),
+              planId: r.plan_id,
+            },
+          ];
+        });
+        return friendsOut;
+      })();
+      // Awaited below; this only keeps a failure here from going unhandled if the plans part throws first.
+      friendsOutP.catch(() => {});
 
       // Upcoming plans: friends' shared plans (or ones I am invited to) and open plans from verified students.
       const upcoming = {
@@ -115,15 +127,18 @@ export const socialMapRoutes: FastifyPluginAsyncZod = async (app) => {
       const status = (p: PlanDoc) => p.members.find((m) => m.userId === me._id)?.status;
       const views = async (list: PlanDoc[]) =>
         Promise.all(list.map((p) => toPlanView(db, config, p, me._id, { pref: me.prefVector })));
-      const sharedViews = (await views(shared.filter((p) => status(p) !== 'declined'))).filter(
+      const [sharedAll, openAll, friendsOut] = await Promise.all([
+        views(shared.filter((p) => status(p) !== 'declined')),
+        views(open.filter((p) => !shared.some((s) => s._id === p._id) && status(p) !== 'declined')),
+        friendsOutP,
+      ]);
+      const sharedViews = sharedAll.filter(
         (v) =>
           v.stops.some((s) => inBox(s.place?.loc ?? s.slot?.near ?? { lat: 0, lng: 0 })) || !box,
       );
-      const openViews = (
-        await views(
-          open.filter((p) => !shared.some((s) => s._id === p._id) && status(p) !== 'declined'),
-        )
-      ).filter((v) => v.stops.some((s) => inBox(s.place?.loc ?? { lat: 0, lng: 0 })) || !box);
+      const openViews = openAll.filter(
+        (v) => v.stops.some((s) => inBox(s.place?.loc ?? { lat: 0, lng: 0 })) || !box,
+      );
       return {
         friendsOut,
         friendPlans: sharedViews.map((plan) => {

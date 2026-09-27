@@ -239,25 +239,26 @@ export async function toPlanView(
   viewerId: string,
   opts: { byId?: PlacesById; issues?: Issue[]; pref?: number[] } = {},
 ): Promise<z.infer<typeof PlanSchema>> {
-  const byId =
+  const [byId, memberDocs] = await Promise.all([
     opts.byId ??
-    (await loadPlaces(
-      db,
-      plan.stops.map((s) => s.placeId),
-    ));
+      loadPlaces(
+        db,
+        plan.stops.map((s) => s.placeId),
+      ),
+    plan.members.length
+      ? users(db)
+          .find({ _id: { $in: plan.members.map((m) => m.userId) } })
+          .project<Pick<UserDoc, '_id' | 'name' | 'username' | 'spriteKey'>>({
+            name: 1,
+            username: 1,
+            spriteKey: 1,
+          })
+          .toArray()
+      : [],
+  ]);
   const issues = opts.issues ?? recompute(structuredClone(plan), byId).issues;
   const sched = toSchedStops(plan.stops, byId);
   const t = totals(sched, plan.stops);
-  const memberDocs = plan.members.length
-    ? await users(db)
-        .find({ _id: { $in: plan.members.map((m) => m.userId) } })
-        .project<Pick<UserDoc, '_id' | 'name' | 'username' | 'spriteKey'>>({
-          name: 1,
-          username: 1,
-          spriteKey: 1,
-        })
-        .toArray()
-    : [];
   const byUser = new Map(memberDocs.map((u) => [u._id, u]));
   return {
     id: plan._id,

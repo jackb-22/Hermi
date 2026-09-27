@@ -43,13 +43,13 @@ export const feedRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     async (req) => {
       const now = clock.now();
-      const me = await getUser(db, req.userId);
-      const [friends, blocked, seenDocs] = await Promise.all([
-        friendIds(db, me._id),
-        blockedIds(db, me._id),
+      const [me, friends, blocked, seenDocs] = await Promise.all([
+        getUser(db, req.userId),
+        friendIds(db, req.userId),
+        blockedIds(db, req.userId),
         seenColl()
           .find({
-            userId: me._id,
+            userId: req.userId,
             day: { $in: [0, 1, 2].map((d) => localDayKey(new Date(now.getTime() - d * DAY))) },
           })
           .toArray(),
@@ -65,62 +65,69 @@ export const feedRoutes: FastifyPluginAsyncZod = async (app) => {
         createdAt: { $gte: new Date(now.getTime() - 7 * DAY) },
       };
 
-      // Candidates: friends' posts from the last 7 days plus posts within 5 km.
-      const [fromFriends, nearby] = await Promise.all([
-        posts(db)
-          .find({ ...base, authorId: { $in: friends.filter((f) => !blocked.includes(f)) } })
-          .sort({ createdAt: -1 })
-          .limit(200)
-          .toArray(),
-        req.query.lat !== undefined && req.query.lng !== undefined
-          ? posts(db)
-              .aggregate<PostDoc & { d: number }>([
+      // Posts and joinable plans are independent: build both at once.
+      const postsP = (async () => {
+        // Candidates: friends' posts from the last 7 days plus posts within 5 km.
+        const [fromFriends, nearby] = await Promise.all([
+          posts(db)
+            .find({ ...base, authorId: { $in: friends.filter((f) => !blocked.includes(f)) } })
+            .sort({ createdAt: -1 })
+            .limit(200)
+            .toArray(),
+          req.query.lat !== undefined && req.query.lng !== undefined
+            ? posts(db)
+                .aggregate<PostDoc & { d: number }>([
+                  {
+                    $geoNear: {
+                      near: { type: 'Point', coordinates: [req.query.lng, req.query.lat] },
+                      key: 'loc',
+                      distanceField: 'd',
+                      maxDistance: NEAR_M,
+                      query: base,
+                    },
+                  },
+                  { $limit: 300 },
+                ])
+                .toArray()
+            : Promise.resolve([] as (PostDoc & { d: number })[]),
+        ]);
+        const cands = new Map<string, PostDoc & { d?: number }>();
+        for (const p of [...fromFriends, ...nearby])
+          if (!seen.has(p._id)) cands.set(p._id, { ...cands.get(p._id), ...p });
+        const placeTags = new Map(
+          (
+            await places(db)
+              .find(
                 {
-                  $geoNear: {
-                    near: { type: 'Point', coordinates: [req.query.lng, req.query.lat] },
-                    key: 'loc',
-                    distanceField: 'd',
-                    maxDistance: NEAR_M,
-                    query: base,
+                  _id: {
+                    $in: [
+                      ...new Set(
+                        [...cands.values()].flatMap((p) => (p.placeId ? [p.placeId] : [])),
+                      ),
+                    ],
                   },
                 },
-                { $limit: 300 },
-              ])
+                { projection: { tags: 1 } },
+              )
               .toArray()
-          : Promise.resolve([] as (PostDoc & { d: number })[]),
-      ]);
-      const cands = new Map<string, PostDoc & { d?: number }>();
-      for (const p of [...fromFriends, ...nearby])
-        if (!seen.has(p._id)) cands.set(p._id, { ...cands.get(p._id), ...p });
-      const placeTags = new Map(
-        (
-          await places(db)
-            .find(
-              {
-                _id: {
-                  $in: [
-                    ...new Set([...cands.values()].flatMap((p) => (p.placeId ? [p.placeId] : []))),
-                  ],
-                },
-              },
-              { projection: { tags: 1 } },
-            )
-            .toArray()
-        ).map((p) => [p._id, p.tags]),
-      );
-      const ranked = [...cands.values()]
-        .map((p) => ({
-          p,
-          score: feedRank({
-            friend: friendSet.has(p.authorId),
-            taste: tasteMatch(me.prefVector, placeTags.get(p.placeId ?? '') ?? []),
-            distanceM: p.d,
-            ageH: (now.getTime() - p.createdAt.getTime()) / 3600_000,
-          }),
-        }))
-        .sort((a, b) => b.score - a.score)
-        .slice(0, budget)
-        .map((x) => x.p);
+          ).map((p) => [p._id, p.tags]),
+        );
+        const ranked = [...cands.values()]
+          .map((p) => ({
+            p,
+            score: feedRank({
+              friend: friendSet.has(p.authorId),
+              taste: tasteMatch(me.prefVector, placeTags.get(p.placeId ?? '') ?? []),
+              distanceM: p.d,
+              ageH: (now.getTime() - p.createdAt.getTime()) / 3600_000,
+            }),
+          }))
+          .sort((a, b) => b.score - a.score)
+          .slice(0, budget)
+          .map((x) => x.p);
+        return { ranked, hydrated: await hydratePosts(app.ctx, ranked) };
+      })();
+      postsP.catch(() => {}); // awaited below; keeps a failure from going unhandled if the plans part throws first
 
       // Joinable plans: friends' shared plans (Join) and open plans from students on your campus (Request).
       const planQuery = {
@@ -156,13 +163,16 @@ export const feedRoutes: FastifyPluginAsyncZod = async (app) => {
         ...openPlans.map((p) => ({ p, action: 'request' as const })),
       ];
 
-      const hydrated = new Map((await hydratePosts(app.ctx, ranked)).map((h) => [h.id, h]));
-      const planViews = await Promise.all(
-        joinable.map(async (j) => ({
-          plan: await toPlanView(db, config, j.p, me._id, { pref: me.prefVector }),
-          action: j.action,
-        })),
-      );
+      const [{ ranked, hydrated: postViews }, planViews] = await Promise.all([
+        postsP,
+        Promise.all(
+          joinable.map(async (j) => ({
+            plan: await toPlanView(db, config, j.p, me._id, { pref: me.prefVector }),
+            action: j.action,
+          })),
+        ),
+      ]);
+      const hydrated = new Map(postViews.map((h) => [h.id, h]));
       const cards = interleave(ranked, planViews).map((c) =>
         c.t === 'post'
           ? { kind: 'post' as const, post: hydrated.get(c.v._id)! }

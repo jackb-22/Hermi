@@ -102,13 +102,15 @@ export async function hydratePosts(
       .find({ _id: { $in: docs.flatMap((p) => p.mediaIds) } })
       .toArray(),
   ]);
-  const ambient = await media(db)
-    .find({ _id: { $in: mediaDocs.flatMap((m) => (m.ambientId ? [m.ambientId] : [])) } })
-    .toArray();
-  const byUser = new Map(authors.map((u) => [u._id, u as UserDoc]));
   const byPlace = new Map(placeDocs.map((p) => [p._id, p as PlaceDoc]));
+  const [ambient, going] = await Promise.all([
+    media(db)
+      .find({ _id: { $in: mediaDocs.flatMap((m) => (m.ambientId ? [m.ambientId] : [])) } })
+      .toArray(),
+    goingCounts(db, [...byPlace.keys()], clock.now()),
+  ]);
+  const byUser = new Map(authors.map((u) => [u._id, u as UserDoc]));
   const byMedia = new Map([...mediaDocs, ...ambient].map((m) => [m._id, m as MediaDoc]));
-  const going = await goingCounts(db, [...byPlace.keys()], clock.now());
   const base = config.PUBLIC_BASE_URL.replace(/\/$/, '');
   const url = async (m: MediaDoc) =>
     m.rendition ? storage.publicUrl(m.rendition.key) : await storage.presignGet(m.key);
