@@ -4,9 +4,20 @@ This is the user-facing test entry point. Product reference: [unified design sch
 
 ## Current review: 01 — visual foundation
 
-Status: implementing. This section will record the actual build and checks before handoff. The app uses sample data and does not contact the backend. No component is visually accepted yet.
+Status: **ready for user test**. Implementation commit `77ad3ef`; schema consolidation `65ba236`. Verified 2026-09-26 on macOS15.7.3 and an iPhone17 Pro Max simulator running iOS26.3. The app uses sample data and does not contact the backend. No component is visually accepted yet.
 
-Launch instructions are provided by apps/ios/HermiPreview/scripts after the build is verified. Mac preview and iPhone simulator are separate environments. Real camera/location/NFC acceptance requires an iPhone later.
+Both the Mac preview and Simulator were opened for this handoff. Use the **Hermi Preview** window or the app already running in **Simulator**. Scroll to reach the complete place card and Add action. The sample state is saved separately in each environment.
+
+To reopen the iPhone preview, run:
+
+```sh
+cd /Users/jia/Desktop/Divhacks/Cairn/apps/ios/HermiPreview
+sh scripts/simulator-preview.sh
+```
+
+For the Mac window, use `sh scripts/mac-preview.sh` from the same directory. To inspect it in Xcode, open `HermiPreview.xcodeproj`; use the HermiPreview scheme and an iPhone simulator. The SwiftUI `#Preview` is in Sources/HermiDesign/HermiGallery.swift; the canvas itself has not been separately verified.
+
+Reset returns to Places / Nature / Riverside Park, no saved or added places, name Alex, Score250, standard text and no forced reduced motion. The system Reduce Motion preference still takes precedence. Real camera/location/NFC acceptance requires an iPhone later.
 
 ### Your checklist
 
@@ -26,11 +37,13 @@ Give feedback by checklist number or describe what feels wrong. The agent handle
 
 | Check | Agent verification | User result |
 | --- | --- | --- |
-| Clean build and local state tests | Pending | Not a user task |
-| Interactive simulator / Mac | Pending | Not tested |
-| Palette, typography and pixel treatment | Pending inspection | Awaiting feedback |
-| Clickable controls and reset | Pending | Awaiting feedback |
-| Large text and reduced motion | Pending | Awaiting feedback |
+| Clean build and local state tests | Mac and iPhone simulator builds passed; 7 XCTest cases passed, 0 failures | Not a user task |
+| Interactive simulator / Mac | Both launched; initial screens rendered and inspected | Awaiting feedback |
+| Palette, typography and pixel treatment | Initial Mac/iPhone layouts inspected; no visible overlap at default size | Awaiting aesthetic feedback |
+| Clickable controls and reset | Mac bookmark, Add/duplicate disable, Remove, primary action, tabs and Score expiry exercised; complete reset/restoration covered in state tests | Awaiting remaining hands-on checks |
+| Large text and reduced motion | Controls implemented; downward-only wind decision tested. Full visual/VoiceOver checks not yet completed | Awaiting feedback |
+
+Agent interaction checks stopped when the UI reported user activity, to avoid competing with the user. Loading/empty/error recovery is covered by state tests; those screens still need the user-facing checklist. No backend, real-device capture, sensor, NFC or live-account tests were performed in this increment.
 
 ## Increment sequence and user tests
 
