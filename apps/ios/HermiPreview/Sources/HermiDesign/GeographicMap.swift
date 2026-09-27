@@ -7,6 +7,7 @@ struct MapCommand: Equatable {
   var point: CGPoint = .zero
 }
 struct GeographicMap: View {
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
   var state: MapPreviewState
   var command: MapCommand?
   var editingPinID: UUID?
@@ -24,7 +25,10 @@ struct GeographicMap: View {
       "places": adventure || !showsPlaces ? [] : state.nearby.map { place -> [String: Any] in
         ["rows": PinArtwork.rows(for: place.category), "id": place.id, "name": "Sample: " + place.name, "color": PinArtwork.hex(place.category), "lng": place.coordinate.longitude, "lat": place.coordinate.latitude]
       },
-      "social": state.social,
+      "social": state.social && !adventure && showsPlaces,
+      "socialMarkers": SocialMapPreview.markers(enabled: state.social && !adventure && showsPlaces),
+      "socialRoutes": SocialMapPreview.routes(enabled: state.social && !adventure && showsPlaces),
+      "reduceMotion": reduceMotion,
       "adventure": adventure
     ]
     let pins: [[String: Any]] = adventure || !showsPlaces ? [] : state.discoveryPins.map { pin in

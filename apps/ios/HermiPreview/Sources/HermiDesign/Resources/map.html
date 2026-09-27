@@ -4,8 +4,8 @@
 const palette=window.hermiPalette;
 for(const [name,color] of Object.entries(palette))document.documentElement.style.setProperty('--'+name,color);
 </script><style>
-html,body,#map{margin:0;width:100%;height:100%;overflow:hidden;background:var(--lake)}canvas{image-rendering:pixelated}.maplibregl-ctrl-attrib{font:8px system-ui;background:color-mix(in srgb,var(--paper) 80%,transparent)!important}.maplibregl-ctrl-bottom-right{bottom:78px;right:4px}.pin{border:0;padding:0;background:none;width:44px;height:52px;cursor:pointer;display:flex;align-items:flex-end;justify-content:center}.pin svg{width:33px;height:42px;overflow:visible;image-rendering:pixelated}.friend{border:3px solid var(--ink);background:var(--coral);width:24px;height:24px;box-shadow:3px 3px var(--paper);font:12px monospace;color:var(--ink)}.notice{position:absolute;bottom:92px;left:10px;font:9px monospace;color:var(--ink);background:color-mix(in srgb,var(--paper) 86%,transparent);padding:3px;pointer-events:none}#error{display:none;position:absolute;top:45%;left:16px;right:85px;padding:16px;background:var(--paper);font:13px system-ui;color:var(--ink);box-shadow:4px 4px var(--ink)}#error button{padding:10px;margin-top:8px;background:var(--lime);border:0;display:block}a{color:var(--ink)}
-#control-tip{display:none;position:absolute;bottom:185px;left:12px;right:12px;background:var(--paper);color:var(--ink);font:13px system-ui;padding:12px;pointer-events:none;box-shadow:3px 3px var(--ink)}
+html,body,#map{margin:0;width:100%;height:100%;overflow:hidden;background:var(--lake)}canvas{image-rendering:pixelated}.maplibregl-ctrl-attrib{font:8px system-ui;background:color-mix(in srgb,var(--paper) 80%,transparent)!important}.maplibregl-ctrl-bottom-right{bottom:78px;right:4px}.pin{border:0;padding:0;background:none;width:44px;height:52px;cursor:pointer;display:flex;align-items:flex-end;justify-content:center}.pin svg{width:33px;height:42px;overflow:visible;image-rendering:pixelated}.notice{position:absolute;bottom:112px;left:10px;font:9px monospace;color:var(--ink);background:color-mix(in srgb,var(--paper) 86%,transparent);padding:3px;pointer-events:none}#error{display:none;position:absolute;top:45%;left:16px;right:85px;padding:16px;background:var(--paper);font:13px system-ui;color:var(--ink);box-shadow:4px 4px var(--ink)}#error button{padding:10px;margin-top:8px;background:var(--lime);border:0;display:block}a{color:var(--ink)}
+
 
 #pin-editor{display:none;position:absolute;z-index:3;width:44px;right:20px;color:var(--ink);font:11px system-ui;text-align:center;touch-action:none;transition:bottom .2s ease-out}
 #pin-remove{display:none;position:absolute;z-index:4;width:44px;height:44px;padding:16px;border:0;background:none;color:var(--ink);cursor:pointer;touch-action:none}
@@ -17,8 +17,13 @@ html,body,#map{margin:0;width:100%;height:100%;overflow:hidden;background:var(--
 .recommendation{border:0;padding:0;background:none;width:28px;height:28px;display:grid;place-items:center;cursor:pointer}
 .recommendation span{display:block;width:8px;height:8px;clip-path:polygon(25% 0,75% 0,75% 25%,100% 25%,100% 75%,75% 75%,75% 100%,25% 100%,25% 75%,0 75%,0 25%,25% 25%)}
 .category-indicator{position:absolute;top:-14px;left:14px;width:16px;height:16px;pointer-events:none}.category-indicator svg{width:16px;height:16px}
-@media(prefers-reduced-motion:reduce){#pin-editor{transition:none}}
-</style></head><body><div id="map"></div><button id="pin-remove" aria-label="Remove discovery pin"><svg viewBox="0 0 9 9" aria-hidden="true"><path fill="currentColor" d="M0 0h2v1h1v1h1v1h1V2h1V1h1V0h2v2H8v1H7v1H6v1h1v1h1v1h1v2H7V8H6V7H5V6H4v1H3v1H2v1H0V7h1V6h1V5h1V4H2V3H1V2H0z"/></svg></button><div id="pin-editor"><input id="pin-radius" aria-label="Geographic radius in miles" type="range" min="0" max="1" step="0.01" value="0.5"><output id="radius-value">1 mi</output></div><div id="control-tip" role="status"></div><div class="notice" style="display:none"></div><div id="error">Map unavailable. Check your connection.<button onclick="location.reload()">Retry map</button></div><script src="maplibre-gl.js"></script><script>
+ .friend{border:0;background:none;box-shadow:none;width:44px;height:44px;display:grid;place-items:center;padding:0;cursor:pointer}
+.friend svg{width:26px;height:26px;overflow:visible;shape-rendering:crispEdges;filter:drop-shadow(1px 1px var(--paper))}
+.friend.current svg{animation:shared-presence 4s steps(1,end) infinite}
+@keyframes shared-presence{0%,20%,40%,100%{opacity:1}10%,30%{opacity:.3}}
+.reduce-motion .friend.current svg{animation:none}
+@media(prefers-reduced-motion:reduce){#pin-editor{transition:none}.friend.current svg{animation:none}}
+</style></head><body><div id="map"></div><button id="pin-remove" aria-label="Remove discovery pin"><svg viewBox="0 0 9 9" aria-hidden="true"><path fill="currentColor" d="M0 0h2v1h1v1h1v1h1V2h1V1h1V0h2v2H8v1H7v1H6v1h1v1h1v1h1v2H7V8H6V7H5V6H4v1H3v1H2v1H0V7h1V6h1V5h1V4H2V3H1V2H0z"/></svg></button><div id="pin-editor"><input id="pin-radius" aria-label="Geographic radius in miles" type="range" min="0" max="1" step="0.01" value="0.5"><output id="radius-value">1 mi</output></div><div class="notice" style="display:none"></div><div id="error">Map unavailable. Check your connection.<button onclick="location.reload()">Retry map</button></div><script src="maplibre-gl.js"></script><script>
 const send=body=>window.webkit?.messageHandlers.hermi.postMessage(body);
 let map, pending={},markers=[],loaded=false,placeSignature="",discoveryMarker=null,draggingPin=false,revealDiscovery=false,lastBottomInset=0;
 const discoveryMarkers=new Map(), categoryRepresentatives=new Map();
@@ -36,7 +41,10 @@ map=new maplibregl.Map({container:'map',center:[-73.965,40.8075],zoom:15.1,minZo
 ]}});
 map.touchZoomRotate.disableRotation();
 map.addControl(new maplibregl.AttributionControl({compact:true}),'bottom-right');
-map.on('load',()=>{loaded=true;error.style.display='none';map.addSource('adventure',{type:'geojson',data:empty});map.addLayer({id:'adventure',type:'line',source:'adventure',paint:{'line-color':palette.green,'line-width':4,'line-dasharray':[2,1]}});map.addSource('discovery-radius',{type:'geojson',data:empty});map.addLayer({id:'discovery-radius-fill',type:'fill',source:'discovery-radius',paint:{'fill-color':palette.lime,'fill-opacity':0.13}});map.addLayer({id:'discovery-radius-line',type:'line',source:'discovery-radius',paint:{'line-color':palette.green,'line-width':2,'line-dasharray':[3,2]}});renderHermi(pending);send({type:'ready'})});
+map.on('load',()=>{loaded=true;error.style.display='none';map.addSource('social-routes',{type:'geojson',data:empty});
+map.addLayer({id:'social-current',type:'line',source:'social-routes',filter:['==','kind','current'],paint:{'line-color':palette.green,'line-width':4,'line-dasharray':[1,2]}});
+map.addLayer({id:'social-loved',type:'line',source:'social-routes',filter:['==','kind','loved'],paint:{'line-color':'#D66C9B','line-width':4}});
+map.addSource('adventure',{type:'geojson',data:empty});map.addLayer({id:'adventure',type:'line',source:'adventure',paint:{'line-color':palette.green,'line-width':4,'line-dasharray':[2,1]}});map.addSource('discovery-radius',{type:'geojson',data:empty});map.addLayer({id:'discovery-radius-fill',type:'fill',source:'discovery-radius',paint:{'fill-color':palette.lime,'fill-opacity':0.13}});map.addLayer({id:'discovery-radius-line',type:'line',source:'discovery-radius',paint:{'line-color':palette.green,'line-width':2,'line-dasharray':[3,2]}});renderHermi(pending);send({type:'ready'})});
 map.on('error',()=>{error.style.display='block';send({type:'error'})});
 map.on('idle',()=>{if(map.areTilesLoaded()){error.style.display='none';send({type:'ready'})}});
 map.on('move',()=>{positionEditor();updateCategoryIndicators()});
@@ -48,12 +56,6 @@ function pin(color, name, rows){
  const button=document.createElement('button');button.className='pin';button.setAttribute('aria-label',name);
  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox',`0 0 ${rows[0].length} ${rows.length}`);svg.setAttribute('shape-rendering','crispEdges');
  rows.forEach((row,y)=>[...row].forEach((pixel,x)=>{if(pixel===' ')return;const rect=document.createElementNS(svg.namespaceURI,'rect');for(const [k,v]of Object.entries({x,y,width:1,height:1,fill:pixel==='I'?palette.ink:pixel==='H'?palette.paper:color}))rect.setAttribute(k,v);svg.append(rect)}));button.append(svg);
- let timer, origin, held=false;
- button.title=name+' · tap to open';
- button.addEventListener('pointerdown',e=>{origin=[e.clientX,e.clientY];held=false;timer=setTimeout(()=>{held=true;const tip=document.getElementById('control-tip');tip.textContent=name+' · tap to open details';tip.style.display='block';setTimeout(()=>tip.style.display='none',2400)},600)});
- button.addEventListener('pointermove',e=>{if(origin&&Math.hypot(e.clientX-origin[0],e.clientY-origin[1])>12)clearTimeout(timer)});
- for(const event of ['pointerup','pointercancel','pointerleave'])button.addEventListener(event,()=>clearTimeout(timer));
- button.addEventListener('click',e=>{if(held){e.preventDefault();e.stopImmediatePropagation();held=false}},true);
  return button;
 }
 
@@ -156,17 +158,27 @@ function renderDiscovery(){
  map.getSource('discovery-radius').setData(radiusFeature(p));positionEditor();updateCategoryIndicators();
 }
 window.renderHermi=data=>{pending=data;if(!loaded)return;
- const signature=JSON.stringify([data.places,data.social]);
+ document.documentElement.className=data.reduceMotion?'reduce-motion':'';
+ map.getSource('social-routes').setData({type:'FeatureCollection',features:data.social?(data.socialRoutes||[]):[]});
+ const signature=JSON.stringify([data.places,data.social,data.socialMarkers]);
  if(signature!==placeSignature){
   placeSignature=signature;markers.forEach(m=>m.remove());markers=[];
   for(const p of data.places||[]){const el=document.createElement('button');el.className='recommendation';el.setAttribute('aria-label',p.name);const dot=document.createElement('span');dot.style.background=p.color;el.append(dot);el.onclick=e=>{e.stopPropagation();send({type:'place',id:p.id})};markers.push(new maplibregl.Marker({element:el,anchor:'center'}).setLngLat([p.lng,p.lat]).addTo(map))}
-  if(data.social){for(const [i,loc]of [[-73.967,40.8085],[-73.9628,40.8056]].entries()){const el=document.createElement('div');el.className='friend';el.textContent=i?'B':'A';el.setAttribute('aria-label','Sample friend check-in');markers.push(new maplibregl.Marker({element:el}).setLngLat(loc).addTo(map))}}
+  if(data.social){for(const item of data.socialMarkers||[]){
+   const el=document.createElement('button');el.className='friend '+item.kind;el.setAttribute('aria-label',item.name);
+   const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 16 16');svg.setAttribute('aria-hidden','true');
+   const path=document.createElementNS(svg.namespaceURI,'path');
+   path.setAttribute('fill',item.kind==='current'?palette.green:'#D66C9B');
+   path.setAttribute('d',item.kind==='current'?'M3 0h4v4H3zM9 2h4v4H9zM1 6h7v3H6v6H4V9H3v6H1zM9 8h6v3h-2v5h-2v-5H9z':'M2 2h4v2h4V2h4v2h2v6h-2v2h-2v2h-2v2H6v-2H4v-2H2v-2H0V4h2z');
+   svg.append(path);el.append(svg);el.onclick=e=>{e.stopPropagation();send({type:'socialInfo',id:item.id})};
+   markers.push(new maplibregl.Marker({element:el,anchor:'center'}).setLngLat([item.lng,item.lat]).addTo(map));
+  }}
  }
  renderDiscovery();
  const coords=[[-73.9699,40.8067],[-73.9682,40.8074],[-73.9655,40.8085],[-73.9641,40.8066],[-73.9624,40.8073]];
  map.getSource('adventure').setData(data.adventure?{type:'FeatureCollection',features:[{type:'Feature',properties:{},geometry:{type:'LineString',coordinates:coords}}]}:empty);
- document.querySelector('.notice').textContent=data.adventure?'SAMPLE ROUTE · NOT RECORDED GPS':'';
- document.querySelector('.notice').style.display=data.adventure?'block':'none';
+ document.querySelector('.notice').textContent=data.adventure?'SAMPLE ROUTE · NOT RECORDED GPS':data.social?'SAMPLE SOCIAL · NOT LIVE':'';
+ document.querySelector('.notice').style.display=data.adventure||data.social?'block':'none';
 };
 window.commandHermi=c=>{
  if(!map)return;

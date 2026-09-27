@@ -245,6 +245,7 @@ public struct HermiMapPreview: View {
     GeographicMap(state: state, command: mapCommand, editingPinID: mapCovered ? nil : editingPinID,
       revision: mapRevision, bottomInset: mapControlsBottom(in: size)) { event in
       switch event["type"] as? String {
+      case "socialInfo": if state.social, let id = event["id"] as? String { pinNotice = SocialMapPreview.detail(id) }
       case "mapTap": editingPinID = nil
       case "moving": beginMapGesture()
       case "stopped", "error": endMapGesture()

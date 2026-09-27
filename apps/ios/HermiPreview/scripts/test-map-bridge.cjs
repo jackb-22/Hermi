@@ -7,8 +7,8 @@ function node(){return {style:{setProperty(){}},value:'0.5',attributes:{},listen
 const document={documentElement:node(),activeElement:null,getElementById(id){if(!nodes.has(id))nodes.set(id,node());return nodes.get(id)},querySelector(id){return this.getElementById(id)},createElement:node,createElementNS:node};
 let map;
 class MapStub {
- constructor(){map=this;this.events={};this.sources={};this.touchZoomRotate={disableRotation(){}};}
- on(k,f){this.events[k]=f;return this} addControl(){} addLayer(){} resize(){} areTilesLoaded(){return true}
+ constructor(){map=this;this.events={};this.sources={};this.layers={};this.touchZoomRotate={disableRotation(){}};}
+ on(k,f){this.events[k]=f;return this} addControl(){} addLayer(layer){this.layers[layer.id]=layer} resize(){} areTilesLoaded(){return true}
  addSource(k,v){this.sources[k]={data:v.data,setData(d){this.data=d}}} getSource(k){return this.sources[k]}
  panBy(offset){this.lastPan=offset}
  getContainer(){return {clientWidth:400,clientHeight:800}} getCanvas(){return {width:1200,height:2400,clientWidth:400,clientHeight:800}}
@@ -71,3 +71,21 @@ assert.equal(nodes.get('pin-editor').style.display,'none');
 context.renderHermi({...multi,discoveries:[pin,nature],discovery:nature});
 assert.equal(secondMarker.removed,true);assert.equal(live().length,2);assert.equal(nodes.get('radius-value').textContent,'4 mi');
 console.log('Multi-pin bridge passed: identities, independent selection, radius target, deselection, removal and sticky visible category badges.');
+
+// Social uses explicit supplied sharing data; Solo removes routes and markers.
+const socialMarkers=[{id:'sam-now',kind:'current',name:'Sample shared current place',lng:-73.9654,lat:40.8073},{id:'riley-love',kind:'loved',name:'Sample loved place',lng:-73.967,lat:40.808}];
+const socialRoutes=['current','loved'].map(kind=>({type:'Feature',properties:{kind},geometry:{type:'LineString',coordinates:[[-73.96,40.80],[-73.97,40.81]]}}));
+context.renderHermi({places:[],social:true,socialMarkers,socialRoutes});
+assert.equal(map.getSource('social-routes').data.features.length,2);
+assert.deepEqual(Array.from(map.layers['social-current'].paint['line-dasharray']),[1,2]);
+assert.equal(map.layers['social-loved'].paint['line-dasharray'],undefined);
+const friends=markers.filter(m=>m.options.element.className.startsWith('friend ')&&!m.removed);
+assert.equal(friends.length,2);assert.equal(friends[0].getLngLat().lng,socialMarkers[0].lng);
+friends[0].options.element.onclick({stopPropagation(){}});assert.equal(messages.at(-1).type,'socialInfo');
+context.renderHermi({places:[],social:true,socialMarkers,socialRoutes,reduceMotion:true});
+assert.equal(document.documentElement.className,'reduce-motion');
+context.renderHermi({places:[],social:false,socialMarkers,socialRoutes});
+assert.equal(map.getSource('social-routes').data.features.length,0);
+assert.ok(friends.every(m=>m.removed));
+assert.ok(!html.includes('control-tip'));assert.ok(!html.includes('held=false'));
+console.log('Social bridge passed: dotted/solid routes, explicit marker coordinates, Solo clearing, Reduce Motion, and no hold tips.');
