@@ -8,7 +8,7 @@ import { AI_SOURCE_TYPES } from '../providers/c2pa.ts';
 import type { DetectionOutcome } from '../providers/detector.ts';
 import { extFor, media } from './media.ts';
 import { notify } from './notify.ts';
-import { type PostDoc, posts } from './posts.ts';
+import { enqueueReviewSummary, type PostDoc, posts } from './posts.ts';
 import { users } from './users.ts';
 
 /** Reported by this many different people, a post comes down even if the detector passes it. */
@@ -197,6 +197,7 @@ export async function reviewReport(ctx: AppContext, payload: { postId: string },
       { postId: p._id },
       { $set: { status: 'actioned', reviewedAt: clock.now() } },
     );
+    if (p.type === 'review') await enqueueReviewSummary(ctx, p.placeId);
   } else {
     await reports.updateMany(
       { postId: p._id, status: 'open' },

@@ -210,7 +210,7 @@ export const placesRoutes: FastifyPluginAsyncZod = async (app) => {
         friendsBeen: fb.rows[0]?.n ?? 0,
         going: going.size,
         hours: p.hours ?? null,
-        reviewSummary: null,
+        reviewSummary: p.reviewSummary?.text ?? null,
       };
     },
   );

@@ -50,6 +50,8 @@ export interface Llm {
   /** Six words or fewer, e.g. "Sunset at Pier 45". */
   label(o: { placeName: string; category: PinType; context: string }): Promise<string>;
   planName(stopNames: string[]): Promise<string>;
+  /** The place sheet's two-line summary of its verified (moderated) review texts, newest first. */
+  summarizeReviews(placeName: string, reviews: { again: boolean; text: string }[]): Promise<string>;
   /**
    * Re-ranks code's top candidates with context (weather, sunset, the plan so far) and labels each in six words
    * or fewer. Returns candidate ids only: unknown ids are dropped and missing ones keep code's order.
@@ -94,6 +96,11 @@ export class FakeLlm implements Llm {
   }
   async rerankGhosts(cands: GhostCandidate[]) {
     return cands.map((c) => ({ id: c.id, label: c.fallbackLabel }));
+  }
+  /** Without a model: the newest review, quoted and trimmed. */
+  async summarizeReviews(_placeName: string, reviews: { again: boolean; text: string }[]) {
+    const t = reviews[0]?.text.replace(/\s+/g, ' ').trim() ?? '';
+    return t.length > 120 ? `“${t.slice(0, 117).trimEnd()}…”` : `“${t}”`;
   }
   async moderate(o: { text?: string }) {
     const bad = /\b(kill yourself|nazi)\b/i.test(o.text ?? '');
@@ -270,6 +277,24 @@ ${stops.map((s) => `- id=${s.id} "${s.name}" (${s.category}) arriving ${s.arriva
       return sixWords(out.name);
     } catch {
       return this.fallback.planName(names);
+    }
+  }
+
+  async summarizeReviews(placeName: string, reviews: { again: boolean; text: string }[]) {
+    try {
+      const out = await this.json<{ summary: string }>(
+        `Summarize what people who actually went to "${placeName}" say, in two short lines (at most 20 words each), for a place card. Only use what the reviews say; no quotes, no star ratings.
+Reviews, newest first:
+${reviews.map((r) => `- (${r.again ? 'would go again' : 'would not go again'}) ${JSON.stringify(r.text.slice(0, 400))}`).join('\n')}`,
+        { type: 'object', properties: { summary: { type: 'string' } }, required: ['summary'] },
+        [],
+        8000,
+      );
+      const text = out.summary.trim().split('\n').slice(0, 2).join('\n').slice(0, 240);
+      return text || this.fallback.summarizeReviews(placeName, reviews);
+    } catch (e) {
+      console.warn(`[gemini] summarizeReviews failed: ${(e as Error).message}`);
+      return this.fallback.summarizeReviews(placeName, reviews);
     }
   }
 

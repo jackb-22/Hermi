@@ -5,7 +5,7 @@ import type { z } from 'zod';
 import type { AppContext } from '../context.ts';
 import type { PlaceDoc } from '../db/placeTypes.ts';
 import type { GeoPoint, UserDoc } from '../db/types.ts';
-import type { JobDoc } from '../jobs/queue.ts';
+import { enqueue, type JobDoc } from '../jobs/queue.ts';
 import { videoFrames } from '../media/ffmpeg.ts';
 import { type MediaDoc, media } from './media.ts';
 import { places } from './places.ts';
@@ -176,6 +176,38 @@ export async function hydratePosts(
   );
 }
 
+const SUMMARY_REVIEWS = 20;
+
+/** Re-summarize a place's reviews once the set of live Review posts there changed. */
+export const enqueueReviewSummary = (ctx: AppContext, placeId?: string) =>
+  placeId
+    ? enqueue(ctx, 'summarize_reviews', { placeId }, { dedupeKey: `summary:${placeId}` })
+    : Promise.resolve('');
+
+/** Job: the place sheet's two-line summary, from the newest live (moderated) Review posts only. */
+export async function summarizeReviews(ctx: AppContext, payload: { placeId: string }) {
+  const { db, providers, clock } = ctx;
+  const place = await places(db).findOne({ _id: payload.placeId });
+  if (!place) return;
+  const reviews = await posts(db)
+    .find({ placeId: place._id, type: 'review', status: 'live', text: { $exists: true } })
+    .sort({ createdAt: -1 })
+    .limit(SUMMARY_REVIEWS)
+    .toArray();
+  if (!reviews.length) {
+    await places(db).updateOne({ _id: place._id }, { $unset: { reviewSummary: '' } });
+    return;
+  }
+  const text = await providers.llm.summarizeReviews(
+    place.name,
+    reviews.map((r) => ({ again: r.again ?? true, text: r.text ?? '' })),
+  );
+  await places(db).updateOne(
+    { _id: place._id },
+    { $set: { reviewSummary: { text, count: reviews.length, at: clock.now() } } },
+  );
+}
+
 /** Captions, review text and images pass a Gemini safety check before a post goes live. */
 export async function moderatePost(ctx: AppContext, payload: { postId: string }, job?: JobDoc) {
   const { db, providers, clock } = ctx;
@@ -218,4 +250,5 @@ export async function moderatePost(ctx: AppContext, payload: { postId: string },
         : { status: 'rejected', moderationReason: verdict.reason },
     },
   );
+  if (verdict.allowed && p.type === 'review') await enqueueReviewSummary(ctx, p.placeId);
 }

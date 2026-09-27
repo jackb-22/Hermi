@@ -18,7 +18,7 @@ import { authed, bearer } from '../plugins/auth.ts';
 import { getCheckin, media } from '../services/media.ts';
 import { remember } from '../services/memory.ts';
 import { places } from '../services/places.ts';
-import { hydratePosts, type PostDoc, posts } from '../services/posts.ts';
+import { enqueueReviewSummary, hydratePosts, type PostDoc, posts } from '../services/posts.ts';
 import { sessions } from '../services/sessions.ts';
 import { blockedIds } from '../services/social.ts';
 import { errs } from './_util.ts';
@@ -326,11 +326,12 @@ export const postRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (req) => {
-      const r = await posts(db).updateOne(
+      const r = await posts(db).findOneAndUpdate(
         { _id: req.params.id, authorId: req.userId },
         { $set: { status: 'removed' } },
       );
-      if (!r.matchedCount) throw new ApiError(404, 'NOT_FOUND', 'No such post');
+      if (!r) throw new ApiError(404, 'NOT_FOUND', 'No such post');
+      if (r.type === 'review') await enqueueReviewSummary(app.ctx, r.placeId);
       return { ok: true as const };
     },
   );

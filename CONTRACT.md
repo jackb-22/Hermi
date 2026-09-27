@@ -71,6 +71,7 @@ Open when running locally. On a deployment every dev affordance needs the header
   - **Review reminder:** if any checked-in stop of a session is unreviewed, one push goes out at 10 AM the next morning with `{kind: 'review_reminder', sessionId}`.
   - **Dev:** `POST /dev/nudge {userId?}` sends the weekly nudge now for rehearsal and returns a preview.
 - **v0.25.0** — `GET /posts?placeId=` lists a place's posts, newest first, for the place sheet's grid at full height (everyone's, minus blocked authors and posts you reported; add `authorId` to narrow it). Paged with `cursor` like the profile grid.
+- **v0.25.1** — `GET /places/:id` `reviewSummary` is now filled: two short lines summarizing that place's text reviews (only ones that passed moderation, newest 20), written by Gemini. It refreshes a few seconds after a review goes live or is removed; `null` until a place has a text review. No shape change.
 
 ## Additions beyond the plan's data model
 
