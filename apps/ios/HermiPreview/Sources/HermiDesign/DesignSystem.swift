@@ -147,15 +147,7 @@ struct PixelSprite: View {
 }
 
 struct HermitSprite: View {
-  var body: some View {
-    PixelSprite(rows: [
-      "       IIIII      ", "     IICCCCCII    ", "    ICCLLLLCCI    ",
-      "   ICCLIIILLCCI   ", "   ICLICCLILCI    ", "   ICLICLLILCI    ",
-      "   ICCLIIILLCCI   ", "    ICCCCCCCI  I I", " II  IIRRRII   I I",
-      "IRRIIRRRRRRRRRIRRI", " IRRRRRRRRRRRRRRI ", "  IIIRIRIRIRRII   ",
-      "    I  I I  I     ",
-    ], colors: ["I": HermiPalette.ink, "C": HermiPalette.coral, "L": HermiPalette.color(0xF0BE91), "R": HermiPalette.color(0xC67459)])
-  }
+  var body: some View { HermitBrandMark() }
 }
 
 struct CategorySprite: View {
