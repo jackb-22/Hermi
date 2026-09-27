@@ -76,7 +76,11 @@ export async function ensureMongoIndexes(db: Db, log: (m: string) => void = () =
     (await db.listCollections({}, { nameOnly: true }).toArray()).map((c) => c.name),
   );
   for (const [coll, specs] of Object.entries(INDEXES)) {
-    if (!existing.has(coll)) await db.createCollection(coll);
+    // The API and the worker both run this on boot: the other one may create it first (NamespaceExists).
+    if (!existing.has(coll))
+      await db.createCollection(coll).catch((e) => {
+        if ((e as { code?: number }).code !== 48) throw e;
+      });
     await db.collection(coll).createIndexes(specs);
   }
   // Vector index for Find-someone matching: one dimension per tag, pre-filtered on campus and openToPlans.
