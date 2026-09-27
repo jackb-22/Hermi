@@ -1,6 +1,6 @@
 # Hermi approved frontend revision plan
 
-Approved 2026-09-27. Frontend branch: `codex/cairn-frontend`. No pushes. Current work: **Step 3**, authorized after the user confirmed the preview runs on iPhone. Step 3 user acceptance and earlier detailed touch/aesthetic acceptance remain pending. Source: user's approved technical plan and latest schema amendments. Preserve unrelated legacy prototype changes.
+Approved 2026-09-27. Frontend branch: `codex/cairn-frontend`. No pushes. Current work: **Step 4**, explicitly authorized by the user after Step 3 corrections. Multi-pin implementation is ready for user review; no blanket physical-touch or aesthetic acceptance is inferred. Source: user's approved technical plan and latest schema amendments. Preserve unrelated legacy prototype changes.
 
 ## Architecture and decisions
 

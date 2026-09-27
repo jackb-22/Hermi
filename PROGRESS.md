@@ -4,6 +4,13 @@ Updated: 2026-09-27. Branch: codex/cairn-frontend. No pushes authorized.
 
 ## Current checkpoint
 
+### Step 4 — multi-pin discovery ready for user review
+
+User explicitly authorized Step 4. Implemented independent persistent pins, stable renderer markers, selected-pin editing/removal, repeated categories, citywide-category union with geographic matches and deduplication. Source swiping does not change active citywide filter; underline and summary indicate activation. Legacy pin/coordinate snapshots migrate; empty saved arrays cannot resurrect an old pin. Category indicators use one stable representative per visible category, transferring when it leaves the viewport. Step 3 right-side centerline remains fixed.
+
+31 Swift tests and extended JS bridge checks pass; Simulator build/install/launch and unsigned physical-iPhone build pass. Screenshot review found an old sample garden coordinate in water; moved that fixture onto land and tested it. No backend edits. User test checklist is the new current section in test.md. Physical gesture/accessibility/performance acceptance remains pending. Step 5 has not started. Simulator citywide-filter activation preserved all three pins. Automated UI actions stopped when user activity was reported; preview remains open in nonpersistent --hermi-multipin-review mode. Expanded-panel review remains pending. Next: user review, corrections as needed; no pushes.
+
+
 ### Single right-hand column correction
 
 User requested local rerun and a clean vertical stack. Removed the expanded-panel sideways toolbar shift; normalized upper toolbar, slider and zoom/home to the same 42-point right inset centerline. Contextual panel expansion reserves 460 points for the rail to avoid overlap rather than creating a second column. My Plan remains full-page. Simulator rebuilt/launched; compact, expanded and closed states inspected and saved under docs/design-reference/2026-09-27-step-3-alignment. JS bridge checks pass. Attribution moved below the map buttons after the closed-panel screenshot exposed overlap. Next: user reviews running local preview; no Step 4.

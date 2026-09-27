@@ -2,7 +2,25 @@
 
 This is the user-facing test entry point. Product reference: [unified design schema](docs/HERMI_SCHEMA.md). Resume/checkpoint: [progress](PROGRESS.md).
 
-## Current review: Step 3 corrections — lighter map controls
+## Current review: Step 4 — multiple pins and combined filters
+
+User authorized Step 4. Rebuild/run HermiPreview with **⌘R** on your selected iPhone, or run `sh apps/ios/HermiPreview/scripts/simulator-preview.sh` from the repo root. Normal launches preserve your saved data and migrate the earlier single pin. This is local discovery over a small sample set near Columbia, not complete NYC recommendations.
+
+1. **Multiple pins:** drop Food near Columbia. Drop another Food nearby: both remain. Swipe the source to Nature and drop a third pin. Nearby shows the combined results; a café matched by two Food pins appears only once. No plan stops are inserted.
+2. **Independent editing:** tap the first Food pin and set 0.1 mile; set the other to 4 miles. Switch between them: each retains its value, category and location. Tap empty map: every pin and matching recommendation dot stays, while X/slider/radius hide. Tap any pin to edit again.
+3. **Move/reject/remove:** move one pin on land; others stay unchanged. Move it into water or outside NYC: restore only that pin. Invalid new drops preserve all pins. X removes only the selected pin. Plan/Saved stay unchanged.
+4. **Citywide union:** choose Music by swiping the source, then tap it. Its label is underlined and nearby reads Music citywide alongside the pin count; Music samples join all geographic matches. Swipe to Shopping without tapping: Music stays active. Swipe back to Music and tap again to remove only that citywide filter. Tap Food instead to replace the citywide category; geographic pins stay. Shared places are not duplicated.
+5. **Indicators/zoom:** zoom out until all three pins are visible. Each pin has its category inside, but only one visible Food pin has the extra floating Food glyph; Nature gets one too. Pan the Food representative offscreen: another visible Food pin gets the glyph. Recommendations remain small colored dots; zoom does not change any radius.
+6. **Layout:** open/collapse/expand the nearby panel. Category, Social, Plan, slider and +/−/home keep one vertical right-side centerline. Switch Map/Feed/Profile and return; pins persist and old IDs do not affect another pin.
+7. **Restart/boundaries:** relaunch the normal app and verify all pin coordinates/radii and the citywide category restore. Remove all pins while a citywide filter is active: citywide matches remain. Turn that off too: general discovery returns. Empty filter results are a valid state, not an error.
+
+Share selected/zoomed-out/expanded screenshots, plus a recording of any selection or drag problem. Step 5 waits for this review.
+
+Validation: 31 Swift tests pass, including unions/deduplication, independent edits, invalid placement, stale deleted IDs and legacy/new snapshot restoration. JS bridge tests verify stable markers, selected radius IDs, tap-away retention and visible-category indicator transfer. Simulator and unsigned physical-iPhone builds pass. [Screenshot review](docs/design-reference/2026-09-27-step-4/REVIEW.md). Full physical touch, accessibility and animation performance remain user checks. No backend changes; real multi-area recommendation completeness remains an integration gate.
+
+Optional deterministic screenshot fixture: `sh apps/ios/HermiPreview/scripts/simulator-preview.sh --hermi-multipin-review` seeds two Food pins and one Nature pin. It does not read/write normal saved state; remove the argument for restart/persistence tests.
+
+## Previous review: Step 3 corrections — lighter map controls
 
 Build/install with the HermiPreview project, your iPhone selected, **⌘R**. The agent's latest phone check still reports unavailable; corrected build is running in Simulator. These steps replace the previous Step 3 checklist.
 

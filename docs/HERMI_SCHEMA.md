@@ -1,6 +1,6 @@
 # Hermi unified design schema
 
-Revision 7 · 2026-09-27 · Step 3 implemented for review; user authorized continuation after confirming iPhone launch.
+Revision 8 · 2026-09-27 · Step 4 implemented for review after explicit user authorization.
 
 ## Authority and mission
 
@@ -144,3 +144,9 @@ The isolated preview now implements a single persistent geographic discovery pin
 ## Step 3 feedback amendment — 2026-09-27
 
 User supersedes the prior editor layout: recommendations use small category-colored dots; only discovery uses a pin. Tap empty map deselects without deleting the pin or recommendations. Selected pin exposes a small attached X and a background-free bottom-right radius slider above zoom/home. Those controls track compact/expanded panel height. Visual backgrounds shrink while touch targets remain. Direct vertical swipes on the source pin choose category with no menu; name below, decorative pixel chevrons at either side. User confirmed minimum 0.1 mile and retained maximum 4; default remains 1 mile. Remove sample-place map banner; fixture status remains documented in the test guide. Alignment amendment: all right-side tools share a fixed centerline (42 points from the right edge). No sideways shift. Contextual panel expansion reserves vertical space for the full rail; full-page My Plan is unchanged. Water/NYC validation unchanged. This amendment supersedes conflicting earlier control/radius wording.
+
+## Step 4 implementation checkpoint
+
+Multiple geographic pins, including repeated categories, now persist as independent ID/category/coordinate/radius records. Legacy single-pin/coordinate snapshots migrate without changing valid IDs/radii or losing Plan/Saved data. Selection is transient; tap-away never deletes pins. Citywide category is independent of the source category being previewed: tap replaces or toggles the citywide choice, while swiping only chooses the next source pin. Matches are the union of citywide category and each pin's category/radius, deduplicated by place ID. No filters means general discovery.
+
+Only one extra category glyph appears above a visible discovery pin in each category; the representative remains stable while visible and transfers when it leaves the unobscured map. Small category-colored dots represent recommendations. Step 3 fixed right-hand alignment and 0.1–4-mile range remain unchanged. Real backend recommendation completeness is not implied by these local fixtures.
