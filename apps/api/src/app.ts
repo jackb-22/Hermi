@@ -11,6 +11,7 @@ import {
   type ZodTypeProvider,
 } from 'fastify-type-provider-zod';
 import type { AppContext } from './context.ts';
+import { registerHooks } from './hooks.ts';
 import { rawBodyPlugin } from './plugins/attest.ts';
 import { authPlugin } from './plugins/auth.ts';
 import { registerErrorHandling } from './plugins/errors.ts';
@@ -21,6 +22,7 @@ import { webRoutes } from './routes/web.ts';
 export const API_VERSION = '0.1.0';
 
 export async function buildApp(ctx: AppContext): Promise<FastifyInstance> {
+  registerHooks();
   const app = Fastify({
     logger: ctx.config.NODE_ENV === 'test' ? false : { level: ctx.config.LOG_LEVEL },
     trustProxy: true,

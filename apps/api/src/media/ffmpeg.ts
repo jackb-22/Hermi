@@ -89,7 +89,7 @@ export const transcodeVideo = (buf: Buffer, ext: string) =>
   );
 
 /** Photo rendition: JPEG, long side at most 1440 px (also normalizes HEIC/PNG for the feed). */
-export const transcodePhoto = (buf: Buffer, ext: string) =>
+export const transcodePhoto = (buf: Buffer, ext: string, maxPx = 1440) =>
   withFfmpeg(
     buf,
     ext,
@@ -98,7 +98,7 @@ export const transcodePhoto = (buf: Buffer, ext: string) =>
         '-i',
         i,
         '-vf',
-        `scale='min(1440,iw)':'min(1440,ih)':force_original_aspect_ratio=decrease:${JPEG}`,
+        `scale='min(${maxPx},iw)':'min(${maxPx},ih)':force_original_aspect_ratio=decrease:${JPEG}`,
         '-q:v',
         '3',
         o('out.jpg'),

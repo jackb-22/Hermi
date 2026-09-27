@@ -12,7 +12,17 @@ export const MeSchema = z
     name: z.string().nullable(),
     username: z.string().nullable(),
     photoUrl: z.string().nullable(),
-    spriteUrl: z.string().nullable(),
+    photoReview: z
+      .object({
+        status: z.enum(['scanning', 'rejected']),
+        reason: z.string().nullable(),
+      })
+      .nullable()
+      .describe('A new photo being scanned (photoUrl is still the old one) or refused'),
+    spriteUrl: z
+      .string()
+      .nullable()
+      .describe('Deprecated, always null: everyone is the same hermit crab, bundled in the app'),
     verified: z.boolean(),
     campus: z.string().nullable(),
     gradYear: z.number().int().nullable(),
@@ -61,7 +71,7 @@ export const PatchMeBody = z.object({
     .string()
     .max(300)
     .optional()
-    .describe('Storage key returned by a profile-photo upload'),
+    .describe('Ignored; upload the photo with POST /me/photo'),
   ghostMode: z.boolean().optional(),
   openToPlans: z.boolean().optional(),
 });

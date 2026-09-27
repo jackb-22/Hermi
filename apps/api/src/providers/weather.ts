@@ -1,5 +1,6 @@
 import type { LatLng } from '@itp/shared';
 import type { Config } from '../config.ts';
+import { deadline } from '../util/deadline.ts';
 import { appleDevToken } from './appleJwt.ts';
 
 export interface DayForecast {
@@ -105,7 +106,7 @@ class FallbackWeather implements WeatherProvider {
   async daily(loc: LatLng) {
     for (const p of this.chain) {
       try {
-        return await p.daily(loc);
+        return await deadline(p.daily(loc), 5000, `${p.name} forecast`);
       } catch (e) {
         console.warn(`[weather] ${p.name} failed: ${(e as Error).message}`);
       }

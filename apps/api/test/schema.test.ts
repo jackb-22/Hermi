@@ -14,6 +14,17 @@ test('schema bootstrap is idempotent', async () => {
   await ensureSchema(t.ctx);
 });
 
+test('boot: API and worker migrating at once, and a migration that crashed half-way, both finish', async () => {
+  // Both App Platform components migrate on boot; the advisory lock makes the second wait.
+  await t.ctx.tiger.query('delete from schema_migrations');
+  await Promise.all([ensureSchema(t.ctx), ensureSchema(t.ctx), ensureSchema(t.ctx)]);
+  // Every statement already exists here (as if the process died before recording the file): it re-runs cleanly.
+  await t.ctx.tiger.query('delete from schema_migrations');
+  await ensureSchema(t.ctx);
+  const { rows } = await t.ctx.tiger.query('select name from schema_migrations');
+  expect(rows.map((r) => r.name)).toEqual(['001_timeline.sql']);
+});
+
 test('hypertables and continuous aggregates exist in the test schema', async () => {
   const { rows } = await t.ctx.tiger.query(
     `select hypertable_name from timescaledb_information.hypertables where hypertable_schema = current_schema()`,

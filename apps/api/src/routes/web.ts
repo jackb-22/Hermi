@@ -1,5 +1,6 @@
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { z } from 'zod';
+import { PUBLIC_MEDIA_PREFIXES, verifyMediaSig } from '../providers/storage.ts';
 import { loadPlaces, plans } from '../services/plans.ts';
 import { users } from '../services/users.ts';
 import { verifyInfo } from '../services/verify.ts';
@@ -24,8 +25,59 @@ dl{display:grid;grid-template-columns:auto 1fr;gap:4px 12px} dt{color:var(--mute
 </style></head><body><main>${body}</main></body></html>`;
 }
 
+/** Object keys as the API writes them: path segments of letters, digits, dot, dash and underscore. */
+const MEDIA_KEY = /^[A-Za-z0-9_-][A-Za-z0-9._-]*(\/[A-Za-z0-9_-][A-Za-z0-9._-]*)*$/;
+
+/** One `bytes=a-b` or `bytes=a-` range; anything else (suffix or multiple ranges) is served whole, which HTTP allows. */
+export function parseRange(h: string | undefined): { start: number; end?: number } | undefined {
+  const m = /^bytes=(\d+)-(\d*)$/.exec(h?.trim() ?? '');
+  if (!m) return undefined;
+  const start = Number(m[1]);
+  const end = m[2] ? Number(m[2]) : undefined;
+  return end !== undefined && end < start ? undefined : { start, end };
+}
+
 export const webRoutes: FastifyPluginAsyncZod = async (app) => {
-  const { config, db } = app.ctx;
+  const { config, db, providers } = app.ctx;
+
+  // Media served by the API when there is no CDN (MEDIA_DELIVERY=api): renditions, posters, profile photos and
+  // credential files are public under unguessable keys; originals need the signed URL the API handed out.
+  // Byte ranges are supported: iOS will not play an MP4 from a server that ignores them.
+  app.get('/media/*', { schema: { hide: true } }, async (req, reply) => {
+    const key = (req.params as { '*': string })['*'];
+    const fail = (
+      status: number,
+      code: 'NOT_FOUND' | 'FORBIDDEN' | 'BAD_REQUEST',
+      message: string,
+    ) => reply.status(status).send({ error: { code, message } });
+    if (!MEDIA_KEY.test(key)) return fail(404, 'NOT_FOUND', 'No such media');
+    const isPublic = PUBLIC_MEDIA_PREFIXES.some((p) => key.startsWith(p));
+    const q = req.query as { exp?: string; sig?: string };
+    if (!isPublic && !verifyMediaSig(config.JWT_SECRET, key, q.exp, q.sig))
+      return fail(403, 'FORBIDDEN', 'This media link is not valid or has expired');
+    let obj: Awaited<ReturnType<typeof providers.storage.stream>>;
+    try {
+      obj = await providers.storage.stream(key, parseRange(req.headers.range));
+    } catch (e) {
+      if ((e as { statusCode?: number }).statusCode !== 416) throw e;
+      return fail(416, 'BAD_REQUEST', 'Range not satisfiable');
+    }
+    if (!obj) return fail(404, 'NOT_FOUND', 'No such media');
+    reply
+      .header('Accept-Ranges', 'bytes')
+      .header('Content-Type', obj.contentType)
+      .header('Content-Length', obj.length)
+      .header(
+        'Cache-Control',
+        isPublic ? 'public, max-age=31536000, immutable' : 'private, max-age=300',
+      );
+    if (obj.range)
+      reply
+        .status(206)
+        .header('Content-Range', `bytes ${obj.range.start}-${obj.range.end}/${obj.total}`);
+    // HEAD runs this same handler; Fastify drops the body and keeps these headers.
+    return reply.send(obj.body);
+  });
 
   // Universal links: stickers (/c venue, /t personal) and plan share links (/p) open the app.
   app.get(
@@ -118,7 +170,11 @@ export const webRoutes: FastifyPluginAsyncZod = async (app) => {
 <dt>Check-in</dt><dd>${info.checkin.tier === 'tag' ? 'Venue tag scan' : 'GPS, 5 min on site'} at ${esc(checkin)}${info.checkin.attested ? ' · genuine app on a real device' : ''}</dd>
 <dt>By</dt><dd>${esc(info.author.username ? `@${info.author.username}` : 'a verified user')}</dd>
 <dt>Fingerprint</dt><dd style="word-break:break-all;font-family:monospace;font-size:12px">sha256 ${info.sha256}</dd>
-<dt>Credential</dt><dd>${info.credential.c2pa && info.credential.manifestUrl ? `<a href="${esc(info.credential.manifestUrl)}">C2PA Content Credentials manifest</a>` : 'Server-verified capture record'}</dd>
+<dt>Credential</dt><dd>${
+            info.credential.c2pa && info.credential.manifestUrl
+              ? `C2PA Content Credentials${info.credential.signer ? `, signed by ${esc(info.credential.signer)}` : ''}<br><a href="${esc(info.credential.manifestUrl)}">Download with credentials</a>${info.credential.inspectUrl ? ` · <a href="${esc(info.credential.inspectUrl)}">Inspect</a>` : ''}`
+              : 'Server-verified capture record'
+          }</dd>
 </dl>
 <p class="muted">Provenance proves where and when this was captured, not that the scene is real.</p>`,
         ),

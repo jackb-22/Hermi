@@ -1,3 +1,4 @@
+import { TAG_DIMS } from '@itp/shared';
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { handlers } from '../src/jobs/handlers.ts';
 import { Worker } from '../src/jobs/queue.ts';
@@ -27,7 +28,7 @@ const befriend = async (x: string, y: string) => {
     lastHangoutWeek: 0,
   } as never);
 };
-const newPlan = async (name?: string) =>
+const newPlan = async (name?: string, days = 1) =>
   (
     await t.app.inject({
       method: 'POST',
@@ -35,7 +36,7 @@ const newPlan = async (name?: string) =>
       headers: host.headers,
       payload: {
         name,
-        startAt: new Date(Date.now() + 86_400_000).toISOString(),
+        startAt: new Date(Date.now() + days * 86_400_000).toISOString(),
         stops: placeIds.map((placeId) => ({ placeId })),
       },
     })
@@ -61,6 +62,10 @@ beforeAll(async () => {
   await befriend(host.id, pal2.id);
   await t.ctx.db.collection('users').updateMany({ _id: { $in: [host.id, student.id] } } as never, {
     $set: { verifiedAt: new Date(), campus: 'Columbia' },
+  });
+  // Find someone shows open plans only to matched students: Open to plans on, with a taste that overlaps.
+  await t.ctx.db.collection('users').updateOne({ _id: student.id } as never, {
+    $set: { openToPlans: true, prefVector: new Array(TAG_DIMS).fill(1 / Math.sqrt(TAG_DIMS)) },
   });
   await call(pal, 'POST', '/v1/me/push-token', { token: 'ExponentPushToken[pal-device]' });
   await call(host, 'POST', '/v1/me/push-token', { token: 'ExponentPushToken[host-device]' });
@@ -185,7 +190,8 @@ describe('social layer', () => {
         f.action,
       ]),
     ).toEqual(expect.arrayContaining([['Open to friends', 'joined']]));
-    const second = await newPlan('Second open plan');
+    // The student joined the first open plan, so they are busy then; this one is the next day.
+    const second = await newPlan('Second open plan', 2);
     await call(host, 'POST', `/v1/plans/${second.id}/save`, { visibility: 'find' });
     const forStudent = (await call(student, 'GET', '/v1/social')).json();
     expect(
@@ -211,5 +217,72 @@ describe('social layer', () => {
     const share = await t.app.inject(`/p/${plan.shareUrl.split('/p/')[1]}`);
     expect(share.statusCode).toBe(200);
     expect(share.body).toContain('Diner');
+  });
+
+  test('Social map lines: planned dotted, under way mixed, completed solid; the place they are at blinks', async () => {
+    const walker = await devLogin(t.app, 'walker');
+    await befriend(host.id, walker.id);
+    const make = async (name: string) => {
+      const p = (
+        await call(walker, 'POST', '/v1/plans', {
+          name,
+          startAt: new Date(Date.now() + 3600_000).toISOString(),
+          stops: placeIds.map((placeId) => ({ placeId })),
+        })
+      ).json();
+      await call(walker, 'POST', `/v1/plans/${p.id}/save`, { visibility: 'friends' });
+      return p.id as string;
+    };
+    const planned = await make('Later walk');
+    const today = await make('Walk now');
+    const done = await make('Yesterday walk');
+    const coll = t.ctx.db.collection<{ _id: string }>('plans');
+    await coll.updateOne(
+      { _id: done },
+      { $set: { status: 'completed', completedAt: new Date(), 'stops.0.done': true } },
+    );
+
+    // Walker starts today's plan and checks in at the first stop two hours ago (beyond the hour).
+    const s = (await call(walker, 'POST', '/v1/sessions', { planId: today })).json();
+    await createCheckin(t.ctx, {
+      userId: walker.id,
+      placeId: placeIds[0]!,
+      tier: 'tag',
+      at: ORIGIN,
+      accuracy: 10,
+      time: new Date(Date.now() - 2 * 3600_000),
+      attested: false,
+      sessionId: s.session.id,
+    });
+    const social = async () => (await call(host, 'GET', '/v1/social')).json();
+    type Route = { planId: string; line: unknown[] };
+    const byPlan = (r: { routes: Route[] }): Record<string, Route> =>
+      Object.fromEntries(r.routes.map((x) => [x.planId, x]));
+    let r = await social();
+    expect(byPlan(r)[planned]).toMatchObject({
+      status: 'planned',
+      style: 'dotted',
+      doneThrough: 0,
+    });
+    expect(byPlan(r)[planned]!.line).toHaveLength(2);
+    expect(byPlan(r)[today]).toMatchObject({ status: 'active', style: 'mixed', doneThrough: 1 });
+    expect(byPlan(r)[done]).toMatchObject({ status: 'completed', style: 'solid', doneThrough: 1 });
+    expect(byPlan(r)[done]!.line).toEqual([ORIGIN]); // only where they checked in, never a trace
+    // Still on the outing: that check-in blinks, though it is two hours old.
+    expect(
+      r.friendsOut.find((f: { user: { id: string } }) => f.user.id === walker.id),
+    ).toMatchObject({ active: true, place: { id: placeIds[0] } });
+
+    await call(walker, 'POST', `/v1/sessions/${s.session.id}/end`, {});
+    r = await social();
+    expect(r.friendsOut.find((f: { user: { id: string } }) => f.user.id === walker.id).active).toBe(
+      false,
+    );
+
+    // Ghost mode hides where they went (the completed line), not the plans they chose to share.
+    await call(walker, 'PATCH' as never, '/v1/me', { ghostMode: true });
+    r = await social();
+    expect(byPlan(r)[done]).toBeUndefined();
+    expect(byPlan(r)[planned]).toBeDefined();
   });
 });

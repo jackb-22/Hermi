@@ -6,6 +6,7 @@ import {
   totals,
   validate,
 } from '../src/domain/schedule.ts';
+import { toOpeningHours } from '../src/providers/hours.ts';
 import { ORIGIN, offset } from './fixtures/places.ts';
 
 const stop = (id: string, northM: number, o: Partial<SchedStop> = {}): SchedStop => ({
@@ -55,6 +56,32 @@ describe('schedule', () => {
       'slot:UNFILLED_SLOT',
       'slot:ENDS_AFTER_END_TIME',
     ]);
+  });
+
+  test('validate: hours past midnight, closed days, Saturday night into Sunday', () => {
+    const bar = [{ day: 6, open: '18:00', close: '02:00' }];
+    const at = (iso: string, stayMin: number, hours = bar) => {
+      const stops = [stop('s', 0, { stayMin, hours })];
+      return validate(stops, assemble(new Date(iso), stops)).map((i) => i.code);
+    };
+    // Sat 21:00 EDT for 75 min at a bar open until 2 AM: fine (it used to read 02:00 as before 21:00).
+    expect(at('2026-09-27T01:00:00Z', 75)).toEqual([]);
+    // Sun 01:00 is still Saturday night's opening; staying until 02:30 is not.
+    expect(at('2026-09-27T05:00:00Z', 30)).toEqual([]);
+    expect(at('2026-09-27T05:00:00Z', 90)).toEqual(['CLOSES_BEFORE_STAY_ENDS']);
+    // Monday 20:00: no opening that day at all.
+    const [closed] = validate(
+      [stop('s', 0, { hours: bar })],
+      assemble(new Date('2026-09-29T00:00:00Z'), [stop('s', 0, { hours: bar })]),
+    );
+    expect(closed).toMatchObject({
+      code: 'CLOSES_BEFORE_STAY_ENDS',
+      message: 's is closed that day',
+    });
+    // Always open (Google: one period without a close) is every day, all day.
+    const always = toOpeningHours([{ open: { day: 0, hour: 0 } }]);
+    expect(always).toHaveLength(7);
+    expect(at('2026-09-29T07:30:00Z', 120, always)).toEqual([]);
   });
 
   test('totals: xp preview counts check-ins, completion and km on foot only', () => {

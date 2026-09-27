@@ -27,6 +27,9 @@ export function toMe(u: UserDoc, c: Config, now: Date): z.infer<typeof MeSchema>
     name: u.name ?? null,
     username: u.username ?? null,
     photoUrl: publicUrl(c, u.photoKey),
+    photoReview: u.photoReview
+      ? { status: u.photoReview.status, reason: u.photoReview.reason ?? null }
+      : null,
     spriteUrl: publicUrl(c, u.spriteKey),
     verified: !!u.verifiedAt,
     campus: u.campus ?? null,

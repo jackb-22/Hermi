@@ -15,6 +15,7 @@ import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import type { Filter } from 'mongodb';
 import { z } from 'zod';
 import { authed, bearer } from '../plugins/auth.ts';
+import { openPlansFor } from '../services/matching.ts';
 import { places } from '../services/places.ts';
 import {
   assertHost,
@@ -25,7 +26,7 @@ import {
   normalizeStops,
   type PlanDoc,
   plans,
-  recompute,
+  saveAndView as savePlanAndView,
   toPlanView,
 } from '../services/plans.ts';
 import { applyGhostChange, schedulePlan } from '../services/scheduler.ts';
@@ -38,11 +39,18 @@ const IdParams = z.object({ id: z.string() });
 export const planRoutes: FastifyPluginAsyncZod = async (app) => {
   const { db, config, clock } = app.ctx;
 
-  /** Host and anyone on the member list; friends of the host for friends-visible plans; anyone for open (find) plans. */
+  /** Host and anyone on the member list; friends of the host for friends-visible and open plans; matched students for open (find) plans. */
   const assertCanView = async (plan: PlanDoc, userId: string) => {
     if (plan.hostId === userId || plan.members.some((m) => m.userId === userId)) return;
-    if (plan.visibility === 'find') return;
-    if (plan.visibility === 'friends' && (await friendIds(db, plan.hostId)).includes(userId))
+    if (
+      (plan.visibility === 'friends' || plan.visibility === 'find') &&
+      (await friendIds(db, plan.hostId)).includes(userId)
+    )
+      return;
+    if (
+      plan.visibility === 'find' &&
+      (await openPlansFor(app.ctx, await getUser(db, userId), [plan])).length
+    )
       return;
     throw new ApiError(404, 'NOT_FOUND', 'No such plan');
   };
@@ -52,19 +60,7 @@ export const planRoutes: FastifyPluginAsyncZod = async (app) => {
     return toPlanView(db, config, plan, userId, { pref: me.prefVector });
   };
 
-  /** Recompute, persist and return the hydrated view in one go. */
-  const saveAndView = async (plan: PlanDoc, userId: string) => {
-    const byId = await loadPlaces(
-      db,
-      plan.stops.map((s) => s.placeId),
-    );
-    const { issues } = recompute(plan, byId);
-    if (plan.nameIsDefault) plan.name = defaultName(plan.stops, byId);
-    plan.updatedAt = clock.now();
-    await plans(db).replaceOne({ _id: plan._id }, plan, { upsert: true });
-    const me = await getUser(db, userId);
-    return toPlanView(db, config, plan, userId, { byId, issues, pref: me.prefVector });
-  };
+  const saveAndView = (plan: PlanDoc, userId: string) => savePlanAndView(app.ctx, plan, userId);
 
   app.post(
     '/plans',

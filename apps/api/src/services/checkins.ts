@@ -38,7 +38,7 @@ export interface CheckinInput {
 
 export type CheckinResult = z.infer<typeof CheckinResponse>;
 
-/** Called after the check-in row is written, e.g. co-check-in hangouts. Registered by the social feature. */
+/** Called after the check-in row is written (co-check-in hangouts, the plan's group chat). Registered in hooks.ts. */
 export type CheckinHook = (
   ctx: AppContext,
   c: {
@@ -48,9 +48,40 @@ export type CheckinHook = (
     tier: 'gps' | 'tag';
     time: Date;
     tagId?: string;
+    planId?: string;
   },
 ) => Promise<CheckinResult['hangouts']>;
 export const checkinHooks: CheckinHook[] = [];
+
+/**
+ * One check-in per user per venue per cooldown: the document for the pair holds when the next one may happen, and
+ * only a request whose time is past it can move it (or insert it). A concurrent second request hits the unique _id.
+ */
+async function claimCooldown(
+  ctx: AppContext,
+  userId: string,
+  placeId: string,
+  time: Date,
+  placeName: string,
+) {
+  const until = new Date(time.getTime() + CHECKIN_COOLDOWN_H * 3600_000);
+  try {
+    await ctx.db
+      .collection<{ _id: string; until: Date }>('checkin_cooldowns')
+      .updateOne(
+        { _id: `${userId}:${placeId}`, until: { $lte: time } },
+        { $set: { until } },
+        { upsert: true },
+      );
+  } catch (e) {
+    if ((e as { code?: number }).code !== 11000) throw e;
+    throw new ApiError(
+      429,
+      'CHECKIN_RATE_LIMITED',
+      `Already checked in at ${placeName} in the last ${CHECKIN_COOLDOWN_H} hours`,
+    );
+  }
+}
 
 /**
  * The single proof-of-presence event. Write path:
@@ -121,27 +152,38 @@ export async function createCheckin(ctx: AppContext, input: CheckinInput): Promi
     'CHECKIN_RATE_LIMITED',
   );
   const firstVisit = (prior.rows[0]?.ever ?? 0) === 0;
+  // The read above cannot stop two taps arriving together (an NFC read that fires twice): both would pass it and
+  // both earn XP. Claiming the venue's cooldown is atomic, so exactly one of them goes on.
+  await claimCooldown(ctx, input.userId, place._id, input.time, place.name);
 
   const id = newId();
   const planId = session?.planId;
-  await tiger.query(
-    `insert into checkins (time, id, user_id, place_id, tier, plan_id, session_id, lat, lng, accuracy, attested, tag_id)
+  await tiger
+    .query(
+      `insert into checkins (time, id, user_id, place_id, tier, plan_id, session_id, lat, lng, accuracy, attested, tag_id)
      values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
-    [
-      input.time,
-      id,
-      input.userId,
-      place._id,
-      input.tier,
-      planId ?? null,
-      session?._id ?? null,
-      input.at.lat,
-      input.at.lng,
-      input.accuracy,
-      input.attested,
-      input.tagId ?? null,
-    ],
-  );
+      [
+        input.time,
+        id,
+        input.userId,
+        place._id,
+        input.tier,
+        planId ?? null,
+        session?._id ?? null,
+        input.at.lat,
+        input.at.lng,
+        input.accuracy,
+        input.attested,
+        input.tagId ?? null,
+      ],
+    )
+    .catch(async (e) => {
+      // No check-in was written, so the venue is not on cooldown after all.
+      await db
+        .collection('checkin_cooldowns')
+        .deleteOne({ _id: `${input.userId}:${place._id}` as never });
+      throw e;
+    });
   const xp: XpRow[] = [
     input.tier === 'tag'
       ? { kind: 'checkin_tag', xp: XP.checkinTag, refId: id, label: xpLabel('checkin_tag') }
@@ -175,6 +217,7 @@ export async function createCheckin(ctx: AppContext, input: CheckinInput): Promi
         tier: input.tier,
         time: input.time,
         tagId: input.tagId,
+        planId: planId ?? undefined,
       })),
     );
 

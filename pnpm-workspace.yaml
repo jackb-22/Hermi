@@ -1,8 +1,9 @@
 packages:
   - "apps/*"
   - "packages/*"
-# pnpm 12 fails installs on unreviewed build scripts. esbuild needs its binary; the others are not needed at runtime.
+# pnpm 12 fails installs on unreviewed build scripts. esbuild and c2pa-node (prebuilt Rust binary from its GitHub release) need theirs; the others are not needed at runtime.
 allowBuilds:
   esbuild: true
+  '@contentauth/c2pa-node': true
   '@google/genai': false
   protobufjs: false

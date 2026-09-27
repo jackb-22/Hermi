@@ -75,18 +75,38 @@ const hm = (s: string) => {
   return (h ?? 0) * 60 + (m ?? 0);
 };
 
+// Built once: every plan view validates every stop, and constructing a formatter costs ~20x using one.
+const NY_WEEKDAY_HM = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'America/New_York',
+  weekday: 'short',
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+});
+
 /** Local wall-clock minutes and weekday in New York for comparing against opening hours. */
 function localMinutes(d: Date): { day: number; min: number } {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'America/New_York',
-    weekday: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-    hourCycle: 'h23',
-  }).formatToParts(d);
+  const parts = NY_WEEKDAY_HM.formatToParts(d);
   const get = (t: string) => parts.find((p) => p.type === t)?.value ?? '0';
   const day = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(get('weekday'));
   return { day, min: Number(get('hour')) * 60 + Number(get('minute')) };
+}
+
+const DAY_MIN = 24 * 60;
+const WEEK_MIN = 7 * DAY_MIN;
+
+/**
+ * Whether a stay fits inside the opening hours, in minutes of the week. A period whose close is not after its
+ * open runs past midnight (a bar open 18:00–02:00; 00:00–00:00 is open all day), and Saturday-night periods
+ * carry into Sunday morning.
+ */
+function stayFits(hours: NonNullable<SchedStop['hours']>, day: number, min: number, stay: number) {
+  const a = day * DAY_MIN + min;
+  return hours.some((h) => {
+    const open = h.day * DAY_MIN + hm(h.open);
+    const close = h.day * DAY_MIN + hm(h.close) + (hm(h.close) <= hm(h.open) ? DAY_MIN : 0);
+    return [a, a + WEEK_MIN].some((s) => open <= s && s + stay <= close);
+  });
 }
 
 /** Every arrival must leave at least the stay before closing, and the plan must end before the user's end time. */
@@ -96,26 +116,27 @@ export function validate(stops: SchedStop[], times: Timed[], endBy?: Date): Issu
     const t = times[i]!;
     if (s.isSlot)
       issues.push({ stopId: s.id, code: 'UNFILLED_SLOT', message: `Pick a ${s.category} spot` });
-    const today = s.hours?.filter((h) => h.day === localMinutes(t.arriveAt).day);
-    if (today?.length) {
-      const a = localMinutes(t.arriveAt).min;
-      const d = a + s.stayMin;
-      const open = today.some(
-        (h) => hm(h.open) <= a && (hm(h.close) === 0 ? 24 * 60 : hm(h.close)) >= d,
-      );
-      if (!open) {
-        const opensLater = today.every((h) => hm(h.open) > a);
+    if (s.hours?.length) {
+      const { day, min } = localMinutes(t.arriveAt);
+      if (!stayFits(s.hours, day, min, s.stayMin)) {
+        const openNow = stayFits(s.hours, day, min, 0);
+        const later = s.hours
+          .filter((h) => h.day === day && hm(h.open) > min)
+          .sort((x, y) => hm(x.open) - hm(y.open))[0];
         issues.push(
-          opensLater
+          !openNow && later
             ? {
                 stopId: s.id,
                 code: 'OPENS_AFTER_ARRIVAL',
-                message: `${s.name} opens at ${today[0]!.open}`,
+                message: `${s.name} opens at ${later.open}`,
               }
             : {
                 stopId: s.id,
                 code: 'CLOSES_BEFORE_STAY_ENDS',
-                message: `${s.name} closes before your stay ends`,
+                message:
+                  openNow || s.hours.some((h) => h.day === day)
+                    ? `${s.name} closes before your stay ends`
+                    : `${s.name} is closed that day`,
               },
         );
       }

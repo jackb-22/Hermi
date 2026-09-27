@@ -28,9 +28,13 @@ export async function verifyInfo(
     checkin: { tier: c.tier, at: c.time.toISOString(), attested: c.attested },
     capturedInApp: true,
     author: { username: author?.username ?? null },
-    credential: {
-      c2pa: !!m.c2pa,
-      manifestUrl: m.c2pa ? ctx.providers.storage.publicUrl(m.c2pa.manifestKey) : null,
-    },
+    credential: m.c2pa
+      ? {
+          c2pa: true,
+          manifestUrl: ctx.providers.storage.publicUrl(m.c2pa.manifestKey),
+          signer: m.c2pa.signer,
+          inspectUrl: `https://contentcredentials.org/verify?source=${encodeURIComponent(ctx.providers.storage.publicUrl(m.c2pa.manifestKey))}`,
+        }
+      : { c2pa: false, manifestUrl: null, signer: null, inspectUrl: null },
   };
 }

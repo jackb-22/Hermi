@@ -23,3 +23,8 @@ services:
       RUSTFS_ACCESS_KEY: s3dev
       RUSTFS_SECRET_KEY: s3dev12345
       RUSTFS_CONSOLE_ENABLE: "true"
+    # Named, so media survive the container being recreated (the laptop demo serves them from here).
+    volumes: ["rustfs_data:/data"]
+
+volumes:
+  rustfs_data:

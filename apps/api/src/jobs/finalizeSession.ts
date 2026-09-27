@@ -12,12 +12,15 @@ import {
   tilesFromSegments,
 } from '../domain/movement.ts';
 import { createCheckin } from '../services/checkins.ts';
+import { groupChatRecap } from '../services/groupChat.ts';
 import { media } from '../services/media.ts';
+import { nextMorning } from '../services/nudges.ts';
 import { places } from '../services/places.ts';
 import { type PlanDoc, plans } from '../services/plans.ts';
 import { sessions, sessionTrace } from '../services/sessions.ts';
 import { getUser } from '../services/users.ts';
 import { awardXp, type XpRow, xpLabel } from '../services/xp.ts';
+import { enqueue } from './queue.ts';
 
 export const STAY_SNAP_M = 60;
 const PARTY_WINDOW_MS = 30 * 60_000;
@@ -228,11 +231,14 @@ export async function finalizeSession(ctx: AppContext, payload: { sessionId: str
           });
       }
     }
-    if (plan.hostId === s.userId)
-      await plans(db).updateOne(
+    if (plan.hostId === s.userId) {
+      const done = await plans(db).findOneAndUpdate(
         { _id: plan._id },
         { $set: { status: 'completed', completedAt: endedAt, updatedAt: endedAt } },
+        { returnDocument: 'after' },
       );
+      if (done && plan.status !== 'completed') await groupChatRecap(ctx, done);
+    }
   }
   await awardXp(tiger, s.userId, user.campus, endedAt, rows);
 
@@ -310,4 +316,12 @@ export async function finalizeSession(ctx: AppContext, payload: { sessionId: str
     posted: false,
   };
   await sessions(db).updateOne({ _id: s._id }, { $set: { status: 'ended', endedAt, recap } });
+  // Unreviewed stops get one push the next morning.
+  if (recap.stops.some((st) => !st.reviewed))
+    await enqueue(
+      ctx,
+      'review_reminder',
+      { sessionId: s._id },
+      { runAt: nextMorning(endedAt), dedupeKey: `review:${s._id}` },
+    );
 }

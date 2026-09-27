@@ -89,7 +89,10 @@ export const MemberSchema = z.object({
   userId: IdSchema,
   name: z.string().nullable(),
   username: z.string().nullable(),
-  spriteUrl: z.string().nullable(),
+  spriteUrl: z
+    .string()
+    .nullable()
+    .describe('Deprecated, always null: everyone is the same hermit crab, bundled in the app'),
   status: MemberStatusSchema,
 });
 
@@ -115,7 +118,24 @@ export const PlanSchema = z
     }),
     issues: z.array(IssueSchema).describe('Rows to show red'),
     ghostChanges: z.array(GhostChangeSchema),
+    matchCount: z
+      .number()
+      .int()
+      .nullable()
+      .describe('Find someone: verified students matched so far (host only; null otherwise)'),
     shareUrl: z.string(),
+    textGroup: z
+      .object({
+        recipients: z
+          .array(z.string())
+          .describe("Our iMessage agent's number; add your friends in Messages"),
+        body: z
+          .string()
+          .describe('Prefilled text carrying the plan link the agent binds the thread from'),
+        bound: z.boolean().describe('The agent is already in a group thread for this plan'),
+      })
+      .nullable()
+      .describe('Text the group (expo-sms): host only, when the Photon agent is configured'),
     createdAt: z.string(),
     updatedAt: z.string(),
   })
@@ -168,3 +188,31 @@ export const JoinBody = z.object({
   token: z.string().optional().describe('Share-link token, for people invited by link'),
 });
 export const NameSuggestionResponse = z.object({ name: z.string() });
+
+export const ASK_CHIPS = ['add_dinner', 'rain_proof', 'best_weather_day', 'cheaper'] as const;
+export const AskBody = z
+  .object({
+    prompt: z
+      .string()
+      .trim()
+      .min(1)
+      .max(300)
+      .optional()
+      .describe(
+        'Free text, e.g. "somewhere with outdoor seating near stop 2" (Maps answers are English only)',
+      ),
+    chip: z
+      .enum(ASK_CHIPS)
+      .optional()
+      .describe('Add dinner · Rain-proof it · Best weather day · Make it cheaper'),
+  })
+  .refine((b) => !!b.prompt !== !!b.chip, { message: 'Send exactly one of prompt or chip' });
+
+export const AskResponse = z.object({
+  plan: PlanSchema.describe('plan.ghostChanges holds the diff: accept all or tap one at a time'),
+  message: z.string().describe('One line from the planner'),
+  sources: z
+    .array(z.object({ title: z.string(), uri: z.string() }))
+    .describe('Google Maps source links; must be shown right under message'),
+  via: z.enum(['backboard', 'gemini', 'code']),
+});

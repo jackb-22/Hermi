@@ -186,6 +186,10 @@ describe('reviews', () => {
       post: { type: 'review', again: false, text: 'Too loud to talk' },
     });
     expect(withText.json().post.media).toHaveLength(1);
+    // "Would go again: No" is remembered for the AI planner.
+    expect(
+      await t.ctx.db.collection('ai_memories').findOne({ userId: ben.id, source: 'review' }),
+    ).toMatchObject({ text: expect.stringMatching(/^Would not go again to .*Too loud to talk/) });
     expect(
       (
         await t.app.inject({
@@ -196,6 +200,17 @@ describe('reviews', () => {
         })
       ).statusCode,
     ).toBe(404);
+  });
+
+  test('the place sheet summarizes live text reviews; a removed review leaves the summary', async () => {
+    const sheet = async () =>
+      (await t.app.inject({ url: `/v1/places/${cafe}`, headers: ana.headers })).json();
+    await worker.drain(); // the Review post above passes moderation, which queues the summary
+    expect((await sheet()).reviewSummary).toBe('“Too loud to talk”'); // fake model: newest review, quoted
+    const review = await t.ctx.db.collection('posts').findOne({ type: 'review', placeId: cafe });
+    await t.app.inject({ method: 'DELETE', url: `/v1/posts/${review!._id}`, headers: ben.headers });
+    await worker.drain();
+    expect((await sheet()).reviewSummary).toBeNull();
   });
 });
 
@@ -222,6 +237,19 @@ describe('safety', () => {
     expect(
       (await t.app.inject({ url: `/v1/posts/${p.id}`, headers: carl.headers })).statusCode,
     ).toBe(200);
+    // The place sheet's grid: everyone's posts from that place, minus what you reported.
+    const grid = async (who: typeof ben) =>
+      (
+        await t.app.inject({
+          url: '/v1/posts',
+          query: { placeId: gallery!._id },
+          headers: who.headers,
+        })
+      )
+        .json()
+        .items.map((i: { id: string }) => i.id);
+    expect(await grid(carl)).toEqual([p.id]);
+    expect(await grid(ben)).toEqual([]);
     await t.app.inject({
       method: 'POST',
       url: '/v1/blocks',

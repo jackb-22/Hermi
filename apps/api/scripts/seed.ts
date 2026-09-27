@@ -37,8 +37,15 @@ import type { PlaceDoc } from '../src/db/placeTypes.ts';
 import type { UserDoc } from '../src/db/types.ts';
 import { buildPrefs } from '../src/domain/prefs.ts';
 import { processMedia } from '../src/jobs/processMedia.ts';
+import { findMatches, openPlansFor } from '../src/services/matching.ts';
 import type { MediaDoc } from '../src/services/media.ts';
-import { loadPlaces, normalizeStops, type PlanDoc, recompute } from '../src/services/plans.ts';
+import {
+  loadPlaces,
+  normalizeStops,
+  type PlanDoc,
+  plans,
+  recompute,
+} from '../src/services/plans.ts';
 import type { PostDoc } from '../src/services/posts.ts';
 import { newUser } from '../src/services/users.ts';
 
@@ -180,6 +187,15 @@ for (const username of values.demo!.split(',').filter(Boolean)) {
     await db.collection<UserDoc>('users').updateOne({ _id: u._id }, { $set: verified });
     Object.assign(u, verified);
   }
+  // Demo phones see the Find someone "!" markers: Open to plans on, and a taste (liked everything) if they skipped the deck.
+  const open: Partial<UserDoc> = { openToPlans: true };
+  if (!u.prefVector?.some((x) => x !== 0))
+    open.prefVector = buildPrefs(
+      deck.map((c) => ({ cardId: c.id, liked: true })),
+      false,
+    ).prefVector;
+  await db.collection<UserDoc>('users').updateOne({ _id: u._id }, { $set: open });
+  Object.assign(u, open);
   demo.push(u);
 }
 
@@ -623,6 +639,16 @@ for (const [i, host] of hosts.entries()) {
   };
   recompute(plan, byId);
   await db.collection('plans').insertOne(plan as never);
+  if (plan.visibility === 'find') {
+    const matches = await findMatches(ctx, plan);
+    await plans(db).updateOne({ _id: plan._id }, { $set: { matchCount: matches.length } });
+    for (const d of demo) {
+      const sees = (await openPlansFor(ctx, d, [plan])).length > 0;
+      console.log(
+        `open plan "${plan.name}": @${d.username} ${sees ? 'sees the ! marker' : 'is NOT matched (check their taste, dislikes, or plans at that time)'}`,
+      );
+    }
+  }
 }
 
 await tiger.query(`call refresh_continuous_aggregate('xp_daily', null, date_trunc('day', now()))`);

@@ -82,7 +82,18 @@ export const VerifySchema = z.object({
   checkin: z.object({ tier: z.enum(['gps', 'tag']), at: z.string(), attested: z.boolean() }),
   capturedInApp: z.literal(true),
   author: z.object({ username: z.string().nullable() }),
-  credential: z.object({ c2pa: z.boolean(), manifestUrl: z.string().nullable() }),
+  credential: z.object({
+    c2pa: z.boolean(),
+    manifestUrl: z
+      .string()
+      .nullable()
+      .describe('The original with its signed C2PA manifest embedded (Content Credentials file)'),
+    signer: z.string().nullable(),
+    inspectUrl: z
+      .string()
+      .nullable()
+      .describe('Opens the file in the Content Credentials verify tool'),
+  }),
 });
 
 export const FromSavedBody = z.object({
