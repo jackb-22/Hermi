@@ -207,14 +207,15 @@ Photos are assigned to seeded check-in places at random, so general NYC or campu
 **Laptop, once:** seed the judge accounts, ava and ben, plus rehearsal accounts ava2 and ben2. All four are friends with each other.
 ```sh
 cd apps/api && pnpm exec tsx --env-file=../../.env.demo scripts/seed.ts --reset --demo ava,ben,ava2,ben2
+pnpm exec tsx --env-file=../../.env.demo scripts/seed-curated.ts        # real photos, clips and reviews (~3–5 min)
 ```
 **Mac:** run `sh apps/ios/HermiPreview/scripts/check.sh`. Expect 86 tests. The app is now named **Hermi**.
 - [ ] Settings → Server: tap **@ava2** (demo account buttons, or type ava2 and Connect), and you're LIVE as ava2. Use the **rehearsal** accounts today; save ava and ben for the judges.
-- [ ] **Invite:** as ava2, add **Lerner Black Box Theatre** and **Butler Library** to My Plan. Hold the bookmark → Save → Friends → **ben2**.
+- [ ] **Invite:** as ava2, add **Alfred Lerner Hall** and **Butler Library** to My Plan (Alfred Lerner Hall exists after the curated seed). Hold the bookmark → Save → Friends → **ben2**.
 - [ ] **Join:** switch to **@ben2**. My Plan shows **FROM FRIENDS · "<plan>" · ava2 invited you** with **Join / Can't**. Tap Join, and the row becomes **Joined · Go!**
 - [ ] **Adventure (ben2):** tap **Go!** on the joined row. You see the Directions map with the route, the NEXT STOP card (distance, Open in Maps) and a stop list with **Tap tag** buttons. The top shows "OUTING · mm:ss".
   - Location permission prompt: Allow. In the Simulator, Features → Location → Custom → 40.8068, -73.9640 puts you at Lerner.
-- [ ] **Tap tag** at Lerner Black Box Theatre shows "Checked in … +N XP". Do the same at Butler. Both rows show "✓ +N XP".
+- [ ] **Tap tag** at Alfred Lerner Hall shows "Checked in … +N XP". Do the same at Butler. Both rows show "✓ +N XP".
 - [ ] **Camera** tab: shutter. In the Simulator, a labelled sample photo is used. The thumbnail goes **Uploading… → Verified**. Before any check-in, the shutter is disabled with an explanation.
 - [ ] **End** → confirm → "Building your recap…" → **Recap**: duration, km, new tiles, **+XP** with each item, stops (TAG, FIRST).
 - [ ] **Would you go again?** Yes/No on a stop gives "You'd go again ✓".

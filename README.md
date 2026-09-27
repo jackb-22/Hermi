@@ -54,7 +54,7 @@ We can install it on your iPhone by cable, or hand you our two phones, already s
 | Step | What to do | What it shows |
 |---|---|---|
 | **1. Discover** | Pan and zoom the map: thousands of real venues, bounded to the five boroughs. Swipe the pin at top right to **Food**, then hold and drag it onto the map next to Columbia. Tap a restaurant, e.g. **The Hungarian Pastry Shop**: real photos, videos and reviews. Tap **+** to add it. Tap the pin once for **citywide** Food; tap again for everything. | Radius discovery, place pages, plan membership |
-| **2. Plan** | Tap the plan icon (top right). Add **Lerner Black Box Theatre** and **Butler Library**; hold a stop to reorder it. Hold the **bookmark** → **Save plan** → **Friends** → pick **ben**. | Plans synced to your account, invitations to real friends |
+| **2. Plan** | Tap the plan icon (top right). Add **Alfred Lerner Hall** and **Butler Library**; hold a stop to reorder it. Hold the **bookmark** → **Save plan** → **Friends** → pick **ben**. | Plans synced to your account, invitations to real friends |
 | **3. Friend joins** | As **ben** (second simulator, or Settings → **@ben**): **My Plan → From friends** shows "ava invited you". Tap **Join**, then **Go!** | Shared plans |
 | **4. Explore** | **Feed**: photos, videos, plans drawn on the map, open plans with **Join / Request**. Top right switches General ⇄ Friends; the chevron filters Everything / Posts / Plans. **Social** (map, top right): friends' recent check-ins blink, plan lines, and "!" open plans from matched students. **Saved** (Profile → bookmark): folders and full-screen media. | The social layer |
 | **5. Adventure** | **Go!** opens Directions: route, next stop and distance. At a stop, tap **Tap tag**, our stand-in for the NFC tag at the venue. You get **+XP**, and "Hangout with ben" if you both check in within 30 minutes. Switch to **Camera** and take a photo: it uploads, is hashed, and is **Verified** against your check-in. Check in at Butler, then **End**. | In-person verification, the verified capture pipeline |
@@ -139,6 +139,8 @@ uvx --python 3.12 overturemaps download --no-stac --bbox=-74.26,40.49,-73.70,40.
 pnpm --filter @itp/api exec tsx --env-file=../../.env scripts/import-overture.ts data/nyc_places.geojsonseq
 # People, history, posts and open plans (removes only earlier seed data)
 pnpm --filter @itp/api exec tsx --env-file=../../.env scripts/seed.ts --reset --demo ava,ben [--media-dir ./captures]
+# Curated Columbia content: real photos, clips and reviews per place (folder layout in the script header)
+pnpm --filter @itp/api exec tsx --env-file=../../.env scripts/seed-curated.ts --dir <folder>
 ```
 
 ### Demo backend on a laptop (what judges hit)
