@@ -29,7 +29,7 @@ struct HomeNavigationPill: View {
         .accessibilityHint("Open \(panel.rawValue)")
         .help("Open \(panel.rawValue)")
       }
-    }.padding(6).background(HermiPalette.paper, in: Capsule())
+    }.padding(6).background(HermiPalette.controlSurface, in: Capsule())
       .overlay(Capsule().stroke(HermiPalette.ink.opacity(0.15)).allowsHitTesting(false))
   }
 }

@@ -58,7 +58,7 @@ public struct HermiMapPreview: View {
         }.accessibilityHidden(mapCovered).allowsHitTesting(!mapCovered)
         if let pinNotice, state.panel == .map {
           VStack { Text(pinNotice).font(.caption).padding(12)
-              .background(HermiPalette.paper, in: PixelPanel(corner: 6))
+              .background(HermiPalette.controlSurface, in: PixelPanel(corner: 6))
               .padding(.top, safeGeometry.safeAreaInsets.top + 8)
             Spacer()
           }.padding(.leading, 16).padding(.trailing, 100).allowsHitTesting(false)
@@ -268,7 +268,7 @@ public struct HermiMapPreview: View {
         }
       } label: {
         PixelIcon(name: "menu").frame(width: 20, height: 20).frame(width: 30, height: 30)
-          .background(HermiPalette.paper.opacity(0.96), in: PixelPanel(corner: 6))
+          .background(HermiPalette.controlSurface.opacity(0.96), in: PixelPanel(corner: 6))
       }.fixedSize().accessibilityLabel("Hermi preview options")
       }
       Spacer()
@@ -294,11 +294,11 @@ public struct HermiMapPreview: View {
       if state.panel == .profile {
         Button { settings = true } label: {
           PixelIcon(name: "settings").frame(width: 26, height: 26).frame(width: 34, height: 34)
-            .background(HermiPalette.paper, in: PixelPanel(corner: 8)).frame(width: 44, height: 44)
+            .background(HermiPalette.controlSurface, in: PixelPanel(corner: 8)).frame(width: 44, height: 44)
         }.accessibilityLabel("Settings").controlHelp("Open privacy and adventure sharing preferences")
         Button { state.sheet = .saved } label: {
           PixelIcon(name: "save").frame(width: 26, height: 26).frame(width: 34, height: 34)
-            .background(HermiPalette.paper, in: PixelPanel(corner: 8)).frame(width: 44, height: 44)
+            .background(HermiPalette.controlSurface, in: PixelPanel(corner: 8)).frame(width: 44, height: 44)
         }.accessibilityLabel("Open Saved folders").controlHelp("Browse saved places, posts and plans")
       } else {
       Button {
@@ -306,7 +306,7 @@ public struct HermiMapPreview: View {
         else { state.social.toggle() }
       } label: {
         PixelIcon(name: "social").frame(width: 26, height: 26).frame(width: 34, height: 34)
-          .background((state.panel == .feed ? state.feedOptions.audience == .friends : state.social) ? HermiPalette.lime : HermiPalette.paper, in: PixelPanel(corner: 8))
+          .background((state.panel == .feed ? state.feedOptions.audience == .friends : state.social) ? HermiPalette.lime : HermiPalette.controlSurface, in: PixelPanel(corner: 8))
         .frame(width: 44, height: 44).contentShape(Rectangle())
       }.accessibilityLabel(state.panel == .feed ? (state.feedOptions.audience == .friends ? "Friends feed. Show general" : "General feed. Show friends") : (state.social ? "Social map. Switch to Solo" : "Solo map. Switch to Social"))
         .controlHelp(state.panel == .feed ? "Switch the Feed between General and Friends" : "Toggle Solo and Social map")
@@ -315,7 +315,7 @@ public struct HermiMapPreview: View {
         else { state.sheet = .plan; panelLevel = .full }
       } label: {
         PixelIcon(name: "plan").frame(width: 26, height: 26).frame(width: 34, height: 34)
-          .background(state.panel == .feed ? state.feedOptions.content.tint : HermiPalette.paper, in: PixelPanel(corner: 8))
+          .background(state.panel == .feed ? state.feedOptions.content.tint : HermiPalette.controlSurface, in: PixelPanel(corner: 8))
         .frame(width: 44, height: 44).contentShape(Rectangle())
       }.accessibilityLabel(state.panel == .feed ? "Feed shows \(state.feedOptions.content.label). Change filter" : "My Plan, \(state.planIDs.count) places")
         .controlHelp(state.panel == .feed ? "Filter the Feed: everything, posts only or plans only" : "Open My Plan. Saved is inside its bookmark button")
@@ -409,7 +409,7 @@ public struct HermiMapPreview: View {
   private func mapButton(_ icon: String, label: String, action: String) -> some View {
     Button { mapCommand = MapCommand(action: action) } label: {
       PixelIcon(name: icon).frame(width: 20, height: 20).frame(width: 34, height: 34)
-        .background(HermiPalette.paper, in: PixelPanel(corner: 6))
+        .background(HermiPalette.controlSurface, in: PixelPanel(corner: 6))
       .frame(width: 44, height: 44).contentShape(Rectangle())
     }.buttonStyle(.plain).accessibilityLabel(label).controlHelp(label)
   }
@@ -578,7 +578,7 @@ public struct HermiMapPreview: View {
             .overlay(alignment: .topTrailing) {
               Button { profileDetail = .stats } label: {
                 PixelIcon(name: "info").frame(width: 23, height: 23).frame(width: 44, height: 44)
-                  .background(HermiPalette.paper, in: PixelPanel(corner: 6))
+                  .background(HermiPalette.controlSurface, in: PixelPanel(corner: 6))
               }.buttonStyle(.plain).accessibilityLabel("Adventure statistics").controlHelp("View your visits, coverage, steps and neighborhood statistics").padding(12)
             }
         } else {

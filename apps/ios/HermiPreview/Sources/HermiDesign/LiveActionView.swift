@@ -45,17 +45,17 @@ struct LiveActionView: View {
         HStack {
           TimelineView(.periodic(from: .now, by: 1)) { context in
             Text("OUTING · \(elapsed(at: context.date))").font(.system(.caption, design: .monospaced))
-          }.padding(10).background(HermiPalette.paper, in: PixelPanel(corner: 5))
+          }.padding(10).background(HermiPalette.controlSurface, in: PixelPanel(corner: 5))
           Spacer()
           Button("End") { confirmingEnd = true }.frame(minWidth: 44, minHeight: 44)
-            .padding(.horizontal, 8).background(HermiPalette.paper, in: PixelPanel(corner: 5))
+            .padding(.horizontal, 8).background(HermiPalette.controlSurface, in: PixelPanel(corner: 5))
             .accessibilityLabel("End outing")
         }.padding(.horizontal, 18).padding(.top, 8)
         Spacer()
         HStack(spacing: 12) {
           modeButton("Directions", icon: "route", mode: .directions)
           modeButton("Camera", icon: "camera", mode: .camera)
-        }.padding(8).background(HermiPalette.paper, in: Capsule()).padding(.bottom, 16)
+        }.padding(8).background(HermiPalette.controlSurface, in: Capsule()).padding(.bottom, 16)
       }
     }
   }
@@ -91,7 +91,7 @@ struct LiveActionView: View {
           .font(.caption2).foregroundStyle(HermiPalette.secondary)
         if outing.locationDenied { Text("Location is off. Turn it on to check in (Settings → Privacy → Location).").font(.caption2).foregroundStyle(HermiPalette.error) }
       }
-      .padding(16).background(HermiPalette.paper, in: PixelPanel(corner: 10))
+      .padding(16).background(HermiPalette.controlSurface, in: PixelPanel(corner: 10))
       .padding(.horizontal, 14).padding(.bottom, 92)
     }
   }
@@ -281,7 +281,7 @@ private struct RecapView: View {
 
           postComposer(recap)
           Button("Done") { done() }.font(.headline).padding(16).frame(maxWidth: .infinity)
-            .background(HermiPalette.paper, in: PixelPanel(corner: 8))
+            .background(HermiPalette.controlSurface, in: PixelPanel(corner: 8))
             .overlay(PixelPanel(corner: 8).stroke(HermiPalette.ink, lineWidth: 2))
         }.padding(24)
       }

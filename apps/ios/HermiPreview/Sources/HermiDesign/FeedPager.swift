@@ -46,7 +46,7 @@ struct FeedPager: View {
     }.scrollTargetBehavior(.paging).scrollPosition(id: $current).scrollIndicators(.hidden)
       .overlay(alignment: .topLeading) {
         Text("\(state.feedOptions.audience.rawValue) · \(state.feedOptions.content.label)")
-          .font(.caption.bold()).padding(10).background(HermiPalette.paper, in: PixelPanel(corner: 5))
+          .font(.caption.bold()).padding(10).background(HermiPalette.controlSurface, in: PixelPanel(corner: 5))
           .padding(.top, 105).padding(.leading, 20).allowsHitTesting(false)
       }
       .simultaneousGesture(DragGesture(minimumDistance: 20)
@@ -132,13 +132,13 @@ struct FeedPager: View {
     Button { state.selectPlace(place.id) } label: {
       HStack { BallpointPin(category: place.category).frame(width: 16, height: 22); Text(place.name); Spacer(minLength: 0) }
         .font(.subheadline).foregroundStyle(HermiPalette.ink).padding(.horizontal, 12).frame(minHeight: 44)
-        .background(HermiPalette.paper, in: PixelPanel(corner: 6))
+        .background(HermiPalette.controlSurface, in: PixelPanel(corner: 6))
     }.controlHelp("Open \(place.name): media, description and reviews")
   }
   private func icon(_ name: String, active: Bool = false) -> some View {
     PixelIcon(name: name).frame(width: 22, height: 24).frame(width: 44, height: 44)
       .foregroundStyle(HermiPalette.ink)
-      .background(active ? HermiPalette.lime : HermiPalette.paper, in: PixelPanel(corner: 6))
+      .background(active ? HermiPalette.lime : HermiPalette.controlSurface, in: PixelPanel(corner: 6))
   }
 }
 

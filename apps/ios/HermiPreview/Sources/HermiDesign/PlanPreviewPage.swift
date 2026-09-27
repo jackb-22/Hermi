@@ -205,7 +205,7 @@ struct PlanPreviewPage: View {
                 .controlHelp("Review local audience preferences; no invitations or publishing")
             }
           }.padding(14).frame(width: 210, alignment: .leading)
-            .background(HermiPalette.paper, in: PixelPanel(corner: 7))
+            .background(HermiPalette.controlSurface, in: PixelPanel(corner: 7))
             .overlay(PixelPanel(corner: 7).stroke(HermiPalette.ink.opacity(0.2)))
             .padding(.top, 86).padding(.trailing, 18)
         }

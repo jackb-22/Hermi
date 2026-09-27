@@ -86,7 +86,7 @@ struct PlaceFeedContent: View {
                       ParkPlacement().frame(width: 260, height: 220).clipped()
                       if index == 2 {
                         PixelIcon(name: "play").frame(width: 24, height: 24).padding(12)
-                          .background(HermiPalette.paper, in: PixelPanel(corner: 6)).padding(12)
+                          .background(HermiPalette.controlSurface, in: PixelPanel(corner: 6)).padding(12)
                       }
                     }
                     .hueRotation(.degrees(Double(index) * 12))
@@ -134,7 +134,7 @@ struct RemoteMediaTile: View {
       CachedImage(url: item.isVideo ? item.posterURL : item.url)
       if item.isVideo {
         PixelIcon(name: "play").frame(width: 24, height: 24).padding(12)
-          .background(HermiPalette.paper, in: PixelPanel(corner: 6)).padding(12)
+          .background(HermiPalette.controlSurface, in: PixelPanel(corner: 6)).padding(12)
       }
     }
     .clipped()

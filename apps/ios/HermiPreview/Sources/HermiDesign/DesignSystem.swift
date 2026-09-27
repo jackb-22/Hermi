@@ -10,6 +10,8 @@ enum HermiPalette {
   static let coralRGB: UInt32 = 0xEF8067
   static let lavenderRGB: UInt32 = 0xA596DD
   static let ink = color(inkRGB)
+  static let controlSurfaceRGB: UInt32 = 0xFFFDF8
+  static let controlSurface = color(controlSurfaceRGB)
   static let paper = color(paperRGB)
   static let green = color(greenRGB)
   static let lime = color(limeRGB)
@@ -37,7 +39,7 @@ enum HermiPalette {
   static func category(_ category: HermiCategory) -> Color { color(categoryRGB(category)) }
   static var mapColors: [String: String] {
     ["ink": hex(inkRGB), "paper": "#F8FAF3", "green": hex(greenRGB),
-     "lime": hex(limeRGB), "lake": hex(lakeRGB), "coral": hex(coralRGB),
+     "lime": hex(limeRGB), "lake": hex(lakeRGB), "coral": hex(coralRGB), "surface": hex(controlSurfaceRGB),
      "land": "#ECEDD9", "cover": "#9DBF84", "parks": "#5B8C4A",
      "buildings": "#D2D9BE", "paths": "#739D69", "water": hex(lakeRGB), "shadow": "#8FA580"]
   }
@@ -66,7 +68,7 @@ struct HermiButtonStyle: ButtonStyle {
     configuration.label.font(.body.weight(.semibold))
       .frame(maxWidth: .infinity, minHeight: 48).padding(.horizontal, 16)
       .foregroundStyle(enabled ? (secondary ? HermiPalette.ink : HermiPalette.paper) : HermiPalette.secondary)
-      .background(PixelPanel(corner: 5).fill(enabled ? (secondary ? Color.white : HermiPalette.ink) : HermiPalette.line))
+      .background(PixelPanel(corner: 5).fill(enabled ? (secondary ? HermiPalette.controlSurface : HermiPalette.ink) : HermiPalette.line))
       .overlay(PixelPanel(corner: 5).strokeBorderEquivalent(secondary ? HermiPalette.line : .clear))
       .offset(y: configuration.isPressed && enabled ? 2 : 0)
       .opacity(configuration.isPressed ? 0.85 : 1)

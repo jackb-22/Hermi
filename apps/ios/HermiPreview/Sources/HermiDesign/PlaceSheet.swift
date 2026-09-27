@@ -7,7 +7,7 @@ struct CloseButton: View {
   var body: some View {
     Button(action: action) {
       PixelIcon(name: "close").frame(width: 16, height: 16).frame(width: 36, height: 36)
-        .background(HermiPalette.paper, in: PixelPanel(corner: 7))
+        .background(HermiPalette.controlSurface, in: PixelPanel(corner: 7))
         .frame(width: 44, height: 44).contentShape(Rectangle())
     }.buttonStyle(.plain).accessibilityLabel(label)
   }
