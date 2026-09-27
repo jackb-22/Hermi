@@ -10,3 +10,7 @@
 Validation: 87 Swift tests passed; map bridge behavior checks passed; iOS simulator build succeeded; git diff whitespace check passed. Simulator screenshots: brand.png and plan.png. Business logic, persistence and backend untouched.
 
 Only the design files were staged. Unrelated untracked duplicate files appeared in the working copy during verification and were left untouched.
+
+## User refinement: vibrant map and Liberty torch
+
+Restored the original map land, cover, park, building, path, water and bright street colors. UI category colors and pin/landmark improvements remain. Added a patinated copper Statue of Liberty torch with a gold flame to the raised crab claw; it travels with the crab during the intro. Updated brand.png from the iPhone 16e simulator. Simulator build and map bridge checks passed.

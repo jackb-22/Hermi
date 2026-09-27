@@ -35,7 +35,7 @@ struct HermitBrandMark: View {
       let peek = max(0, min(1, emergence))
       if peek > 0 {
         var crab = context
-        crab.clip(to: Path(CGRect(x: origin.x, y: origin.y + 48 * unit, width: 64 * unit, height: 24 * unit)))
+        crab.clip(to: Path(CGRect(x: origin.x, y: origin.y + 30 * unit, width: 64 * unit, height: 42 * unit)))
         // Translate the complete face/limbs together; no detached eyes during reveal.
         crab.translateBy(x: 0, y: (1 - peek) * 22 * unit)
         func pixel(_ x: Double, _ y: Double, _ w: Double, _ h: Double, _ color: Color) {
@@ -57,6 +57,18 @@ struct HermitBrandMark: View {
         pixel(25,57,1,1,window); pixel(37,57,1,1,window)
         pixel(20,59,5,2,blush); pixel(36,59,5,2,blush)
         pixel(29,59,1,1,ink); pixel(32,59,1,1,ink); pixel(30,60,2,1,ink)
+        // Liberty torch moves with the crab; the claw wraps around its stem.
+        let copper = HermiPalette.color(0x70B5A4)
+        let copperShade = HermiPalette.color(0x397F79)
+        pixel(8,44,4,17,ink); pixel(9,45,2,15,copperShade)
+        pixel(9,46,1,12,copper)
+        pixel(5,43,10,4,ink); pixel(6,43,8,2,copper)
+        pixel(3,39,14,4,ink); pixel(4,40,12,2,copper)
+        pixel(5,38,2,2,copperShade); pixel(9,37,2,3,copper); pixel(13,38,2,2,copperShade)
+        pixel(6,33,8,5,ink); pixel(8,31,5,3,ink)
+        pixel(7,34,6,3,HermiPalette.color(0xF4AC38))
+        pixel(9,32,3,4,HermiPalette.color(0xFFD66B))
+        pixel(9,35,2,2,HermiPalette.color(0xFFF2B0))
         // Left raised pincer, right oversized pincer: separated jaws read as claws.
         pixel(10,56,7,4,ink); pixel(7,50,8,8,ink)
         pixel(8,51,3,5,coral); pixel(12,51,2,5,coral)
