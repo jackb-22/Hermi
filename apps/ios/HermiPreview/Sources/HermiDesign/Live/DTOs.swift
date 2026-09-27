@@ -123,3 +123,29 @@ struct PostsPageDTO: Decodable, Sendable {
   var items: [PostDTO]
   var nextCursor: String?
 }
+
+/// `SavedItem`: a saved place, post or plan with its hydrated object (plans are handled in Step 6).
+struct SavedItemDTO: Decodable, Sendable {
+  var type: String
+  var refId: String
+  var place: PlaceDTO?
+  var post: PostDTO?
+}
+
+struct SavedPageDTO: Decodable, Sendable {
+  var items: [SavedItemDTO]
+}
+
+struct FolderDTO: Decodable, Sendable {
+  var id: String
+  var name: String
+  var count: Int?
+}
+
+struct FoldersDTO: Decodable, Sendable {
+  var items: [FolderDTO]
+}
+
+struct SaveResponseDTO: Decodable, Sendable {
+  var copiedPlanId: String?
+}

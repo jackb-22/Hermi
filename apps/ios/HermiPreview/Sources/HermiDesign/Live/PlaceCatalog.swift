@@ -15,6 +15,8 @@ final class PlaceCatalog {
   private(set) var tilePlaces: [String: [String]] = [:]
   /// Tiles on screen plus a one-tile ring around it (what the map shows).
   private(set) var shownTiles: [String] = []
+  /// After a zoom crosses a tile level, the previous level's tiles stay drawn until the new ones load (no flicker).
+  private(set) var fallbackTiles: [String] = []
   /// Latest results for discovery pins and the citywide category (see `discoveryChanged`).
   private(set) var filterIDs: [String] = []
   private(set) var loading = false
@@ -26,6 +28,8 @@ final class PlaceCatalog {
   @ObservationIgnored private var tileTasks: [String: Task<Void, Never>] = [:]
   @ObservationIgnored private var lastBounds: [Double]?
   @ObservationIgnored private var lastZoom: Double = 15
+  @ObservationIgnored private var shownZoom: Int?
+  @ObservationIgnored private var visibleKeys: [String] = []
   @ObservationIgnored private var filterTask: Task<Void, Never>?
   @ObservationIgnored private var query = DiscoveryQuery()
   @ObservationIgnored private var persistedIDs: Set<String> = []
@@ -52,7 +56,7 @@ final class PlaceCatalog {
   var discoverable: [MapSamplePlace] {
     guard LiveSession.shared.isLive else { return MapSamplePlace.fixtures }
     // MapPreviewState.matchingPlaces applies category/radius and removes duplicates.
-    return (filterIDs + shownTiles.flatMap { tilePlaces[$0] ?? [] }).compactMap { cache[$0] }
+    return (filterIDs + (shownTiles + fallbackTiles).flatMap { tilePlaces[$0] ?? [] }).compactMap { cache[$0] }
   }
   var cached: [MapSamplePlace] { cache.values.sorted { $0.id < $1.id } }
 
@@ -94,7 +98,7 @@ final class PlaceCatalog {
   @MainActor
   func refresh() {
     for task in tileTasks.values { task.cancel() }
-    tileTasks = [:]; tilePlaces = [:]
+    tileTasks = [:]; tilePlaces = [:]; fallbackTiles = []
     loadTiles()
     refreshFilters(debounce: false)
   }
@@ -105,6 +109,12 @@ final class PlaceCatalog {
     let z = PlaceCatalog.tileZoom(forMapZoom: lastZoom)
     let visible = PlaceCatalog.tiles(covering: bounds, zoom: z, ring: 0)
     let shown = PlaceCatalog.tiles(covering: bounds, zoom: z, ring: 1)
+    if let previous = shownZoom, previous != z {
+      let loaded = shownTiles.filter { tilePlaces[$0] != nil }
+      fallbackTiles = Array(Set(fallbackTiles + loaded)).sorted()
+    }
+    shownZoom = z
+    visibleKeys = visible
     if shown != shownTiles { shownTiles = shown }
     // Drop requests for tiles that scrolled well away; keep ones still in view.
     for (key, task) in tileTasks where !shown.contains(key) { task.cancel(); tileTasks[key] = nil }
@@ -122,6 +132,7 @@ final class PlaceCatalog {
           upsert(places)
           tilePlaces[key] = places.map(\.id)
           lastError = nil
+          releaseFallbackIfReady()
         } catch {
           guard !Task.isCancelled else { return }
           lastError = error.localizedDescription
@@ -129,6 +140,11 @@ final class PlaceCatalog {
       }
     }
     loading = !tileTasks.isEmpty
+    releaseFallbackIfReady()
+  }
+
+  private func releaseFallbackIfReady() {
+    if !fallbackTiles.isEmpty, visibleKeys.allSatisfy({ tilePlaces[$0] != nil }) { fallbackTiles = [] }
   }
 
   /// Tile zoom follows the map so each screen holds roughly 8–15 tiles; clamped to the city's useful range.

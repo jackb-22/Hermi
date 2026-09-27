@@ -128,6 +128,17 @@ pnpm exec tsx --env-file=../../.env.demo scripts/seed.ts --reset --demo jack,jen
 ```
 Photos are assigned to seeded check-in places at random, so general NYC or campus shots work best.
 
+### Step 5: saved places, posts and folders sync (plus 4b fixes)
+- [ ] `check.sh` passes: 76 tests. The 2 failures from 4b (a stale catalog test) are fixed.
+- [ ] **Zoom:** the + and − buttons are gone (pinch or the scroll wheel zooms), and only recenter remains. Pinching across zoom levels no longer blanks the dots: the old dots stay until the new ones load.
+- [ ] Connected as jack: bookmark 2 real places (place sheet → bookmark) and 1 real post (bookmark on a post in a place sheet).
+- [ ] Quit the Simulator completely and rerun `check.sh --skip-tests`. After the login restores, the 2 places and the post are still in Saved (Plan → bookmark → row or See all).
+- [ ] Unbookmark one place, relaunch: it stays removed.
+- [ ] Create a folder in Saved and put a saved place in it, relaunch: the folder and its item are still there.
+- [ ] Log in as **jenny** in Settings: jack's saves are **not** shown. Log back in as jack and they return.
+- [ ] Sample mode: saving the sample places works locally as before, and nothing is sent to the server.
+- [ ] Any sync error shows briefly at the top of the map, e.g. "Couldn't save: …".
+
 ---
 
 ## Deferred / deviations log
@@ -161,4 +172,6 @@ Items that are unconnected, need UI or backend work, or depart from `docs/HERMI_
 | D23 | Design amendment | New discovery pins start at 0.25 mi instead of 1 mi. Park and forest map colours are darker. | User request, 2026-09-27. Supersedes the frontend docs. |
 | D24 | Map | Places are hidden unless they fall inside a borough's land outline. A venue on a pier beyond the shoreline outline would be hidden too. | Filters out the New Jersey rows without a production delete. |
 | D25 | Place sheet | There's no walking time until the app has the user's location (Step 10); the server computes it from `lat`/`lng`. Recap and review posts without media show text only, with no route drawing. | Location comes with Action mode. |
+| D26 | Saved | Sync compares each change with the last synced snapshot and sends only the differences, in order. There's no retry on failure (a notice is shown) and no conflict handling across devices. Folder ID mappings aren't scoped per account on the device. Saved **plans** sync in Step 6. | Speed. |
+| D27 | Content | Jack will supply curated reviews, short videos and photos for places around Columbia, to fill place sheets and the Feed. Loading them needs a seed or import step, planned after the main flow. | Waiting on content. |
 

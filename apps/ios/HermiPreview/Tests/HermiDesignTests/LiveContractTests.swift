@@ -75,8 +75,12 @@ final class LiveContractTests: XCTestCase {
     let catalog = PlaceCatalog(defaults: defaults)
     XCTAssertEqual(catalog.place("cafe")?.name, "Corner café")
     XCTAssertNil(catalog.place("live-1"))
-    catalog.upsert([MapSamplePlace(id: "live-1", name: "Real place", category: .music, latitude: 40.8, longitude: -73.96, isLive: true)])
+    catalog.upsert([MapSamplePlace(id: "live-1", name: "Real place", category: .music, latitude: 40.8, longitude: -73.96, isLive: true),
+                    MapSamplePlace(id: "live-2", name: "Just browsed", category: .food, latitude: 40.8, longitude: -73.96, isLive: true)])
+    // Only places the user's plan/saved items reference are written to disk.
+    catalog.persist(referenced: ["live-1", "cafe"])
     let reloaded = PlaceCatalog(defaults: defaults)
+    XCTAssertNil(reloaded.place("live-2"))
     XCTAssertEqual(reloaded.place("live-1")?.name, "Real place")
     XCTAssertEqual(reloaded.place("live-1")?.isLive, true)
     // Sample mode keeps discovery on fixtures even with a warm cache.
@@ -201,5 +205,47 @@ final class LiveContractTests: XCTestCase {
     XCTAssertEqual(PlaceCatalog.tileZoom(forMapZoom: 3), 10)
     XCTAssertEqual(PlaceCatalog.tileZoom(forMapZoom: 19), 16)
     XCTAssertNil(PlaceCatalog.tileBounds("nope"))
+  }
+
+  func testSavedSnapshotOnlyCarriesLiveItems() {
+    var state = MapPreviewState()
+    state.toggleSave("cafe")
+    state.savedIDs.insert("01LIVEPLACE")
+    var library = state.library
+    library.posts = [.init(kind: .post, refID: "cafe-alex"), .init(kind: .post, refID: "01LIVEPOST")]
+    library.folders = [SavedFolder(name: "Mix", items: [.init(kind: .place, refID: "cafe"), .init(kind: .place, refID: "01LIVEPLACE"),
+                                                        .init(kind: .plan, refID: UUID().uuidString)])]
+    state.library = library
+    let snapshot = SavedSnapshot(state, folderIDs: Set(state.library.folders.map(\.id)))
+    XCTAssertEqual(snapshot.places, ["01LIVEPLACE"])
+    XCTAssertEqual(snapshot.posts, ["01LIVEPOST"])
+    XCTAssertEqual(snapshot.folders.values.first?.items, [.init(kind: .place, refID: "01LIVEPLACE")])
+  }
+
+  @MainActor
+  func testHydrationMergesServerSavesWithoutDuplicatingFolders() throws {
+    let defaults = try XCTUnwrap(UserDefaults(suiteName: "hermi.tests.saved-sync"))
+    defaults.removePersistentDomain(forName: "hermi.tests.saved-sync")
+    let sync = SavedSync(defaults: defaults)
+    var state = MapPreviewState()
+    state.toggleSave("cafe")
+    var library = state.library
+    library.posts = [.init(kind: .post, refID: "cafe-alex")]
+    library.folders = [SavedFolder(name: "Mine", items: [.init(kind: .place, refID: "cafe")])]
+    state.library = library
+    var hydration = SavedSync.Hydration()
+    hydration.places = ["01LIVE"]
+    hydration.folders = [(serverID: "srv1", name: "Weekend", items: [.init(kind: .place, refID: "01LIVE")])]
+    sync.apply(hydration, to: &state)
+    XCTAssertEqual(state.savedIDs, ["cafe", "01LIVE"])
+    XCTAssertEqual(state.library.posts.map(\.refID), ["cafe-alex"])
+    XCTAssertEqual(Set(state.library.folders.map(\.name)), ["Mine", "Weekend"])
+    sync.apply(hydration, to: &state)
+    XCTAssertEqual(state.library.folders.filter { $0.name == "Weekend" }.count, 1)
+    XCTAssertEqual(state.library.folders.first { $0.name == "Weekend" }?.items, [.init(kind: .place, refID: "01LIVE")])
+    // A folder deleted on the server disappears locally; never-synced local folders stay.
+    hydration.folders = []
+    sync.apply(hydration, to: &state)
+    XCTAssertEqual(state.library.folders.map(\.name), ["Mine"])
   }
 }

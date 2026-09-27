@@ -176,13 +176,27 @@ public struct HermiMapPreview: View {
       guard !pinReviewFixture else { return }
       if let data = try? JSONEncoder().encode(value) { UserDefaults.standard.set(data, forKey: storageKey) }
       PlaceCatalog.shared.persist(referenced: value.referencedPlaceIDs)
+      SavedSync.shared.push(value)
     }
     .task { _ = await Task.detached { NYCLandMask.shared.available }.value }
     .task { await LiveSession.shared.restore() }
     .task(id: state.discoveryQuery) { PlaceCatalog.shared.discoveryChanged(state.discoveryQuery) }
     .onChange(of: LiveSession.shared.isLive) { _, live in
       // Connecting (or restoring) swaps fixtures for the live places in the current map area.
-      if live { PlaceCatalog.shared.refresh() }
+      if live {
+        PlaceCatalog.shared.refresh()
+        // Pull saved places/posts/folders, then keep them in sync from this snapshot on.
+        Task { @MainActor in
+          if let hydration = await SavedSync.shared.hydrate(), LiveSession.shared.isLive {
+            SavedSync.shared.apply(hydration, to: &state)
+          }
+        }
+      } else {
+        SavedSync.shared.reset()
+      }
+    }
+    .onChange(of: SavedSync.shared.notice) { _, notice in
+      if let notice { pinNotice = notice }
     }
     .onChange(of: scenePhase) { _, phase in
       if phase == .active { Task { await LiveSession.shared.restore() } }
@@ -331,8 +345,6 @@ public struct HermiMapPreview: View {
     .overlay(alignment: .bottomTrailing) {
       VStack(spacing: 0) {
         if !mapCovered {
-        mapButton("plus", label: "Zoom in", action: "in")
-        mapButton("minus", label: "Zoom out", action: "out")
         mapButton("locate", label: "Recenter on Columbia", action: "recenter")
         }
       }.padding(.trailing, 20).padding(.bottom, mapControlsBottom(in: size))
