@@ -400,4 +400,24 @@ final class LiveContractTests: XCTestCase {
     XCTAssertEqual(decodedFriends.items.first?.streak?.weeks, 14)
     XCTAssertEqual(decodedFriends.items.first?.score, 872)
   }
+
+  func testSocialMapsCheckinsRoutesAndOpenPlans() throws {
+    let user = #"{"id":"01JENNY","name":"jenny","username":"jenny","spriteUrl":null,"photoUrl":null,"verified":true,"campus":"Columbia"}"#
+    let line = #"[{"lat":40.80,"lng":-73.96},{"lat":40.81,"lng":-73.97},{"lat":40.82,"lng":-73.98}]"#
+    let route = { (style: String, done: Int) in #"{"planId":"p-\#(style)","name":"Loop","host":\#(user),"status":"active","style":"\#(style)","line":\#(line),"doneThrough":\#(done),"startAt":"2026-09-28T04:45:00.000Z","completedAt":null}"# }
+    let json = #"{"friendsOut":[{"user":\#(user),"place":{"id":"01BOOK","name":"Book Culture","loc":{"lat":40.806,"lng":-73.965}},"at":"2026-09-27T12:00:00.000Z","planId":null,"active":true}],"routes":[\#(route("dotted", 0)),\#(route("solid", 3)),\#(route("mixed", 2))],"friendPlans":[],"openPlans":[{"plan":\#(Self.planJSON),"action":"request"}],"refreshAfterS":30}"#
+    let social = try HermiAPI.decoder.decode(SocialDTO.self, from: Data(json.utf8))
+    let live = LiveSocial()
+    live.apply(social)
+    let markers = live.markers
+    XCTAssertEqual(markers.compactMap { $0["kind"] as? String }, ["current", "quest"])
+    XCTAssertEqual(markers.first?["lat"] as? Double, 40.806)
+    let kinds = live.routeFeatures.compactMap { ($0["properties"] as? [String: Any])?["kind"] as? String }
+    XCTAssertEqual(kinds, ["planned", "done", "done", "planned"], "dotted → planned, solid → done, mixed → done then planned")
+    let mixed = live.routeFeatures.suffix(2).compactMap { ($0["geometry"] as? [String: Any])?["coordinates"] as? [[Double]] }
+    XCTAssertEqual(mixed.map(\.count), [2, 2], "split shares the last done stop")
+    XCTAssertTrue(live.detail("friend:01JENNY")?.contains("Book Culture") == true)
+    XCTAssertTrue(live.detail("open:01PLAN")?.contains("Bagels then the park") == true)
+    XCTAssertTrue(live.label.hasPrefix("SOCIAL · 1 OUT · 3 PLANS"))
+  }
 }

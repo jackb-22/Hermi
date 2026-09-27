@@ -296,3 +296,30 @@ struct FeedResponseDTO: Decodable, Sendable {
 
 struct SeenBody: Encodable { var postIds: [String] }
 struct JoinRequestBody: Encodable {}
+
+/// `GET /social`: friends' recent check-ins (never live location), their plan lines and open "!" plans.
+struct SocialDTO: Decodable, Sendable {
+  struct Place: Decodable, Sendable { var id: String; var name: String; var loc: LatLngDTO }
+  struct FriendOut: Decodable, Sendable {
+    var user: UserCardDTO
+    var place: Place
+    var at: String
+    var planId: String?
+    var active: Bool
+  }
+  struct Route: Decodable, Sendable {
+    var planId: String
+    var name: String
+    var host: UserCardDTO
+    var status: String
+    var style: String
+    var line: [LatLngDTO]
+    var doneThrough: Int
+    var startAt: String?
+  }
+  struct OpenPlan: Decodable, Sendable { var plan: PlanDTO; var action: String }
+  var friendsOut: [FriendOut]
+  var routes: [Route]
+  var openPlans: [OpenPlan]
+  var refreshAfterS: Int?
+}

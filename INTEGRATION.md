@@ -191,6 +191,18 @@ Photos are assigned to seeded check-in places at random, so general NYC or campu
 - [ ] Settings → Server → **ACCOUNT**: toggle **Ghost mode** and **Open to plans**, then relaunch. Both stay as set, because they're saved on the server.
 - [ ] Sample mode: Profile shows Alex / 250 / "—" and the sample route, as before.
 
+### Step 9: live Social map
+- [ ] `check.sh` passes: 84 tests. The bridge check also prints "Live social bridge passed".
+- [ ] **Right before testing (laptop):** check jenny in near Columbia so there's a fresh friend check-in: `scripts/demo-checkin.sh jenny "Book Culture"`. It prints "checked in: +N XP". A place accepts one check-in per user every 6 hours; to repeat, use another name, e.g. "Butler" or "Havana".
+- [ ] As **jack**, on the Map, tap the **Social** button (top right). The bottom-left label reads "SOCIAL · 1 OUT · 3 PLANS · CHECK-INS, NOT LIVE GPS".
+- [ ] **Jenny's marker:** the green circled-people icon at Book Culture **blinks** (blink, blink, pause) for about an hour after the check-in, then stays steady until 3 hours. Tap it: "jenny checked in at Book Culture on Broadway 2 minutes ago · there now".
+- [ ] **Friend plan lines:** Pixel Pat's "Bagels then the park", Quest Quinn's "Museum mile warm-up" and Sprite Sasha's "Thrift and tunes" are **dotted green** (planned). Completed plans would be solid; plans under way are solid up to the last stop reached, then dotted.
+- [ ] **Open plans:** lavender **"!"** markers at the first stop of the 2 open plans. Tap one: "Open plan … · request to join from the Feed".
+- [ ] **Auto refresh:** check jenny in somewhere else with `demo-checkin.sh jenny "Butler"`. Within about 30 s her marker moves, and the old one drops once the newer check-in replaces it.
+- [ ] **Ghost mode:** as jenny, turn Ghost mode on in Settings, reconnect as jack, turn Social on. Jenny's marker and routes are gone. **Turn jenny's ghost mode off afterwards.**
+- [ ] Social **off** removes every marker and line. Leaving the Map (Feed or Profile) stops polling.
+- [ ] Sample mode: the sample Social fixtures appear as before, labelled "SAMPLE SOCIAL · NOT LIVE".
+
 ---
 
 ## Deferred / deviations log
@@ -231,4 +243,6 @@ Items that are unconnected, need UI or backend work, or depart from `docs/HERMI_
 | D30 | Design amendment | Feed content defaults to **Everything** (posts and plans mixed), and the chevron cycles Everything → Posts → Plans. The top-right audience toggle is labelled General / Friends. | User request, 2026-09-27. |
 | D31 | Saved / Feed | Places in Saved open the place sheet, not a full-screen view. A post gets a separate text page only when its text runs past about 90 characters or there's no media; shorter text stays the caption. Saved-row actions moved into a press-and-hold menu. Photos are cached in memory only. | Speed. Revisit with the curated content. |
 | D32 | Profile | Adventures shows explored tiles, not recorded routes (no route-history endpoint, D13). The profile photo is still the bundled crab (no upload, D12). Friend rows don't open friend profiles yet. The "least visited" and neighbourhood stats from the design have no API. | Backend gaps; speed. |
+| D33 | Map aesthetic | Explored tiles on Profile Adventures look too large at the default zoom. | User noted for the later aesthetic pass. |
+| D34 | Social | `friendPlans` (upcoming shared plans with Join) aren't drawn separately: their lines already come from `routes`, and Join lives in the Feed. Tapping a route line does nothing, only markers are tappable. Loved places and adventures have no API (D14). `demo-checkin.sh` mints dev venue tags, so never point it at Demo Hall. | Speed; backend gaps. |
 

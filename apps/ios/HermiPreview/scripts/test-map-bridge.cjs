@@ -121,3 +121,15 @@ context.renderHermi({places:[],social:false,adventure:true});
 assert.equal(map.getSource('explored').data.features.length,0);assert.equal(map.getSource('adventure').data.features.length,1);
 console.log('Explored bridge passed: tiles as squares, sample route hidden, fit, label.');
 
+// Live Social: planned/done lines, steady recent marker, quest marker, live label.
+const liveRoutes=[{type:'Feature',properties:{kind:'planned'},geometry:{type:'LineString',coordinates:[[-73.96,40.80],[-73.97,40.81]]}},{type:'Feature',properties:{kind:'done'},geometry:{type:'LineString',coordinates:[[-73.95,40.80],[-73.96,40.80]]}}];
+const liveMarkers=[{id:'friend:1',kind:'recent',name:'jenny at Book Culture',lng:-73.965,lat:40.806},{id:'open:p',kind:'quest',name:'Open plan: X',lng:-73.96,lat:40.80}];
+context.renderHermi({places:[],social:true,socialMarkers:liveMarkers,socialRoutes:liveRoutes,socialLabel:'SOCIAL · 1 OUT · 1 PLAN · CHECK-INS, NOT LIVE GPS'});
+assert.deepEqual(Array.from(map.layers['social-planned'].paint['line-dasharray']),[1,2]);assert.equal(map.layers['social-done'].paint['line-dasharray'],undefined);
+assert.equal(map.getSource('social-routes').data.features.length,2);
+const liveSocial=markers.filter(m=>!m.removed&&m.options.element.className.startsWith('friend '));
+assert.deepEqual(liveSocial.map(m=>m.options.element.className),['friend recent','friend quest']);
+assert.equal(nodes.get('.notice').textContent,'SOCIAL · 1 OUT · 1 PLAN · CHECK-INS, NOT LIVE GPS');
+liveSocial[1].options.element.onclick({stopPropagation(){}});assert.equal(messages.at(-1).type,'socialInfo');assert.equal(messages.at(-1).id,'open:p');
+console.log('Live social bridge passed: planned/done lines, recent and quest markers, live label, tap.');
+

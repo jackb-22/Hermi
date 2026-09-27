@@ -198,7 +198,15 @@ public struct HermiMapPreview: View {
           }
         }
       } else {
-        SavedSync.shared.reset(); PlanSync.shared.reset(); LiveFeed.shared.reset(); LiveProfile.shared.reset()
+        SavedSync.shared.reset(); PlanSync.shared.reset(); LiveFeed.shared.reset(); LiveProfile.shared.reset(); LiveSocial.shared.reset()
+      }
+    }
+    .task(id: socialPolling) {
+      // Social refreshes every refreshAfterS while it's on and the map is showing; stops otherwise.
+      guard socialPolling else { return }
+      while !Task.isCancelled {
+        await LiveSocial.shared.load()
+        do { try await Task.sleep(for: .seconds(max(10, LiveSocial.shared.refreshAfter))) } catch { return }
       }
     }
     .onChange(of: PlanSync.shared.notice) { _, notice in
@@ -395,6 +403,8 @@ public struct HermiMapPreview: View {
       state.switchPanel(panel); panelLevel = .compact; moving = false
     }
   }
+
+  private var socialPolling: Bool { state.social && state.panel == .map && LiveSession.shared.isLive }
 
   private var mapCovered: Bool { contextPanelFull || state.sheet == .plan || state.sheet == .saved }
 

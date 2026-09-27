@@ -50,6 +50,7 @@ struct GeographicMap: View {
       "social": state.social && !adventure && showsPlaces,
       "socialMarkers": SocialMapPreview.markers(enabled: state.social && !adventure && showsPlaces),
       "socialRoutes": SocialMapPreview.routes(enabled: state.social && !adventure && showsPlaces),
+      "socialLabel": SocialMapPreview.label,
       "reduceMotion": reduceMotion,
       "adventure": adventure
     ]

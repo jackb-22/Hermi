@@ -12,9 +12,14 @@ enum SocialMapPreview {
     .init(id: "sam-now", kind: "current", placeID: "cafe", detail: "Sample: Sam at Corner café · shared current place · not live data"),
     .init(id: "riley-love", kind: "loved", placeID: "garden", detail: "Sample: Riley loves Riverside gardens · shared with friends")
   ]
-  static func detail(_ id: String) -> String? { places.first { $0.id == id }?.detail }
+  static func detail(_ id: String) -> String? {
+    if LiveSession.shared.isLive { return LiveSocial.shared.detail(id) }
+    return places.first { $0.id == id }?.detail
+  }
+  static var label: String { LiveSession.shared.isLive ? LiveSocial.shared.label : "SAMPLE SOCIAL · NOT LIVE" }
   static func markers(enabled: Bool) -> [[String: Any]] {
     guard enabled else { return [] }
+    if LiveSession.shared.isLive { return LiveSocial.shared.markers }
     return places.compactMap { item in
       guard let place = MapSamplePlace.find(item.placeID) else { return nil }
       return ["id": item.id, "kind": item.kind, "name": item.detail,
@@ -23,6 +28,7 @@ enum SocialMapPreview {
   }
   static func routes(enabled: Bool) -> [[String: Any]] {
     guard enabled else { return [] }
+    if LiveSession.shared.isLive { return LiveSocial.shared.routeFeatures }
     // Illustrative geometry only: no claim of road routing or recorded friend movement.
     return [
       ["type": "Feature", "properties": ["kind": "current"], "geometry": ["type": "LineString", "coordinates": [
