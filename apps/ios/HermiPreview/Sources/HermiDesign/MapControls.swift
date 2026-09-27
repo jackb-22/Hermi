@@ -66,19 +66,24 @@ struct CategoryPinControl: View {
   @GestureState private var touching = false
   private let categories = HermiCategory.allCases
   var body: some View {
-    let swipe = DragGesture(minimumDistance: 8, coordinateSpace: .named("mapPreview"))
+    let hold = LongPressGesture(minimumDuration: 0.3, maximumDistance: 8)
+      .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .named("mapPreview")))
+      .onChanged { value in
+        if case .second(true, let drag?) = value {
+          dragging = drag.translation
+          if !dropping && hypot(drag.translation.width, drag.translation.height) > 8 {
+            dropping = true; feedback += 1; onDragBegan()
+          }
+        }
+      }
+    let swipe = DragGesture(minimumDistance: 8)
       .onChanged { drag in
         if !showing { originCategory = category; showing = true }
-        dragging = drag.translation
-        if !dropping && abs(drag.translation.width) > 24 && abs(drag.translation.width) > abs(drag.translation.height) {
-          dropping = true; onDragBegan()
-        }
-        if !dropping {
-          let start = categories.firstIndex(of: originCategory) ?? 0
-          let delta = Int((-drag.translation.height / 36).rounded())
-          let index = (start + delta % categories.count + categories.count) % categories.count
-          if category != categories[index] { category = categories[index]; feedback += 1 }
-        }
+        guard abs(drag.translation.width) > abs(drag.translation.height) else { return }
+        let start = categories.firstIndex(of: originCategory) ?? 0
+        let delta = Int((-drag.translation.width / 36).rounded())
+        let index = (start + delta % categories.count + categories.count) % categories.count
+        if category != categories[index] { category = categories[index]; feedback += 1 }
       }
     VStack(spacing: 2) {
       HStack(spacing: 6) {
@@ -92,12 +97,13 @@ struct CategoryPinControl: View {
                 .offset(dragging).allowsHitTesting(false)
             }
           }
-          .gesture(swipe.exclusively(before: TapGesture())
+          .gesture(hold.exclusively(before: swipe.exclusively(before: TapGesture()))
             .updating($touching) { _, active, _ in active = true }
             .onEnded { value in
               switch value {
-              case .second: onFilter()
-              case .first(let drag): if dropping { onDrop(drag.location) }
+              case .second(.second): onFilter()
+              case .first(.second(true, let drag?)): if dropping { onDrop(drag.location) }
+              default: break
               }
               showing = false; dropping = false; dragging = .zero
             })
@@ -112,7 +118,7 @@ struct CategoryPinControl: View {
       .sensoryFeedback(.selection, trigger: feedback)
       .accessibilityElement(children: .ignore).accessibilityLabel("Activity pin")
       .accessibilityValue(category.rawValue + (filterActive ? ", citywide filter active" : ""))
-      .accessibilityHint("Swipe up or down to choose a category. Drag sideways onto the map to discover.")
+      .accessibilityHint("Swipe left or right to choose a category. Hold briefly, then drag onto the map to discover.")
       .accessibilityAdjustableAction { direction in
         let current = categories.firstIndex(of: category) ?? 0
         category = categories[(current + (direction == .increment ? 1 : categories.count-1)) % categories.count]
