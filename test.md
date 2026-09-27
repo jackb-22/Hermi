@@ -2,7 +2,21 @@
 
 This is the user-facing test entry point. Product reference: [unified design schema](docs/HERMI_SCHEMA.md). Resume/checkpoint: [progress](PROGRESS.md).
 
-## Current review: Step 7 — Saved drawer, folders and Save Plan
+## Current review: Step 8 — local saved-plan editing and Undo
+
+Step 7 accepted for progression; the bookmark’s finger-hold timing remains unverified. Run HermiPreview with **⌘R** on your iPhone. Simulator currently uses the nonpersistent `--hermi-saved-review` fixture. Remove that argument when testing restart persistence. These are local editing tests, not cloud synchronization or invitation tests.
+
+1. **Open versus append:** bookmark → horizontal Saved row → tap the **name** of Saturday loop to edit that saved plan. Its name and “Autosaves on this device” appear, with two stops. Tapping a saved plan’s **+** instead appends missing places to the currently active plan; it does not switch editors.
+2. **Autosave:** reorder the stops, change a time, or add a place from Saved/Map/Feed. Close/reopen this plan from Saved. Edits remain, and the library still has one copy of this plan. The bookmark hold menu shows “Saved automatically” and “Sharing draft,” without a redundant Save action.
+3. **Undo:** after each add/remove/reorder/time/invite-selection edit, tap Undo. Removing then undoing a stop must restore its time/reminder/invite draft together. Appending several stops from a saved plan is one Undo action. Repeating an add that inserts nothing does not consume another Undo. Up to 20 edits can be undone in the current editing session; changing plans clears that session’s history.
+4. **Preserve draft:** tap “My draft.” Your original unfinished plan returns (the fixture’s café/gallery/gardens), and the saved plan remains in the library. Open a second saved plan and switch back to the draft: no stops from those plans should silently replace your unfinished draft. Saving a new unnamed draft binds it to the new saved plan; “My draft” then gives you a fresh draft.
+5. **Empty boundary:** remove the final stop from a saved plan. It stays recoverable in Saved but Go is disabled. Undo restores the stop, or reopen the empty plan and add an explicit place. There is no frontend stop cap.
+6. **Sharing intent:** while editing a saved plan, hold the bookmark → Sharing draft. Select Friends and specific sample friends. Keep draft preferences, reopen and check them. Cancel must discard unconfirmed changes. With no selected friend, Keep is disabled. “Save & invite” is unavailable; Public also saves only local preferences. No message, attendance confirmation or publishing occurs. Stop-edit Undo does not change audience preferences.
+7. **Restart/offline:** in a normal run, make a saved-plan edit, quit/reopen, open My Plan and use Undo. Editing identity, stop data, prior draft and Undo history should survive together. Local editing can be tested without internet; map tiles may not load. Real server conflict handling, sync failure/retry and invitation idempotence are blocked and must not be marked passed.
+
+Verification: **48 Swift tests pass**, Simulator and unsigned iPhone builds pass. Simulator exercised opening a saved plan, reordering, Undo, sharing draft selection/save and restoring the original draft. [Step 8 screenshots](docs/design-reference/2026-09-27-step-8/REVIEW.md). Send an edited-plan screenshot and any unexpected Undo/gesture recording before advancing. Phone drag, hold, restart and accessibility acceptance remain open.
+
+## Previous review: Step 7 — Saved drawer, folders and Save Plan
 
 Build/run HermiPreview with **⌘R** on your iPhone. For a seeded Simulator screen, from `apps/ios/HermiPreview` run `sh scripts/simulator-preview.sh --hermi-saved-review`; the fixture has three plan stops, two bookmarked places, a sample post and a two-item folder. It never overwrites normal local preview data. Run without that flag to test restart persistence.
 

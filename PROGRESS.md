@@ -4,6 +4,14 @@ Updated: 2026-09-27. Branch: codex/cairn-frontend. No pushes authorized.
 
 ## Current checkpoint
 
+### Step 8 — local saved-plan editing ready; remote sync/share blocked
+
+User accepted Step 7 for progression, leaving physical bookmark-hold timing pending. Implemented saved-plan reopening by name, editing identity, autosave of stop order/time/reminder/invite drafts, bounded 20-edit Undo, one-action append Undo, and preservation/restoration of the unfinished unsaved plan. All edit entry points (including Feed/Map and accessibility reorder) use the same model transitions. Existing JSON remains decodable. Saving a new plan binds the editor to it; returning to My draft then starts a fresh draft. Empty saved plans remain recoverable with Go disabled.
+
+Added explicit local sharing-intent editor, selected sample friends, Cancel/Keep semantics, and unavailable Save & invite control. Removed competing generic hold-help recognizer from the bookmark; its own hold recognizer remains, with stable accessibility “Bookmark options.” No real invitation, cloud save or public post is sent. Backend read-only inspection found `/plans/:id/save` notifies the supplied invitee list on each call; `/plans/:id/invite` filters existing members but provides no explicit retry transaction contract. Stop replacement lacks a conditional revision check. These are integration gates, not backend fixes. Remote offline/retry/conflict and real invitation tests are blocked; local persistence/recovery can be reviewed now.
+
+48 Swift tests pass, including six Step 8 boundary tests. Simulator and unsigned iPhone builds pass. Screenshots and interactions reviewed: opening saved plan, reorder/Undo, selected-friend draft and restored original draft. [Step 8 evidence](docs/design-reference/2026-09-27-step-8/REVIEW.md). Simulator remains in a nonpersistent fixture; normal phone relaunch testing is pending. Next: user Step 8 review from test.md, then corrections; do not claim backend integration is complete.
+
 ### Step 7 — Saved drawer and Save Plan ready for user review
 
 Feedback correction: the user clarified one bookmark in My Plan. Quick tap toggles a horizontal Saved row between header and timetable while the plan remains visible; hold offers Save current plan and opens the existing modal. “See all” in the row reaches the full Saved page. Removed the separate chevron and always-visible Save Plan button. Revised simulator screenshots are in the Step 7 review; quick-tap and accessibility Save-option paths were inspected. Physical hold and two-axis scrolling remain for user acceptance. This correction supersedes the initial Step 7 header behavior described below.
@@ -121,7 +129,7 @@ Xcode: /Applications/Xcode.app (26.3). Use DEVELOPER_DIR per command; global xco
 
 ## Next action
 
-Run the Step 7 checklist in test.md on iPhone, record feedback, and correct this boundary before Step 8. Simulator preview is available using `sh apps/ios/HermiPreview/scripts/simulator-preview.sh` from the repository root. Keep unrelated prototype/signing changes untouched; no pushes.
+Run the Step 8 local editing checklist in test.md on iPhone and correct feedback. Cloud sync/retry and real sharing remain blocked separately. Simulator preview is available using `sh apps/ios/HermiPreview/scripts/simulator-preview.sh` from the repository root. Keep unrelated prototype/signing changes untouched; no pushes.
 
 ## Build notes
 

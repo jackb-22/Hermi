@@ -45,6 +45,7 @@ Inspected remote contract baseline: `1dfeef52ab432dbd03e46436ec78fc3fbe4d995f`; 
 - Saved types place/post/plan exist; standalone image save is unsupported. Mixed folders can use supported references.
 - Attendance is currently plan-level; do not label it stop-level confirmed attendance.
 - Autosave concurrency, notifications, capture upload, NFC and AI revision need verified contracts before enabling live claims.
+- Step 8 read-only local-backend review: `/plans/:id/save` calls notification for the supplied invitee list on repeated requests; `/plans/:id/invite` filters members already present, but no explicit retry transaction/idempotency contract is exposed. Stop replacement has no revision precondition. Do not wire autosave to the invite-generating Save endpoint. Current preview is local only; real sync/retry/conflict and invite delivery remain blocked.
 
 ## Evidence, commits and recovery
 
