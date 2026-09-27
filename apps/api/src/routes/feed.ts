@@ -177,7 +177,9 @@ export const feedRoutes: FastifyPluginAsyncZod = async (app) => {
         ),
       ]);
       const hydrated = new Map(postViews.map((h) => [h.id, h]));
-      const cards = interleave(ranked, planViews).map((c) =>
+      // Posts whose author account was deleted (e.g. a demo reseed) are left out.
+      const shown = ranked.filter((p) => hydrated.get(p._id)?.author.name);
+      const cards = interleave(shown, planViews).map((c) =>
         c.t === 'post'
           ? { kind: 'post' as const, post: hydrated.get(c.v._id)! }
           : { kind: 'plan' as const, plan: c.v.plan, action: c.v.action },

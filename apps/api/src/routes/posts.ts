@@ -308,7 +308,8 @@ export const postRoutes: FastifyPluginAsyncZod = async (app) => {
       const q: Filter<PostDoc> = { $and: [mine, await visible(req.userId)] };
       const docs = await posts(db).find(q).sort({ createdAt: -1 }).limit(PAGE).toArray();
       return {
-        items: await hydratePosts(app.ctx, docs),
+        // Posts whose author account was deleted (e.g. a demo reseed) are left out.
+        items: (await hydratePosts(app.ctx, docs)).filter((p) => p.author.name),
         nextCursor: docs.length === PAGE ? docs.at(-1)!.createdAt.toISOString() : null,
       };
     },
