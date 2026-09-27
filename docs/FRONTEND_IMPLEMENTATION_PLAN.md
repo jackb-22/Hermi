@@ -1,6 +1,6 @@
 # Hermi approved frontend revision plan
 
-Approved 2026-09-27. Frontend branch: `codex/cairn-frontend`. No pushes. Current work: **Step 5**, authorized after Step 4 acceptance with a category-gesture correction. User confirmed horizontal swipe/hold-to-drag and hidden map controls at full panel height. Source: user's approved technical plan and latest schema amendments. Preserve unrelated legacy prototype changes.
+Approved 2026-09-27. Frontend branch: `codex/cairn-frontend`. No pushes. Current work: **Step 6**, authorized after Step 5 acceptance. Full Plan timeline, local stop metadata and Go-entry checkpoint are ready for user review. Source: user's approved technical plan and latest schema amendments. Preserve unrelated legacy prototype changes.
 
 ## Architecture and decisions
 

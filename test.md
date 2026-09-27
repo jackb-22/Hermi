@@ -2,7 +2,24 @@
 
 This is the user-facing test entry point. Product reference: [unified design schema](docs/HERMI_SCHEMA.md). Resume/checkpoint: [progress](PROGRESS.md).
 
-## Current review: Step 5 — horizontal category selector and contextual Feed
+## Current review: Step 6 — Plan timeline and Go
+
+Step 5 accepted; Step 6 authorized. Build/run HermiPreview with **⌘R** on your phone. Simulator currently contains a temporary Plan fixture with three stops and an intentional time overlap. Normal launches persist your actual preview plan; the fixture does not.
+
+1. **Plan entry/empty:** from Map or Feed, add places with + and open My Plan. It opens full page. With no stops, Go is visibly disabled. Add one explicit place and Go becomes available even without a time. Saved membership remains independent.
+2. **Time editor:** tap a stop's left-hand time. Change arrival/date, stay length and reminder preference; Save, reopen and confirm. Change again and Cancel: previous values remain. Clear time removes scheduling data without deleting the stop. Reminders here are preferences only—no notification is scheduled.
+3. **Reorder:** hold a stop row and drag to another row's upper half to insert before it, or lower half to insert after it (including the final stop). Its time/reminder/invite draft must stay with that place. Also check VoiceOver Move earlier/later.
+4. **Timing boundary:** set café arrival 12:00 with 60 minutes, next stop 12:30: warning appears, but Go remains available. Change next to 13:00: the overlap warning clears. This checks stay overlap only; travel time/AI repair are not connected.
+5. **Place and attendees:** tap a stop name; its place panel opens. X returns to My Plan with order/times intact. Tap …: see the no-data attendee state and sample existing-friend choices. Save draft then reopen to confirm; Cancel discards edits. No invitation is sent and no friend is marked attending.
+6. **Remove:** in a stop's … sheet choose Remove stop from plan. Other stops and bookmarks stay unchanged; that stop's time/invite draft is cleared. Re-add it: no old reminder should silently reappear. Remove the final stop: Go disables again.
+7. **Go round trip:** start a nonempty plan, including one with a warning. Action preview shows the stops in their current order and Directions/Camera only. End preview returns to the unchanged Plan. Camera remains a placeholder; no real trip, recording or permission request begins.
+8. **Restore and layout:** in a normal run, relaunch and check order, times and invite drafts persist together. Open/close Plan from Feed and Profile as well; covered underlying controls must not activate. Check compact/full Plan, smaller text/large text and quick taps. Send timeline and Action screenshots plus a recording for drag problems.
+
+Verification: 38 Swift tests pass (reorder metadata, remove/restore, timing boundary, stale editor rejection, snapshots and route return), plus existing map bridge checks. Simulator and unsigned device builds pass. Simulator confirmed place → X → Plan, attendee draft display, Go despite warning, and End preview → unchanged Plan. [Screenshot evidence](docs/design-reference/2026-09-27-step-6/REVIEW.md). Physical drag/reorder, time-editor cancel/save, empty-state UI and device restart still need user review. Backend blockers remain flagged, not fixed.
+
+Fixture command: `sh apps/ios/HermiPreview/scripts/simulator-preview.sh --hermi-plan-review`. Remove the argument for persistence testing. Step 7 (saved drawer/folders/Save Plan) follows your review.
+
+## Previous review: Step 5 — horizontal category selector and contextual Feed
 
 Step 4 accepted apart from category gesture direction. User confirmed **horizontal swipe to choose, hold then drag to place**, and **hide map controls only while the contextual panel is full-height**. Build/run HermiPreview with **⌘R**, or run `sh apps/ios/HermiPreview/scripts/simulator-preview.sh` from the repo root. The current Simulator uses the nonpersistent multi-pin review fixture.
 

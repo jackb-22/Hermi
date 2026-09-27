@@ -1,6 +1,6 @@
 # Hermi unified design schema
 
-Revision 9 · 2026-09-27 · Step 4 accepted with horizontal-gesture amendment; Step 5 implemented for review.
+Revision 10 · 2026-09-27 · Step 5 accepted; Step 6 implemented for review.
 
 ## Authority and mission
 
@@ -156,3 +156,9 @@ Only one extra category glyph appears above a visible discovery pin in each cate
 Horizontal left/right swipes on the source pin choose category, superseding earlier vertical-swipe instructions. User explicitly selected hold (~0.3 seconds) then drag for placement, distinguishing it from a quick category swipe. A quick tap continues toggling the citywide category.
 
 Contextual panels have compact/medium/full heights, independent of their place/nearby route. Handle gestures resize; vertical content and horizontal post media scroll independently. User confirmed map controls hide at full height and return on the same fixed right-hand line when collapsed. Full My Plan remains a separate route. A place popup closes with X; it does not navigate to the main Feed. Place-scoped fixture posts never include another place's IDs. Real media/reviews remain unconnected and no rating scale is invented.
+
+## Step 6 implementation checkpoint
+
+The local active plan stores optional arrival/stay/reminder values and sample invite drafts alongside its ordered explicit place IDs. Existing preview drafts migrate once on Plan entry. Reordering keeps metadata with the stop; removing a stop clears only its metadata and leaves Saved unchanged. This single-plan fixture still uses unique place identity; future multiple saved plans require plan/stop-scoped IDs before integration.
+
+Timing overlap/backwards warnings remain advisory and do not disable Go. Times are optional; one or more valid explicit stops are required for Go. No travel-time estimate or AI timing repair is implied. Go enters the existing Directions/Camera preview, whose stop list follows plan order; ending returns to Plan. No tracked outing, camera capture, reminder scheduling or invitations are enabled. A place opened from Plan or Saved closes with X back to its source, superseding old Back-button wording.

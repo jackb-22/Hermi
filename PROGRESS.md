@@ -4,6 +4,13 @@ Updated: 2026-09-27. Branch: codex/cairn-frontend. No pushes authorized.
 
 ## Current checkpoint
 
+### Step 6 — Plan timeline ready for user review
+
+User accepted Step 5 and authorized next phase. Completed durable per-place local timing/invite drafts in MapPreviewState, migration from legacy UserDefaults, validation, before/after reorder insertion, removal in attendee sheet with per-stop draft cleanup, advisory overlap warnings and nonempty Go guards. Place X now restores Plan/Saved origin. Action stop list preserves order and scrolls without a product count cap. No live trip/camera/notifications/invitations implemented.
+
+38 tests pass; map bridge checks pass; Simulator and unsigned iPhone builds pass. Screenshot loop corrected covered map controls remaining accessible behind Plan and excessive Action directions-card whitespace. Screenshots under docs/design-reference/2026-09-27-step-6. Simulator verified place/X/Plan, attendee draft, Go with warning, End/Plan. Final underlying-page accessibility/hit-test guard extends coverage to Feed/Profile as well; no visual change. Preview open in nonpersistent --hermi-plan-review mode; normal launch needed for persistence tests. No Step 7 yet, backend edits, pushes or phone install claimed. Next: user checklist in test.md.
+
+
 ### Step 5 — ready for user gesture/visual review
 
 User accepted Step 4 except category swiping direction and authorized Step 5. Confirmed horizontal swipe to select; hold then drag to place. Confirmed full-height panel hides map controls, restoring the same rail after collapse. Implemented exclusive category swipe/tap/hold-drag handling, three panel levels with handle-only resizing, scoped place posts and horizontal media inside vertical panel scrolling, compact Save/Add header and X close. Opening a place clears discovery editing without deleting filters/pins. Main Feed routing is unchanged.
