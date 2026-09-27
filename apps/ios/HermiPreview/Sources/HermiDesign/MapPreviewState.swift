@@ -2,7 +2,7 @@ import Foundation
 import CoreLocation
 
 enum HomePanel: String, CaseIterable, Codable { case map = "Map", feed = "Feed", profile = "Profile" }
-enum MapPreviewSheet: Equatable, Codable { case nearby, place(String), plan, saved }
+enum MapPreviewSheet: Equatable, Hashable, Codable { case nearby, place(String), plan, saved }
 
 struct MapSamplePlace: Identifiable {
   let id: String

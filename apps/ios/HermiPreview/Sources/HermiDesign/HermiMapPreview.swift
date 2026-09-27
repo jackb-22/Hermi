@@ -12,7 +12,7 @@ public struct HermiMapPreview: View {
   @State private var actionPreview = false
   @State private var restorePill: Task<Void, Never>?
   @State private var lab = false
-  @State private var expanded = false
+  @State private var panelLevel: DiscoveryPanelLevel = .compact
   @State private var reduceMotionOverride = false
   @State private var profileTab = "Adventures"
   @State private var mapCommand: MapCommand?
@@ -54,7 +54,7 @@ public struct HermiMapPreview: View {
           }.padding(.leading, 16).padding(.trailing, 100).allowsHitTesting(false)
         }
         VStack {
-          topBar(in: geometry.size)
+          if !contextPanelFull { topBar(in: geometry.size) }
           Spacer()
         }.padding(.horizontal, 20).padding(.top, safeGeometry.safeAreaInsets.top + 8)
 
@@ -63,7 +63,7 @@ public struct HermiMapPreview: View {
             PlanPreviewPage(state: $state, saved: sheet == .saved, close: { state.sheet = nil }, go: { actionPreview = true })
               .padding(.top, safeGeometry.safeAreaInsets.top)
           } else {
-            VStack { Spacer(); bottomSheet(sheet, height: geometry.size.height) }.transition(.move(edge: .bottom))
+            VStack { Spacer(); bottomSheet(sheet, height: geometry.size.height, safeTop: safeGeometry.safeAreaInsets.top) }.transition(.move(edge: .bottom))
           }
         }
         VStack {
@@ -118,6 +118,9 @@ public struct HermiMapPreview: View {
         state.planIDs = state.planIDs.filter { MapSamplePlace.find($0) != nil }
       }
     }
+    .onChange(of: state.sheet) { _, sheet in
+      if case .place = sheet { editingPinID = nil }
+    }
     .onChange(of: state) { _, value in
       guard !pinReviewFixture else { return }
       if let data = try? JSONEncoder().encode(value) { UserDefaults.standard.set(data, forKey: storageKey) }
@@ -145,7 +148,7 @@ public struct HermiMapPreview: View {
           UserDefaults.standard.removeObject(forKey: "hermi.preview.stopTimes")
           for place in MapSamplePlace.all { UserDefaults.standard.removeObject(forKey: "hermi.preview.invites.\(place.id)") }
           friendsFeed = false
-          state.reset(); mapCommand = MapCommand(action: "recenter"); expanded = false
+          state.reset(); mapCommand = MapCommand(action: "recenter"); panelLevel = .compact
           reduceMotionOverride = false; profileTab = "Adventures"
           restorePill?.cancel(); moving = false
         }
@@ -163,7 +166,7 @@ public struct HermiMapPreview: View {
   private func mapTools(in size: CGSize) -> some View {
     VStack(spacing: 6) {
       if state.panel == .map {
-        CategoryPinControl(category: $state.category, filterActive: state.activeCitywideCategory == state.category, onFilter: { state.toggleCategoryFilter(); state.sheet = .nearby; expanded = false }, onDrop: { point in
+        CategoryPinControl(category: $state.category, filterActive: state.activeCitywideCategory == state.category, onFilter: { state.toggleCategoryFilter(); state.sheet = .nearby; panelLevel = .compact }, onDrop: { point in
           // The geographic view can have an origin different from the root/safe area.
           let overlapsTools = point.x > size.width - 84 && (point.y < 280 || point.y > size.height - 250)
           guard !overlapsTools, point.y > 100, point.y < size.height - 110,
@@ -171,7 +174,7 @@ public struct HermiMapPreview: View {
             pinNotice = "Drop on the map, away from the controls."; return
           }
           mapCommand = MapCommand(action: "drop", point: normalized)
-          expanded = false
+          panelLevel = .compact
         }, onDragBegan: { state.sheet = nil; editingPinID = nil; pinNotice = nil })
       }
       Button {
@@ -183,7 +186,7 @@ public struct HermiMapPreview: View {
         .frame(width: 44, height: 44).contentShape(Rectangle())
       }.accessibilityLabel(state.panel == .feed ? (friendsFeed ? "Friends feed. Show public" : "Public feed. Show friends") : (state.social ? "Social map. Switch to Solo" : "Solo map. Switch to Social"))
         .controlHelp(state.panel == .feed ? "Toggle sample Feed between friends and public" : "Toggle Solo and Social map")
-      Button { state.sheet = .plan; expanded = true } label: {
+      Button { state.sheet = .plan; panelLevel = .full } label: {
         PixelIcon(name: "plan").frame(width: 26, height: 26).frame(width: 34, height: 34)
           .background(HermiPalette.paper, in: PixelPanel(corner: 8))
         .frame(width: 44, height: 44).contentShape(Rectangle())
@@ -192,16 +195,16 @@ public struct HermiMapPreview: View {
   }
 
   private func map(in size: CGSize) -> some View {
-    GeographicMap(state: state, command: mapCommand, editingPinID: editingPinID,
+    GeographicMap(state: state, command: mapCommand, editingPinID: contextPanelFull ? nil : editingPinID,
       revision: mapRevision, bottomInset: mapControlsBottom(in: size)) { event in
       switch event["type"] as? String {
       case "mapTap": editingPinID = nil
       case "moving": beginMapGesture()
       case "stopped", "error": endMapGesture()
-      case "place": if let id = event["id"] as? String { editingPinID = nil; state.selectPlace(id); expanded = false }
+      case "place": if let id = event["id"] as? String { editingPinID = nil; state.selectPlace(id); panelLevel = .compact }
       case "discovery":
         guard let raw = event["id"] as? String, let id = UUID(uuidString: raw), state.pin(id: id) != nil else { return }
-        editingPinID = id; state.sheet = .nearby; expanded = false
+        editingPinID = id; state.sheet = .nearby; panelLevel = .compact
       case "drop":
         guard event["requestID"] as? String == mapCommand?.id.uuidString,
               let latitude = event["latitude"] as? Double, let longitude = event["longitude"] as? Double else { return }
@@ -214,14 +217,14 @@ public struct HermiMapPreview: View {
         editingPinID = id; state.sheet = nil
       case "pinDragCancelled":
         guard let raw = event["id"] as? String, let id = UUID(uuidString: raw), state.pin(id: id) != nil else { return }
-        editingPinID = id; state.sheet = .nearby; expanded = false; mapRevision += 1
+        editingPinID = id; state.sheet = .nearby; panelLevel = .compact; mapRevision += 1
       case "pinMove":
         guard let raw = event["id"] as? String, let id = UUID(uuidString: raw),
               let latitude = event["latitude"] as? Double, let longitude = event["longitude"] as? Double else { return }
         guard state.pin(id: id) != nil else { return }
         let valid = state.moveDiscovery(id: id, to: GeoPoint(latitude: latitude, longitude: longitude))
         pinNotice = valid ? nil : "Keep this pin on NYC land. Its previous position is restored."
-        editingPinID = id; state.sheet = .nearby; expanded = false; mapRevision += 1
+        editingPinID = id; state.sheet = .nearby; panelLevel = .compact; mapRevision += 1
       case "pinRadius":
         guard let raw = event["id"] as? String, let id = UUID(uuidString: raw), let miles = event["miles"] as? Double else { return }
         state.setDiscoveryRadius(id: id, miles: miles)
@@ -234,16 +237,20 @@ public struct HermiMapPreview: View {
       default: break
       }
     }
+    .accessibilityHidden(contextPanelFull)
     .background(GeometryReader { geometry in
       Color.clear.onAppear { mapFrame = geometry.frame(in: .named("mapPreview")) }
         .onChange(of: geometry.frame(in: .named("mapPreview"))) { _, frame in mapFrame = frame }
     })
     .overlay(alignment: .bottomTrailing) {
       VStack(spacing: 0) {
+        if !contextPanelFull {
         mapButton("plus", label: "Zoom in", action: "in")
         mapButton("minus", label: "Zoom out", action: "out")
         mapButton("locate", label: "Recenter on Columbia", action: "recenter")
+        }
       }.padding(.trailing, 20).padding(.bottom, mapControlsBottom(in: size))
+        .opacity(contextPanelFull ? 0 : 1).allowsHitTesting(!contextPanelFull).accessibilityHidden(contextPanelFull)
         .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: mapControlsBottom(in: size))
     }
   }
@@ -256,7 +263,7 @@ public struct HermiMapPreview: View {
   // Contextual panels grow only into the remaining space; My Plan stays full-page.
   private func discoveryPanelHeight(in height: CGFloat) -> CGFloat {
     let compact = min(300, height * 0.39)
-    return expanded ? max(compact, min(height * 0.65, height - 460)) : compact
+    return panelLevel == .compact ? compact : max(compact, min(height * 0.65, height - 460))
   }
 
   private func mapButton(_ icon: String, label: String, action: String) -> some View {
@@ -278,36 +285,50 @@ public struct HermiMapPreview: View {
 
   private var navigationPill: some View {
     HomeNavigationPill(selected: state.panel) { panel in
-      state.switchPanel(panel); expanded = false; moving = false
+      state.switchPanel(panel); panelLevel = .compact; moving = false
     }
   }
 
-  private func bottomSheet(_ sheet: MapPreviewSheet, height: CGFloat) -> some View {
-    VStack(spacing: 10) {
-      Button { expanded.toggle() } label: {
-        Capsule().fill(HermiPalette.ink.opacity(0.35)).frame(width: 38, height: 4).frame(maxWidth: .infinity).frame(height: 26)
-      }.buttonStyle(.plain).accessibilityLabel(expanded ? "Collapse details" : "Expand details")
-        .gesture(DragGesture(minimumDistance: 8).onEnded { value in
-          if value.translation.height < -15 { expanded = true }
-          else if expanded { expanded = false }
-          else { state.sheet = nil }
+  private var contextPanelFull: Bool {
+    guard let sheet = state.sheet, sheet != .plan, sheet != .saved else { return false }
+    return panelLevel == .full
+  }
+
+  private func bottomSheet(_ sheet: MapPreviewSheet, height: CGFloat, safeTop: CGFloat) -> some View {
+    VStack(spacing: 8) {
+      Capsule().fill(HermiPalette.ink.opacity(0.35)).frame(width: 38, height: 4)
+        .frame(maxWidth: .infinity).frame(height: 36).contentShape(Rectangle())
+        .gesture(DragGesture(minimumDistance: 12).exclusively(before: TapGesture()).onEnded { gesture in
+          switch gesture {
+          case .first(let value):
+            if let level = panelLevel.afterDrag(value.translation.height, predicted: value.predictedEndTranslation.height) { panelLevel = level }
+            else { state.sheet = nil; panelLevel = .compact }
+          case .second: panelLevel = panelLevel.next
+          }
         })
+        .accessibilityElement().accessibilityAddTraits(.isButton)
+        .accessibilityLabel(panelLevel == .full ? "Collapse details" : "Expand details")
+        .accessibilityValue(String(describing: panelLevel))
+        .accessibilityAction { panelLevel = panelLevel.next }
+        .accessibilityAction(named: "Expand panel") { panelLevel = panelLevel == .compact ? .medium : .full }
+        .accessibilityAction(named: "Collapse panel") { panelLevel = panelLevel == .full ? .medium : .compact }
       ScrollView {
-        VStack(alignment: .leading, spacing: 12) {
+        LazyVStack(alignment: .leading, spacing: 12) {
           switch sheet {
           case .nearby: nearbyContent
           case .place(let id): if let place = MapSamplePlace.find(id) { placeContent(place) }
           case .plan, .saved: EmptyView()
           }
         }.padding(.horizontal, 20).padding(.bottom, 10)
-      }.scrollIndicators(.hidden)
-      Spacer(minLength: 70)
+      }.scrollIndicators(.hidden).id(sheet)
+      Color.clear.frame(height: 82)
     }
-    .frame(height: discoveryPanelHeight(in: height))
+    .frame(height: panelLevel.height(viewport: height, safeTop: safeTop))
+    .animation(reduceMotion ? nil : .interactiveSpring(response: 0.3, dampingFraction: 0.9), value: panelLevel)
     .frame(maxWidth: .infinity)
     .background(HermiPalette.paper, in: UnevenRoundedRectangle(topLeadingRadius: 24, topTrailingRadius: 24))
     .overlay(alignment: .topTrailing) {
-      Button { state.sheet = nil; expanded = false } label: {
+      Button { state.sheet = nil; panelLevel = .compact } label: {
         PixelIcon(name: "close").frame(width: 14, height: 14).frame(width: 44, height: 36)
       }.buttonStyle(.plain).accessibilityLabel("Close details").controlHelp("Close this place or discovery panel").padding(.trailing, 8)
     }
@@ -343,32 +364,23 @@ public struct HermiMapPreview: View {
   private func placeContent(_ place: MapSamplePlace) -> some View {
     VStack(alignment: .leading, spacing: 12) {
       HStack {
-        Button { state.goBack() } label: {
-          PixelIcon(name: "back").frame(width: 20, height: 20).frame(width: 30, height: 30)
-        }.buttonStyle(.plain).accessibilityLabel(state.returnSheet == .plan ? "Back to My plan" : (state.returnSheet == .saved ? "Back to Saved" : "Back")).controlHelp("Return to the previous panel")
         Text(place.name).font(.headline).lineLimit(1)
         Spacer(minLength: 4)
         Button { state.toggleSave(place.id) } label: {
           PixelIcon(name: state.savedIDs.contains(place.id) ? "saved" : "save").frame(width: 20, height: 24).frame(width: 44, height: 44)
         }.buttonStyle(.plain).accessibilityLabel(state.savedIDs.contains(place.id) ? "Unsave place" : "Save place").controlHelp("Toggle this place in Saved, independently of My Plan")
-      }
-      HStack(spacing: 8) {
-        ForEach(0..<3) { index in mediaTile(place.category, variant: index).frame(height: expanded ? 110 : 68) }
-      }
-      HStack {
-        Text(place.category.rawValue).font(.caption).foregroundStyle(HermiPalette.secondary)
-        Spacer()
         Button { state.togglePlan(place.id) } label: {
-          HStack { PixelIcon(name: state.planIDs.contains(place.id) ? "check" : "plus").frame(width: 14, height: 14); Text(state.planIDs.contains(place.id) ? "Remove" : "Add") }
-            .font(.subheadline.weight(.semibold)).padding(.horizontal, 20).frame(height: 44)
-            .background(HermiPalette.lime, in: Capsule())
-        }.buttonStyle(.plain).controlHelp("Toggle this place in My Plan without changing Saved")
+          PixelIcon(name: state.planIDs.contains(place.id) ? "minus" : "plus")
+            .frame(width: 20, height: 20).frame(width: 32, height: 32)
+            .background(HermiPalette.lime, in: PixelPanel(corner: 6))
+            .frame(width: 44, height: 44).contentShape(Rectangle())
+        }.buttonStyle(.plain)
+          .accessibilityLabel(state.planIDs.contains(place.id) ? "Remove from plan" : "Add to plan")
+          .controlHelp("Toggle this place in My Plan without changing Saved")
       }
-      if expanded {
-        Divider()
-        Text("Photos and verified reviews appear here.").font(.footnote).foregroundStyle(HermiPalette.secondary)
-        Text("Sample place · no live hours or reviews loaded").font(.caption).foregroundStyle(HermiPalette.secondary)
-      }
+      PlaceFeedContent(place: place)
+        .id(place.id)
+
     }
   }
 
