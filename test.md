@@ -2,7 +2,13 @@
 
 This is the user-facing test entry point. Product reference: [unified design schema](docs/HERMI_SCHEMA.md). Resume/checkpoint: [progress](PROGRESS.md).
 
-## Current review: 01c — geography, pin gesture and Profile
+## Current correction: 01d — Feed and board comparison
+
+Feed media crop corrected: the 4:3 source now fills the entire portrait viewport before clipping, eliminating solid-color bands. iPhone build passed and the crop was inspected in Simulator. Check Feed reaches all four screen edges, including behind the status area and pill, without shifting controls offscreen.
+
+This does not resolve the missing controls yet. Questions are pending about “Feedback” (Feed?), Save/Add versus Camera/Create, and whether capture enters Action mode. Full drawing comparison: [board review](docs/design-reference/2026-09-26-board/REVIEW.md). Known gaps include Feed's separate Add button, Feed-specific Social filtering, full-width place strip, and later Plan/place-detail composition. Do not treat 01c or 01d as accepted.
+
+## Previous review: 01c — geography, pin gesture and Profile
 
 The updated app is in Simulator. Reopen from `apps/ios/HermiPreview` with `sh scripts/simulator-preview.sh`. Public map tiles need internet; account places, posts and routes are labeled samples. No Hermi backend writes or location permission.
 

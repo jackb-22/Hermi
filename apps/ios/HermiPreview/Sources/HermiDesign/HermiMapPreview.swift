@@ -310,7 +310,10 @@ public struct HermiMapPreview: View {
   private func feed(in size: CGSize) -> some View {
     ZStack {
       HermiPalette.green
-      ParkPlacement().scaledToFill()
+      // Size the 4:3 artwork before cropping; nested aspectRatio modifiers leave bands.
+      ParkPlacement()
+        .frame(width: max(size.width, size.height * 4 / 3),
+               height: max(size.height, size.width * 3 / 4))
         .frame(width: size.width, height: size.height).clipped().opacity(0.9)
       LinearGradient(colors: [.clear, .black.opacity(0.65)], startPoint: .center, endPoint: .bottom)
       PixelIcon(name: "play").frame(width: 38, height: 38)

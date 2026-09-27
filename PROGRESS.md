@@ -4,7 +4,11 @@ Updated: 2026-09-26. Branch: codex/cairn-frontend. No pushes authorized.
 
 ## Current checkpoint
 
-### Active correction: 01c
+### Active correction: 01d — supplied board comparison
+
+User reports Feed/full-screen and missing Camera/Create/two controls. Three supplied screenshots reviewed in the conversation; comparison saved in docs/design-reference/2026-09-26-board/REVIEW.md with outstanding ambiguities. Temporary attachment copying was blocked by macOS; the existing board PDF remains local. Simulator inspection confirmed Feed media bands, Save-only control and wrong Feed Social navigation. Media crop corrected and inspected in Simulator; iPhone build passed. Await answers about “Feedback,” button pair and Camera/Create entry behavior before changing those meanings. No feature acceptance; preserve prior Profile/privacy amendments. Next: resolve the requested button meanings with the user, then implement the confirmed Feed controls and compare again. No further capture changes until that answer.
+
+### Previous correction: 01c
 
 User rejected bounded illustration, mismatched pin icons, safe-area white bands, category arrows, incorrect Profile tabs and conditional Plan. Implementing geographic MapLibre/OpenFreeMap with bundled pinned renderer, shared pixel ballpoint pins, hold/vertical selection, permanent Plan/Social, edge-to-edge backgrounds, Adventures/Posts with grid/modal and Saved in Plan. User clarified own Adventures only with stats/info; header Friends | Score | Rank leads separately to friend routes. Clarification implemented. Friend sharing confirmed opt-in: Private / Friends / Everyone via persistent left-side Adventures control. Implemented local preview preference with explicit Save; no live publishing or private friend access. Backend untouched. 16 state tests passed; Mac/iPhone builds passed, real tiles/zoom/layout and Profile grid/modal inspected. Fixed safe-area status overlap and UTF-8 attribution. Latest Profile/sharing revision is built for Mac/iPhone; user review in test.md is next. Full pin gesture/haptic/accessibility/offline/sharing-save checks remain pending; no visual acceptance. Simulator reported active user interaction, so agent UI control stopped. Latest build-only checks preserve the user’s running session; rerun simulator-preview.sh after user review to install any subsequent minor reset/pin-anchor corrections. No acceptance or pushes.
 
