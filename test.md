@@ -2,7 +2,21 @@
 
 This is the user-facing test entry point. Product reference: [unified design schema](docs/HERMI_SCHEMA.md). Resume/checkpoint: [progress](PROGRESS.md).
 
-## Current review: Step 8 — local saved-plan editing and Undo
+## Current review: Step 9 — Feed filters and Profile privacy layout
+
+Run HermiPreview in Xcode with **⌘R** on your iPhone. Simulator is running the nonpersistent `--hermi-feed-review` fixture (one café stop); remove that argument for normal restart testing. From `apps/ios/HermiPreview`, the fixture command is `sh scripts/simulator-preview.sh --hermi-feed-review`.
+
+1. **Four Feed combinations:** tap Feed. Tap the top-right Social button to switch Public/Friends. Tap the chevron below it to switch Posts/Plans. Exercise all four combinations: the other filter stays selected, no My Plan sheet opens, and the existing plan stays intact. Swipe vertically to page cards and reach the finite end; switch filters there and confirm matching content returns. Map discovery filters also scope sample Feed results; no matches gives a recoverable empty state.
+2. **Post bookmark versus +:** in Posts, save a post with the bookmark. Tap + to add its place, then tap again to remove it. The bookmark stays selected. Unbookmark must not remove a plan stop. Open a post’s place strip: its content stays in the contextual panel, and X returns to Feed.
+3. **Plan cards:** switch to Plans. Swipe the stop chips horizontally without accidentally paging vertically. Bookmark saves a private local copy without adding stops. The + appends only missing explicit stops in order, as one Undo action; repeated + does not duplicate or delete them. Open Map → My Plan to inspect order/Undo. The route illustration is sample art, not recorded GPS or directions.
+4. **Profile rail:** Profile shows Settings gear above Saved bookmark, on the existing right-hand line. Bookmark opens full Saved with folders, including any Feed bookmarks. Adventures has its statistics icon but no separate sharing button; Posts remains the other of exactly two tabs.
+5. **Settings:** open gear. Defaults are Private routes, location sharing off and Nobody live visibility (a prior explicit route preference may migrate). Choose Friends, then X: changes are discarded. Reopen, choose and Save preview preferences, then reopen: choices remain. Turning location sharing off resets live visibility to Nobody when saved. These are local preferences only, with no permission prompt or actual sharing.
+6. **Own post isolation:** Profile → Posts → first tile. Confirm only your media and your review area appear, with X to close. No friends’ posts/reviews/social context appears. Unavailable reviews remain unavailable; sample captions are not fabricated scored reviews.
+7. **Phone/restore:** check quick taps, hold explanations, larger text, VoiceOver names and horizontal chips versus vertical paging. In a normal run, quit/reopen and confirm filter preferences, bookmarks and privacy draft persist. Send screenshots of Feed Plans, Settings and an own-post popup; send a recording for gesture issues before the next increment.
+
+Verification: **53 Swift tests pass**; Simulator build/launch and unsigned iPhone build pass. Simulator inspected all four filter combinations, Settings defaults/Cancel, Profile rail and own-post isolation. [Step 9 screenshots](docs/design-reference/2026-09-27-step-9/REVIEW.md). Physical-phone install/gesture acceptance and normal-run relaunch remain pending. Backend audience/content filtering, granular privacy enforcement and numerical ratings remain integration gates; no backend changes were made.
+
+## Previous review: Step 8 — local saved-plan editing and Undo
 
 Step 7 accepted for progression; the bookmark’s finger-hold timing remains unverified. Run HermiPreview with **⌘R** on your iPhone. Simulator currently uses the nonpersistent `--hermi-saved-review` fixture. Remove that argument when testing restart persistence. These are local editing tests, not cloud synchronization or invitation tests.
 

@@ -4,6 +4,16 @@ Updated: 2026-09-27. Branch: codex/cairn-frontend. No pushes authorized.
 
 ## Current checkpoint
 
+### Step 9 — Feed/Profile ready for local review
+
+User authorized the next increment. Implemented independent Friends/Public and Posts/Plans filters, full-screen sample plan cards, per-post bookmarks, private local copies of bookmarked plans, duplicate-safe explicit append and one-action Undo. Filter changes preserve active plan and do not navigate to My Plan. Profile rail now has Settings/Saved; sharing controls moved out of Adventures. Own post detail excludes friends’ media/reviews. Optional Codable preferences preserve older snapshots; legacy route audience migrates without enabling location sharing.
+
+53 Swift tests pass. Simulator build/launch and unsigned iPhone build pass. Visually inspected all four Feed filter combinations, Profile rail, local Settings defaults and own-post detail; Settings Cancel exercised. Evidence: [Step 9 review](docs/design-reference/2026-09-27-step-9/REVIEW.md). Physical phone and normal-run restart tests remain open. Simulator fixture does not overwrite normal preview data.
+
+Backend gates: Feed query has lat/lng but no requested audience/content filtering contract; PatchMe lacks route audience/location/live-visibility preferences; scalar review rating remains absent. Local fixture filtering/preferences do not prove server privacy enforcement or feed distribution. No backend edits or push. Frontend commits: `9094550` (state/tests), `0e9b6fd` (UI).
+
+Next: user follows Step 9 in test.md and returns screenshots/gesture feedback. Correct this boundary before Step 10. Previous bookmark finger-hold acceptance remains open.
+
 ### Step 8 — local saved-plan editing ready; remote sync/share blocked
 
 User accepted Step 7 for progression, leaving physical bookmark-hold timing pending. Implemented saved-plan reopening by name, editing identity, autosave of stop order/time/reminder/invite drafts, bounded 20-edit Undo, one-action append Undo, and preservation/restoration of the unfinished unsaved plan. All edit entry points (including Feed/Map and accessibility reorder) use the same model transitions. Existing JSON remains decodable. Saving a new plan binds the editor to it; returning to My draft then starts a fresh draft. Empty saved plans remain recoverable with Go disabled.
