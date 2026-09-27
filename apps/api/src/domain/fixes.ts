@@ -23,15 +23,12 @@ function relegged(stops: SchedStop[]): SchedStop[] {
   );
 }
 
-const fmtTime = (d: Date) =>
-  new Intl.DateTimeFormat('en-US', {
-    timeZone: 'America/New_York',
-    hour: 'numeric',
-    minute: '2-digit',
-  })
-    .format(d)
-    .replace(':00', '')
-    .toLowerCase();
+const NY_TIME = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'America/New_York',
+  hour: 'numeric',
+  minute: '2-digit',
+});
+const fmtTime = (d: Date) => NY_TIME.format(d).replace(':00', '').toLowerCase();
 
 /**
  * One proposed fix for the first failing row, rendered as a ghost change (never applied silently):

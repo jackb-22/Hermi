@@ -5,14 +5,17 @@ export const GHOST_RADIUS_M = 1200;
 export const GHOSTS_SHOWN = 3;
 export const GHOSTS_RERANKED = 5;
 
+// Built once: constructing a formatter costs ~20x formatting with one, and scoring calls this per candidate.
+const NY_HM = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'America/New_York',
+  hour: 'numeric',
+  minute: 'numeric',
+  hourCycle: 'h23',
+});
+
 /** Local wall-clock hour in New York as a fraction, e.g. 19.5 for 7:30 PM. */
 export function nyHour(d: Date): number {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'America/New_York',
-    hour: 'numeric',
-    minute: 'numeric',
-    hourCycle: 'h23',
-  }).formatToParts(d);
+  const parts = NY_HM.formatToParts(d);
   const get = (t: string) => Number(parts.find((p) => p.type === t)?.value ?? 0);
   return get('hour') + get('minute') / 60;
 }

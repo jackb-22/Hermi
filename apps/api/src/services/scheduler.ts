@@ -16,13 +16,13 @@ import {
   toSchedStops,
 } from './plans.ts';
 
-const localArrival = (d: Date) =>
-  new Intl.DateTimeFormat('en-US', {
-    timeZone: 'America/New_York',
-    weekday: 'short',
-    hour: 'numeric',
-    minute: '2-digit',
-  }).format(d);
+const NY_ARRIVAL = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'America/New_York',
+  weekday: 'short',
+  hour: 'numeric',
+  minute: '2-digit',
+});
+const localArrival = (d: Date) => NY_ARRIVAL.format(d);
 
 /**
  * The AI button, tap: code does the arithmetic and checks; the model only estimates stay lengths (5–240 min).

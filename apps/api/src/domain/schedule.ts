@@ -75,15 +75,18 @@ const hm = (s: string) => {
   return (h ?? 0) * 60 + (m ?? 0);
 };
 
+// Built once: every plan view validates every stop, and constructing a formatter costs ~20x using one.
+const NY_WEEKDAY_HM = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'America/New_York',
+  weekday: 'short',
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+});
+
 /** Local wall-clock minutes and weekday in New York for comparing against opening hours. */
 function localMinutes(d: Date): { day: number; min: number } {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'America/New_York',
-    weekday: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-    hourCycle: 'h23',
-  }).formatToParts(d);
+  const parts = NY_WEEKDAY_HM.formatToParts(d);
   const get = (t: string) => parts.find((p) => p.type === t)?.value ?? '0';
   const day = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(get('weekday'));
   return { day, min: Number(get('hour')) * 60 + Number(get('minute')) };
