@@ -58,6 +58,12 @@ struct GeographicWebMap: UIViewRepresentable {
   init(onEvent: @escaping ([String: Any]) -> Void) { self.onEvent = onEvent }
   func makeView() -> WKWebView {
     let configuration = WKWebViewConfiguration()
+    // Inject before the map document runs; CSS, markers and terrain share SwiftUI's tokens.
+    if let data = try? JSONSerialization.data(withJSONObject: HermiPalette.mapColors, options: [.sortedKeys]),
+       let json = String(data: data, encoding: .utf8) {
+      configuration.userContentController.addUserScript(WKUserScript(
+        source: "window.hermiPalette = \(json);", injectionTime: .atDocumentStart, forMainFrameOnly: true))
+    }
     configuration.userContentController.add(self, name: "hermi")
     let view = WKWebView(frame: .zero, configuration: configuration)
     view.navigationDelegate = self

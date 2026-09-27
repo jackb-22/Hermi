@@ -1,8 +1,11 @@
 <!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><link rel="stylesheet" href="maplibre-gl.css">
-<style>
-html,body,#map{margin:0;width:100%;height:100%;overflow:hidden;background:#86bac7}canvas{image-rendering:pixelated}.maplibregl-ctrl-attrib{font:8px system-ui;background:#f8faf3cc!important}.maplibregl-ctrl-bottom-right{bottom:110px;right:4px}.pin{border:0;padding:0;background:none;width:44px;height:52px;cursor:pointer;display:flex;align-items:flex-end;justify-content:center}.pin svg{width:33px;height:42px;overflow:visible;image-rendering:pixelated}.friend{border:3px solid #243c37;background:#e58771;width:24px;height:24px;box-shadow:3px 3px #f8faf3;font:12px monospace;color:#243c37}.notice{position:absolute;bottom:92px;left:10px;font:9px monospace;color:#243c37;background:#f8faf3dc;padding:3px;pointer-events:none}#error{display:none;position:absolute;top:45%;left:16px;right:85px;padding:16px;background:#f8faf3;font:13px system-ui;color:#243c37;box-shadow:4px 4px #243c37}#error button{padding:10px;margin-top:8px;background:#d5eb93;border:0;display:block}a{color:#243c37}
-#control-tip{display:none;position:absolute;bottom:185px;left:12px;right:12px;background:#f8faf3;color:#243c37;font:13px system-ui;padding:12px;pointer-events:none;box-shadow:3px 3px #243c37}
+<script>
+const palette=window.hermiPalette;
+for(const [name,color] of Object.entries(palette))document.documentElement.style.setProperty('--'+name,color);
+</script><style>
+html,body,#map{margin:0;width:100%;height:100%;overflow:hidden;background:var(--lake)}canvas{image-rendering:pixelated}.maplibregl-ctrl-attrib{font:8px system-ui;background:color-mix(in srgb,var(--paper) 80%,transparent)!important}.maplibregl-ctrl-bottom-right{bottom:110px;right:4px}.pin{border:0;padding:0;background:none;width:44px;height:52px;cursor:pointer;display:flex;align-items:flex-end;justify-content:center}.pin svg{width:33px;height:42px;overflow:visible;image-rendering:pixelated}.friend{border:3px solid var(--ink);background:var(--coral);width:24px;height:24px;box-shadow:3px 3px var(--paper);font:12px monospace;color:var(--ink)}.notice{position:absolute;bottom:92px;left:10px;font:9px monospace;color:var(--ink);background:color-mix(in srgb,var(--paper) 86%,transparent);padding:3px;pointer-events:none}#error{display:none;position:absolute;top:45%;left:16px;right:85px;padding:16px;background:var(--paper);font:13px system-ui;color:var(--ink);box-shadow:4px 4px var(--ink)}#error button{padding:10px;margin-top:8px;background:var(--lime);border:0;display:block}a{color:var(--ink)}
+#control-tip{display:none;position:absolute;bottom:185px;left:12px;right:12px;background:var(--paper);color:var(--ink);font:13px system-ui;padding:12px;pointer-events:none;box-shadow:3px 3px var(--ink)}
 </style></head><body><div id="map"></div><div id="control-tip" role="status"></div><div class="notice">SAMPLE PLACES · REAL MAP</div><div id="error">Map unavailable. Check your connection.<button onclick="location.reload()">Retry map</button></div><script src="maplibre-gl.js"></script><script>
 const send=body=>window.webkit?.messageHandlers.hermi.postMessage(body);
 let map, pending={},markers=[],loaded=false;
@@ -10,17 +13,17 @@ const empty={type:'FeatureCollection',features:[]};
 const error=document.getElementById('error');
 try {
 map=new maplibregl.Map({container:'map',center:[-73.965,40.8075],zoom:15.1,minZoom:1,maxZoom:19,pixelRatio:0.5,attributionControl:false,dragRotate:false,pitchWithRotate:false,style:{version:8,sources:{world:{type:'vector',url:'https://tiles.openfreemap.org/planet'}},layers:[
-{id:'land',type:'background',paint:{'background-color':'#e8e9d5'}},
-{id:'cover',type:'fill',source:'world','source-layer':'landcover',paint:{'fill-color':'#bed1a4','fill-antialias':false}},
-{id:'parks',type:'fill',source:'world','source-layer':'landuse',filter:['in','class','park','grass','wood','recreation_ground','cemetery'],paint:{'fill-color':'#b2ca99','fill-antialias':false}},
-{id:'water',type:'fill',source:'world','source-layer':'water',paint:{'fill-color':'#86bac7','fill-antialias':false}},
-{id:'buildings',type:'fill',source:'world','source-layer':'building',minzoom:13,paint:{'fill-color':'#d0d4bc','fill-antialias':false}},
-{id:'roads',type:'line',source:'world','source-layer':'transportation',filter:['!=','class','rail'],paint:{'line-color':'#f8faf3','line-width':['interpolate',['linear'],['zoom'],8,0.5,13,1.5,17,7,19,14]}},
-{id:'paths',type:'line',source:'world','source-layer':'transportation',filter:['==','class','path'],minzoom:14,paint:{'line-color':'#809b70','line-width':1,'line-dasharray':[2,2]}}
+{id:'land',type:'background',paint:{'background-color':palette.land}},
+{id:'cover',type:'fill',source:'world','source-layer':'landcover',paint:{'fill-color':palette.cover,'fill-antialias':false}},
+{id:'parks',type:'fill',source:'world','source-layer':'landuse',filter:['in','class','park','grass','wood','recreation_ground','cemetery'],paint:{'fill-color':palette.parks,'fill-antialias':false}},
+{id:'water',type:'fill',source:'world','source-layer':'water',paint:{'fill-color':palette.lake,'fill-antialias':false}},
+{id:'buildings',type:'fill',source:'world','source-layer':'building',minzoom:13,paint:{'fill-color':palette.buildings,'fill-antialias':false}},
+{id:'roads',type:'line',source:'world','source-layer':'transportation',filter:['!=','class','rail'],paint:{'line-color':palette.paper,'line-width':['interpolate',['linear'],['zoom'],8,0.5,13,1.5,17,7,19,14]}},
+{id:'paths',type:'line',source:'world','source-layer':'transportation',filter:['==','class','path'],minzoom:14,paint:{'line-color':palette.paths,'line-width':1,'line-dasharray':[2,2]}}
 ]}});
 map.touchZoomRotate.disableRotation();
 map.addControl(new maplibregl.AttributionControl({compact:true}),'bottom-right');
-map.on('load',()=>{loaded=true;error.style.display='none';map.addSource('adventure',{type:'geojson',data:empty});map.addLayer({id:'adventure',type:'line',source:'adventure',paint:{'line-color':'#447f65','line-width':4,'line-dasharray':[2,1]}});renderHermi(pending);send({type:'ready'})});
+map.on('load',()=>{loaded=true;error.style.display='none';map.addSource('adventure',{type:'geojson',data:empty});map.addLayer({id:'adventure',type:'line',source:'adventure',paint:{'line-color':palette.green,'line-width':4,'line-dasharray':[2,1]}});renderHermi(pending);send({type:'ready'})});
 map.on('error',()=>{error.style.display='block';send({type:'error'})});
 map.on('idle',()=>{if(map.areTilesLoaded()){error.style.display='none';send({type:'ready'})}});
 map.on('movestart',()=>send({type:'moving'}));map.on('moveend',()=>send({type:'stopped'}));
@@ -29,7 +32,7 @@ window.addEventListener('resize',()=>map.resize());
 function pin(color, name, rows){
  const button=document.createElement('button');button.className='pin';button.setAttribute('aria-label',name);
  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 11 14');svg.setAttribute('shape-rendering','crispEdges');
- rows.forEach((row,y)=>[...row].forEach((pixel,x)=>{if(pixel===' ')return;const rect=document.createElementNS(svg.namespaceURI,'rect');for(const [k,v]of Object.entries({x,y,width:1,height:1,fill:pixel==='I'?'#243c37':pixel==='H'?'#f8faf3':color}))rect.setAttribute(k,v);svg.append(rect)}));button.append(svg);
+ rows.forEach((row,y)=>[...row].forEach((pixel,x)=>{if(pixel===' ')return;const rect=document.createElementNS(svg.namespaceURI,'rect');for(const [k,v]of Object.entries({x,y,width:1,height:1,fill:pixel==='I'?palette.ink:pixel==='H'?palette.paper:color}))rect.setAttribute(k,v);svg.append(rect)}));button.append(svg);
  let timer, origin, held=false;
  button.title=name+' · tap to open';
  button.addEventListener('pointerdown',e=>{origin=[e.clientX,e.clientY];held=false;timer=setTimeout(()=>{held=true;const tip=document.getElementById('control-tip');tip.textContent=name+' · tap to open details';tip.style.display='block';setTimeout(()=>tip.style.display='none',2400)},600)});

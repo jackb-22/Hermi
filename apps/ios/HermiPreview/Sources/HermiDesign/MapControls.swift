@@ -4,15 +4,7 @@ import SwiftUI
 enum PinArtwork {
   static let rows = ["   IIIII   "," IIFFFFFII "," IFFHHFFFI ","IFFHHFFFFFI","IFFFFFFFFFI","IFFFFFFFFFI"," IFFFFFFFI "," IIFFFFFII ","   IIIII   ","     I     ","     I     ","     I     ","     I     ","     I     "]
   static func hex(_ category: HermiCategory) -> String {
-    switch category {
-    case .food: return "#E58771"
-    case .nature: return "#D5EB93"
-    case .culture: return "#B4ADD6"
-    case .shopping: return "#D5B77D"
-    case .drinks: return "#DEB99C"
-    case .sports: return "#86BAC7"
-    case .music: return "#C99EBE"
-    }
+    HermiPalette.hex(HermiPalette.categoryRGB(category))
   }
 }
 struct BallpointPin: View {
@@ -28,6 +20,7 @@ struct PixelIcon: View {
     case "info": return ["   III   ","         ","   III   ","    II   ","    II   ","    II   ","  IIIIII "]
     case "social": return ["  III  III ","  III  III ","           "," IIIII IIII"," IIIII IIII"," IIIII IIII","  I I  I I ","  I I  I I "]
     case "plan": return ["   IIIIIIIIII", "  I         I", " I          I", "I           I", " I          I", "  I         I", "   IIIIIIIIII"]
+    case "settings": return ["    III    "," II III II "," IIIIIIIII ","  II   II  ","III I I III","III I I III","  II   II  "," IIIIIIIII "," II III II ","    III    "]
     case "clock": return ["   IIIII   "," II     II "," I   I   I ","I    I    I","I    III  I","I         I"," I       I "," II     II ","   IIIII   "]
     case "camera": return ["   IIIII   ","IIIIIIIIIII","I         I","I   III   I","I  I   I  I","I   III   I","I         I","IIIIIIIIIII"]
     case "route": return ["III        ","I I IIIIII ","III I    I ","    I    I ","    I    I ","    IIII I ","       I   ","       I III","       I I I","       I III"]

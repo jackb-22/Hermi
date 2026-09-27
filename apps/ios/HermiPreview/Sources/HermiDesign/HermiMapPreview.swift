@@ -15,6 +15,13 @@ public struct HermiMapPreview: View {
   @State private var postPlace: String?
   @State private var profileDetail: ProfileDetail?
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  private var showsPreviewTools: Bool {
+    #if DEBUG
+    ProcessInfo.processInfo.arguments.contains("--hermi-lab")
+    #else
+    false
+    #endif
+  }
   private let storageKey = "hermi.preview.map-composition.v1"
 
   public init() {}
@@ -88,9 +95,10 @@ public struct HermiMapPreview: View {
 
   private func topBar(in size: CGSize) -> some View {
     HStack(alignment: .top) {
+      if showsPreviewTools {
       Menu {
         Text("Real geography · sample places")
-        Text("Interaction review 01e")
+        Text("Visual review Step 2")
         Divider()
         Button("Component lab") { lab = true }
         Toggle("Reduce motion", isOn: $reduceMotionOverride)
@@ -104,16 +112,10 @@ public struct HermiMapPreview: View {
           restorePill?.cancel(); moving = false
         }
       } label: {
-        HStack(spacing: 8) {
-          #if os(macOS)
-          Text("hermi").font(.system(.caption, design: .monospaced).bold())
-          #else
-          PixelText(text: "hermi", unit: 2)
-          #endif
-          PixelIcon(name: "menu").frame(width: 16, height: 16)
-        }.padding(.horizontal, 13).frame(height: 44)
-          .background(HermiPalette.paper.opacity(0.96), in: Capsule())
+        PixelIcon(name: "menu").frame(width: 20, height: 20).frame(width: 44, height: 44)
+          .background(HermiPalette.paper.opacity(0.96), in: PixelPanel(corner: 6))
       }.fixedSize().accessibilityLabel("Hermi preview options")
+      }
       Spacer()
       mapTools(in: size)
     }

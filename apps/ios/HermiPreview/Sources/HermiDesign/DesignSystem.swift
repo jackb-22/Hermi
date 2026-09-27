@@ -1,29 +1,45 @@
 import SwiftUI
 
 enum HermiPalette {
-  static let ink = color(0x243C37)
-  static let paper = color(0xF8FAF3)
-  static let green = color(0x447F65)
-  static let lime = color(0xD5EB93)
-  static let lake = color(0x86BAC7)
-  static let coral = color(0xE58771)
-  static let lavender = color(0xB4ADD6)
+  // One RGB source for SwiftUI sprites, the map renderer and map UI chrome.
+  static let inkRGB: UInt32 = 0x203D39
+  static let paperRGB: UInt32 = 0xF8FAF3
+  static let greenRGB: UInt32 = 0x23856B
+  static let limeRGB: UInt32 = 0xBFDE59
+  static let lakeRGB: UInt32 = 0x69B7CC
+  static let coralRGB: UInt32 = 0xEF8067
+  static let lavenderRGB: UInt32 = 0xA596DD
+  static let ink = color(inkRGB)
+  static let paper = color(paperRGB)
+  static let green = color(greenRGB)
+  static let lime = color(limeRGB)
+  static let lake = color(lakeRGB)
+  static let coral = color(coralRGB)
+  static let lavender = color(lavenderRGB)
   static let secondary = color(0x52675E)
   static let line = color(0xCED9CB)
   static let error = color(0x974C3B)
   static func color(_ value: UInt32) -> Color {
     Color(red: Double((value >> 16) & 255) / 255, green: Double((value >> 8) & 255) / 255, blue: Double(value & 255) / 255)
   }
-  static func category(_ category: HermiCategory) -> Color {
+  static func hex(_ value: UInt32) -> String { String(format: "#%06X", value) }
+  static func categoryRGB(_ category: HermiCategory) -> UInt32 {
     switch category {
-    case .food: return coral
-    case .shopping: return color(0xD6BD89)
-    case .nature: return lime
-    case .culture: return lavender
-    case .drinks: return color(0xDFC6B4)
-    case .sports: return lake
-    case .music: return color(0xD9BCD5)
+    case .food: return coralRGB
+    case .shopping: return 0xE2B652
+    case .nature: return limeRGB
+    case .culture: return lavenderRGB
+    case .drinks: return 0xD7A27D
+    case .sports: return lakeRGB
+    case .music: return 0xCE87BA
     }
+  }
+  static func category(_ category: HermiCategory) -> Color { color(categoryRGB(category)) }
+  static var mapColors: [String: String] {
+    ["ink": hex(inkRGB), "paper": hex(paperRGB), "green": hex(greenRGB),
+     "lime": hex(limeRGB), "lake": hex(lakeRGB), "coral": hex(coralRGB),
+     "land": "#ECEDD9", "cover": "#C4DAB0", "parks": "#AED095",
+     "buildings": "#D2D9BE", "paths": "#739D69"]
   }
 }
 
