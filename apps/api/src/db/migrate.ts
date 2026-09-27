@@ -39,13 +39,3 @@ export async function migrateTiger(pool: pg.Pool, log: (m: string) => void = () 
     client.release();
   }
 }
-
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const { loadConfig } = await import('../config.ts');
-  const { createContext, closeContext } = await import('../boot.ts');
-  const { ensureMongoIndexes } = await import('./indexes.ts');
-  const ctx = await createContext(loadConfig());
-  await migrateTiger(ctx.tiger, console.log);
-  await ensureMongoIndexes(ctx.db, console.log);
-  await closeContext(ctx);
-}

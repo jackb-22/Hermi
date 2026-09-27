@@ -29,6 +29,8 @@ const Env = z.object({
   TIGER_URL: z.string().default('postgres://postgres:postgres@localhost:5432/itp'),
   /** Postgres schema to use; tests set a unique one per file. */
   TIGER_SCHEMA: z.string().default('public'),
+  /** Root CA to verify Tiger against; defaults to Tiger Cloud's bundled root (src/db/tiger-ca.pem). */
+  TIGER_CA_PEM: optStr,
 
   S3_ENDPOINT: optStr,
   S3_REGION: z.string().default('us-east-1'),
