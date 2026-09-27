@@ -385,6 +385,8 @@ public struct HermiMapPreview: View {
     .overlay(alignment: .bottomTrailing) {
       VStack(spacing: 0) {
         if !mapCovered {
+        mapButton("plus", label: "Zoom in", action: "in")
+        mapButton("minus", label: "Zoom out", action: "out")
         mapButton("locate", label: "Recenter on Columbia", action: "recenter")
         }
       }.padding(.trailing, 20).padding(.bottom, mapControlsBottom(in: size))
@@ -406,7 +408,7 @@ public struct HermiMapPreview: View {
 
   private func mapButton(_ icon: String, label: String, action: String) -> some View {
     Button { mapCommand = MapCommand(action: action) } label: {
-      PixelIcon(name: icon).frame(width: 20, height: 20).frame(width: 30, height: 30)
+      PixelIcon(name: icon).frame(width: 20, height: 20).frame(width: 34, height: 34)
         .background(HermiPalette.paper, in: PixelPanel(corner: 6))
       .frame(width: 44, height: 44).contentShape(Rectangle())
     }.buttonStyle(.plain).accessibilityLabel(label).controlHelp(label)

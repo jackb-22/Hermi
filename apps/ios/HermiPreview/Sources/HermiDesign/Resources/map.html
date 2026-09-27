@@ -4,7 +4,13 @@
 const palette=window.hermiPalette;
 for(const [name,color] of Object.entries(palette))document.documentElement.style.setProperty('--'+name,color);
 </script><style>
-html,body,#map{margin:0;width:100%;height:100%;overflow:hidden;background:var(--water)}canvas{image-rendering:pixelated}.maplibregl-ctrl-attrib{font:8px system-ui;background:color-mix(in srgb,var(--paper) 80%,transparent)!important}.maplibregl-ctrl-bottom-right{bottom:78px;right:4px}.pin{z-index:20;filter:drop-shadow(1px 2px 0 #29343f30);border:0;padding:0;background:none;width:44px;height:52px;cursor:pointer;display:flex;align-items:flex-end;justify-content:center}.pin svg{width:33px;height:42px;overflow:visible;image-rendering:pixelated}.notice{position:absolute;bottom:112px;left:10px;font:9px monospace;color:var(--ink);background:color-mix(in srgb,var(--paper) 86%,transparent);padding:3px;pointer-events:none}#error{display:none;position:absolute;top:45%;left:16px;right:85px;padding:16px;background:var(--paper);font:13px system-ui;color:var(--ink);box-shadow:4px 4px var(--ink)}#error button{padding:10px;margin-top:8px;background:var(--lime);border:0;display:block}a{color:var(--ink)}
+html,body,#map{margin:0;width:100%;height:100%;overflow:hidden;background:var(--water)}canvas{image-rendering:pixelated}.maplibregl-ctrl-attrib{font:8px system-ui;background:color-mix(in srgb,var(--paper) 80%,transparent)!important}.maplibregl-ctrl-bottom-left{bottom:var(--controls-bottom,110px);left:20px;transition:bottom .2s ease-out}
+.maplibregl-ctrl-attrib.maplibregl-compact{margin:0;min-height:44px;padding:0 44px 0 0;border-radius:6px;max-width:calc(100vw - 104px)}
+.maplibregl-ctrl-attrib .maplibregl-ctrl-attrib-button{width:44px;height:44px;background-position:center;background-repeat:no-repeat}
+.maplibregl-ctrl-attrib.maplibregl-compact-show{padding:0 0 0 44px}
+.maplibregl-ctrl-attrib-inner{font:10px/1.4 system-ui;padding:8px;min-height:28px}
+.reduce-motion .maplibregl-ctrl-bottom-left{transition:none}
+.pin{z-index:20;filter:drop-shadow(1px 2px 0 #29343f30);border:0;padding:0;background:none;width:44px;height:52px;cursor:pointer;display:flex;align-items:flex-end;justify-content:center}.pin svg{width:33px;height:42px;overflow:visible;image-rendering:pixelated}.notice{position:absolute;bottom:112px;left:10px;font:9px monospace;color:var(--ink);background:color-mix(in srgb,var(--paper) 86%,transparent);padding:3px;pointer-events:none}#error{display:none;position:absolute;top:45%;left:16px;right:85px;padding:16px;background:var(--paper);font:13px system-ui;color:var(--ink);box-shadow:4px 4px var(--ink)}#error button{padding:10px;margin-top:8px;background:var(--lime);border:0;display:block}a{color:var(--ink)}
 
 
 #pin-editor{display:none;position:absolute;z-index:30;width:44px;right:20px;color:var(--ink);font:11px system-ui;text-align:center;touch-action:none;transition:bottom .2s ease-out}
@@ -24,7 +30,7 @@ html,body,#map{margin:0;width:100%;height:100%;overflow:hidden;background:var(--
 @keyframes shared-presence{0%,20%,40%,100%{opacity:1}10%,30%{opacity:.3}}
 .friend.recent svg{width:28px;height:28px;opacity:.8}.friend.quest svg{width:28px;height:28px}
 .reduce-motion .friend.current svg{width:32px;height:32px;animation:none}
-@media(prefers-reduced-motion:reduce){#pin-editor{transition:none}.friend.current svg{width:32px;height:32px;animation:none}}
+@media(prefers-reduced-motion:reduce){#pin-editor,.maplibregl-ctrl-bottom-left{transition:none}.friend.current svg{width:32px;height:32px;animation:none}}
 </style></head><body><div id="map"></div><button id="pin-remove" aria-label="Remove discovery pin"><svg viewBox="0 0 9 9" aria-hidden="true"><path fill="currentColor" d="M0 0h2v1h1v1h1v1h1V2h1V1h1V0h2v2H8v1H7v1H6v1h1v1h1v1h1v2H7V8H6V7H5V6H4v1H3v1H2v1H0V7h1V6h1V5h1V4H2V3H1V2H0z"/></svg></button><div id="pin-editor"><input id="pin-radius" aria-label="Geographic radius in miles" type="range" min="0" max="1" step="0.01" value="0.5"><output id="radius-value">1 mi</output></div><div class="notice" style="display:none"></div><div id="error">Map unavailable. Check your connection.<button onclick="location.reload()">Retry map</button></div><script src="maplibre-gl.js"></script><script>
 const send=body=>window.webkit?.messageHandlers.hermi.postMessage(body);
 let map, pending={},markers=[],loaded=false,placeSignature="",socialSignature="",lastViewportSent=0,discoveryMarker=null,draggingPin=false,revealDiscovery=false,lastBottomInset=0;
@@ -46,8 +52,8 @@ map=new maplibregl.Map({container:'map',center:[-73.965,40.8075],zoom:15.1,minZo
 {id:'paths',type:'line',source:'world','source-layer':'transportation',filter:['==','class','path'],minzoom:14,paint:{'line-color':palette.paths,'line-width':1,'line-dasharray':[2,2]}}
 ]}});
 map.touchZoomRotate.disableRotation();
-map.addControl(new maplibregl.AttributionControl({compact:true}),'bottom-right');
-map.on('load',()=>{loaded=true;error.style.display='none';map.addSource('social-routes',{type:'geojson',data:empty});
+map.addControl(new maplibregl.AttributionControl({compact:true}),'bottom-left');
+map.on('load',()=>{loaded=true;collapseMapCredits();error.style.display='none';map.addSource('social-routes',{type:'geojson',data:empty});
 map.addLayer({id:'social-current',type:'line',source:'social-routes',filter:['==','kind','current'],paint:{'line-color':palette.green,'line-width':4,'line-dasharray':[1,2]}});
 map.addLayer({id:'social-loved',type:'line',source:'social-routes',filter:['==','kind','loved'],paint:{'line-color':'#D66C9B','line-width':4}});map.addLayer({id:'social-planned',type:'line',source:'social-routes',filter:['==','kind','planned'],paint:{'line-color':palette.green,'line-width':4,'line-dasharray':[1,2]}});map.addLayer({id:'social-done',type:'line',source:'social-routes',filter:['==','kind','done'],paint:{'line-color':palette.green,'line-width':4}});
 map.addSource('explored',{type:'geojson',data:empty});map.addLayer({id:'explored-fill',type:'fill',source:'explored',paint:{'fill-color':palette.lime,'fill-opacity':0.75,'fill-antialias':false}});map.addLayer({id:'explored-line',type:'line',source:'explored',paint:{'line-color':palette.green,'line-width':1}});map.addSource('adventure',{type:'geojson',data:empty});map.addLayer({id:'adventure',type:'line',source:'adventure',paint:{'line-color':palette.green,'line-width':4,'line-dasharray':[2,1]}});map.addSource('discovery-radius',{type:'geojson',data:empty});map.addLayer({id:'discovery-radius-fill',type:'fill',source:'discovery-radius',paint:{'fill-color':palette.lime,'fill-opacity':0.13}});map.addLayer({id:'discovery-radius-line',type:'line',source:'discovery-radius',paint:{'line-color':palette.green,'line-width':2,'line-dasharray':[3,2]}});map.addSource('places',{type:'geojson',data:empty});map.addLayer({id:'places',type:'symbol',source:'places',layout:{'icon-image':['get','icon'],'icon-allow-overlap':true,'icon-ignore-placement':true}});installLandmarks();renderHermi(pending);send({type:'ready'});send({type:'viewport',...viewport()})});
@@ -58,6 +64,12 @@ map.on('click',e=>{if(draggingPin)return;const hit=e&&e.point?placeAt(e.point):n
 map.on('movestart',()=>send({type:'moving'}));map.on('moveend',()=>send({type:'stopped',...viewport()}));
 window.addEventListener('resize',()=>map.resize());
 }catch(e){error.style.display='block';send({type:'error'})}
+
+// Start with only the info button; retain the provider's expandable attribution links.
+function collapseMapCredits(){
+ const credits=document.querySelector('.maplibregl-ctrl-attrib');
+ if(credits){credits.classList.remove('maplibregl-compact-show');credits.removeAttribute('open')}
+}
 
 // Original pixel miniatures respond to zoom, but leave every gesture to the map/pins.
 function installLandmarks(){
@@ -284,6 +296,7 @@ function renderDiscovery(){
 }
 window.renderHermi=data=>{pending=data;if(!loaded)return;
  document.documentElement.className=data.reduceMotion?'reduce-motion':'';
+ document.documentElement.style.setProperty('--controls-bottom',(data.bottomInset||110)+'px');
  map.getSource('social-routes').setData({type:'FeatureCollection',features:data.social?(data.socialRoutes||[]):[]});
  const places=data.places||[], placeSig=JSON.stringify(places);
  if(placeSig!==placeSignature){

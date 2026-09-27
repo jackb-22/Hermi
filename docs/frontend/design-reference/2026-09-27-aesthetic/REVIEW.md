@@ -26,3 +26,9 @@ Reviewed the complete sprite sheet and the actual map renderer at Midtown and ci
 Added an opaque 1024 × 1024 AppIcon asset rendered directly from HermitBrandMark, including the Liberty torch. Both Debug and Release target settings use AppIcon, and the built Info.plist includes CFBundlePrimaryIcon. Regenerate with `python3 scripts/generate-app-icon.py` from apps/ios/HermiPreview on a Mac with Xcode.
 
 Physical iPhone 17 Pro was paired over USB with Developer Mode enabled. Compilation and asset processing completed; the synced Desktop build folder repeatedly acquired Finder metadata that blocked final signing. Copied the compiled bundle with `ditto --norsrc --noextattr` to a temporary folder, signed with the existing development identity/entitlements, and verified with `codesign --verify --deep --strict`. Device installation and launch both succeeded. No device settings or app data were reset.
+
+## Map zoom controls and collapsed credits
+
+Restored native pixel + / − / home buttons in one vertical right-side stack. Each has a 34-point visual surface inside a 44-point hit target. The stack shares the existing animated panel inset and full-overlay visibility policy; the radius editor's existing 132-point reservation matches its height. The map provider credits start collapsed into the info control at left and remain available on tap. This control now follows the same bottom inset, with reduced-motion support.
+
+Map bridge checks cover zoom-in/out dispatch, initial credit collapse and panel-inset changes. iPhone 16e screenshot with an active pin, radius editor and compact panel verifies clearance (map-controls.png). Simulator and signed physical-device builds succeeded; signature verification, installation and launch on iPhone 17 Pro succeeded.
