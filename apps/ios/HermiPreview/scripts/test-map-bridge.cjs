@@ -10,7 +10,7 @@ class MapStub {
  constructor(options){map=this;this.options=options;this.events={};this.sources={};this.layers={};this.images={};this.rendered=[];this.touchZoomRotate={disableRotation(){}};}
  on(k,f){this.events[k]=f;return this} addControl(){} addLayer(layer){this.layers[layer.id]=layer} resize(){} areTilesLoaded(){return true}
  addSource(k,v){this.sources[k]={data:v.data,setData(d){this.data=d}}} getSource(k){return this.sources[k]}
- panBy(offset){this.lastPan=offset}
+ panBy(offset){this.lastPan=offset} fitBounds(b,o){this.lastFit={b,o}}
  hasImage(id){return !!this.images[id]} addImage(id,image,options){this.images[id]={image,options}} queryRenderedFeatures(){return this.rendered}
  getContainer(){return {clientWidth:400,clientHeight:800}} getCanvas(){return {width:1200,height:2400,clientWidth:400,clientHeight:800}}
  getBounds(){return {getWest:()=>-73.97,getSouth:()=>40.80,getEast:()=>-73.96,getNorth:()=>40.81}} getZoom(){return 15.1}
@@ -20,7 +20,7 @@ class MarkerStub {
  constructor(options){this.options=options;this.handlers={};markers.push(this)} setLngLat(c){this.point={lng:c[0],lat:c[1]};return this} getLngLat(){return this.point}
  addTo(){return this} on(k,f){this.handlers[k]=f;return this} remove(){this.removed=true}
 }
-const context={document,console,setTimeout,clearTimeout,hermiPalette:{ink:'#203D39',paper:'#F8FAF3',green:'#23856B',lime:'#BFDE59',lake:'#69B7CC'},webkit:{messageHandlers:{hermi:{postMessage(m){messages.push(m)}}}},addEventListener(){},maplibregl:{Map:MapStub,Marker:MarkerStub,AttributionControl:class{}}};
+const context={document,console,setTimeout,clearTimeout,hermiPalette:{ink:'#203D39',paper:'#F8FAF3',green:'#23856B',lime:'#BFDE59',lake:'#69B7CC'},webkit:{messageHandlers:{hermi:{postMessage(m){messages.push(m)}}}},addEventListener(){},maplibregl:{Map:MapStub,Marker:MarkerStub,AttributionControl:class{},LngLatBounds:class{constructor(a,b){this.sw=[...a];this.ne=[...b]}extend(c){this.sw=[Math.min(this.sw[0],c[0]),Math.min(this.sw[1],c[1])];this.ne=[Math.max(this.ne[0],c[0]),Math.max(this.ne[1],c[1])];return this}}}};
 context.window=context;vm.createContext(context);vm.runInContext(scripts,context);
 context.commandHermi({id:'early',action:'drop',x:0.5,y:0.5});assert.equal(messages.at(-1).type,'dropRejected');
 map.events.load();
@@ -98,3 +98,16 @@ assert.equal(map.getSource('social-routes').data.features.length,0);
 assert.ok(friends.every(m=>m.removed));
 assert.ok(!html.includes('control-tip'));assert.ok(!html.includes('held=false'));
 console.log('Social bridge passed: dotted/solid routes, explicit marker coordinates, Solo clearing, Reduce Motion, and no hold tips.');
+
+// Feed routes: the line goes on the route layer, stops are numbered markers, the camera fits once per route.
+const route={line:[[-73.965,40.806],[-73.967,40.808],[-73.963,40.81]],stops:[{index:1,lng:-73.965,lat:40.806,color:'#EF8067'},{index:2,lng:-73.963,lat:40.81,color:'#23856B'}]};
+context.renderHermi({places:[],social:false,route});
+assert.equal(map.getSource('adventure').data.features[0].geometry.coordinates.length,3);
+const stops=markers.filter(m=>m.options.element.className==='route-stop'&&!m.removed);
+assert.equal(stops.length,2);assert.equal(stops[1].options.element.textContent,'2');
+assert.deepEqual(Array.from(map.lastFit.b.sw),[-73.967,40.806]);assert.deepEqual(Array.from(map.lastFit.b.ne),[-73.963,40.81]);
+map.lastFit=null;context.renderHermi({places:[],social:false,route});assert.equal(map.lastFit,null);
+context.renderHermi({places:[],social:false});
+assert.equal(map.getSource('adventure').data.features.length,0);assert.ok(stops.every(m=>m.removed));
+console.log('Route bridge passed: feed route line, numbered stops, fit once, clear.');
+

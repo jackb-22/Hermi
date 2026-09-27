@@ -113,9 +113,20 @@ struct PostDTO: Decodable, Sendable {
   var author: UserCardDTO
   var place: PostPlace?
   var planId: String?
+  struct Route: Decodable, Sendable {
+    struct Stop: Decodable, Sendable {
+      var placeId: String
+      var name: String
+      var index: Int
+      var loc: LatLngDTO
+    }
+    var line: [LatLngDTO]
+    var stops: [Stop]
+  }
   var media: [Media]
   var text: String?
   var again: Bool?
+  var route: Route?
   var createdAt: Date?
 }
 
@@ -168,6 +179,7 @@ struct PlanDTO: Decodable, Sendable {
   var status: String
   var visibility: String?
   var isHost: Bool?
+  var hostId: String?
   var startAt: Date?
   var stops: [Stop]
   var members: [Member]?
@@ -181,3 +193,30 @@ struct FriendsDTO: Decodable, Sendable {
   struct Friend: Decodable, Sendable { var user: UserCardDTO }
   var items: [Friend]
 }
+
+/// One Feed card. `action` is a string on plan cards ("join" / "request") and an object on the end card.
+struct FeedCardDTO: Decodable, Sendable {
+  var kind: String
+  var post: PostDTO?
+  var plan: PlanDTO?
+  var joinAction: String?
+  var title: String?
+
+  private enum Keys: String, CodingKey { case kind, post, plan, action, title }
+  init(from decoder: Decoder) throws {
+    let container = try decoder.container(keyedBy: Keys.self)
+    kind = try container.decode(String.self, forKey: .kind)
+    post = try container.decodeIfPresent(PostDTO.self, forKey: .post)
+    plan = try container.decodeIfPresent(PlanDTO.self, forKey: .plan)
+    title = try container.decodeIfPresent(String.self, forKey: .title)
+    if kind == "plan" { joinAction = try container.decodeIfPresent(String.self, forKey: .action) } else { joinAction = nil }
+  }
+}
+
+struct FeedResponseDTO: Decodable, Sendable {
+  var cards: [FeedCardDTO]
+  var unseenLeftToday: Int?
+}
+
+struct SeenBody: Encodable { var postIds: [String] }
+struct JoinRequestBody: Encodable {}

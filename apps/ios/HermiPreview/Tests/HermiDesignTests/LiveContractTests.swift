@@ -304,4 +304,32 @@ final class LiveContractTests: XCTestCase {
     XCTAssertEqual(state.planIDs, ["01BAGEL", "01PARK"])
     XCTAssertEqual(sync.serverID(forKey: PlanSync.draftKey), "01PLAN")
   }
+
+  func testFeedCardsMapToPageKindsAndFilter() throws {
+    func post(_ id: String, _ media: String, route: String = "null", text: String = "\"hi\"") -> String {
+      #"{"kind":"post","post":{"id":"\#(id)","type":"photos","status":"live","author":{"id":"a1","name":"Pixel Pat","username":"seed_pixel_pat","spriteUrl":null,"photoUrl":null,"verified":true,"campus":null},"place":{"id":"01BAGEL","name":"Bagel shop","category":"food","loc":{"lat":40.806,"lng":-73.965}},"planId":null,"media":[\#(media)],"text":\#(text),"again":null,"route":\#(route),"stamp":{"placeName":"Bagel shop","time":"2026-09-26T17:20:09.376Z","tier":"gps"},"counts":{"been":1,"going":0},"createdAt":"2026-09-26T18:20:09.376Z"}}"#
+    }
+    let photo = #"{"id":"m1","kind":"photo","url":"https://x/media/r/a.jpg","posterUrl":null,"ambientUrl":null,"verifyUrl":null}"#
+    let video = #"{"id":"m2","kind":"video","url":"https://x/media/r/a.mp4","posterUrl":"https://x/media/p/a.jpg","ambientUrl":null,"verifyUrl":null}"#
+    let route = #"{"line":[{"lat":40.806,"lng":-73.965},{"lat":40.808,"lng":-73.967}],"stops":[{"placeId":"01BAGEL","name":"Bagel shop","index":0,"loc":{"lat":40.806,"lng":-73.965}},{"placeId":"01PARK","name":"Park","index":1,"loc":{"lat":40.808,"lng":-73.967}}]}"#
+    let cards = [post("p1", photo), post("p2", video), post("p3", "", route: route), post("p4", "", text: "\"Cozy\""),
+                 #"{"kind":"plan","plan":\#(Self.planJSON),"action":"join"}"#,
+                 #"{"kind":"end","title":"You're caught up. Go outside.","action":{"label":"Plan from Saved","type":"plan_from_saved"}}"#]
+    let json = #"{"cards":[\#(cards.joined(separator: ","))],"unseenLeftToday":12}"#
+    let response = try HermiAPI.decoder.decode(FeedResponseDTO.self, from: Data(json.utf8))
+    XCTAssertEqual(response.cards.count, 6)
+    XCTAssertEqual(response.cards[4].joinAction, "join")
+    XCTAssertNil(response.cards[5].joinAction, "the end card's action is an object, not a join action")
+    let mapped = response.cards.compactMap { LiveFeedCard.from($0) }
+    XCTAssertEqual(mapped.map(\.kind), [.photo, .video, .route, .review, .openPlan])
+    XCTAssertEqual(mapped[2].placeIDs, ["01BAGEL", "01PARK"])
+    XCTAssertEqual(mapped[2].route.count, 2)
+    XCTAssertEqual(mapped[4].planID, "01PLAN")
+    XCTAssertEqual(mapped[4].placeIDs, ["01BAGEL", "01PARK"])
+    XCTAssertEqual(mapped[4].route.count, 2)
+    XCTAssertEqual(mapped[0].postID, "p1")
+    // Content filter: posts vs plans (routes and open plans) vs everything.
+    let isPlan = mapped.map(\.isPlan)
+    XCTAssertEqual(isPlan, [false, false, true, false, true])
+  }
 }

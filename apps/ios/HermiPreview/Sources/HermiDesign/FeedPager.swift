@@ -7,19 +7,29 @@ struct FeedPager: View {
   var onStopped: () -> Void
   @State private var current: String?
   @State private var notice: String?
+  private var showsPosts: Bool { state.feedOptions.content != .plans }
+  private var showsPlans: Bool { state.feedOptions.content != .posts }
   private var visibleIDs: [String] {
-    state.feedOptions.content == .posts ? state.feedPosts.map(\.id) : state.feedPlans.map(\.id)
+    (showsPosts ? state.feedPosts.map(\.id) : []) + (showsPlans ? state.feedPlans.map(\.id) : [])
   }
   var body: some View {
+    if LiveSession.shared.isLive {
+      LiveFeedPager(state: $state, size: size, onMoving: onMoving, onStopped: onStopped)
+    } else {
+      samplePager
+    }
+  }
+  private var samplePager: some View {
     ScrollView(.vertical) {
       LazyVStack(spacing: 0) {
-        if state.feedOptions.content == .posts {
+        if showsPosts {
           ForEach(Array(state.feedPosts.enumerated()), id: \.element.id) { index, post in
             if let place = MapSamplePlace.find(post.placeID) {
               postPage(post, place: place, index: index).frame(width: size.width, height: size.height).id(post.id)
             }
           }
-        } else {
+        }
+        if showsPlans {
           ForEach(state.feedPlans) { plan in
             planPage(plan).frame(width: size.width, height: size.height).id(plan.id)
           }
@@ -35,7 +45,7 @@ struct FeedPager: View {
       }.scrollTargetLayout()
     }.scrollTargetBehavior(.paging).scrollPosition(id: $current).scrollIndicators(.hidden)
       .overlay(alignment: .topLeading) {
-        Text("\(state.feedOptions.audience.rawValue) · \(state.feedOptions.content == .plans ? "Plans" : "Posts")")
+        Text("\(state.feedOptions.audience.rawValue) · \(state.feedOptions.content.label)")
           .font(.caption.bold()).padding(10).background(HermiPalette.paper, in: PixelPanel(corner: 5))
           .padding(.top, 105).padding(.leading, 20).allowsHitTesting(false)
       }

@@ -17,6 +17,9 @@ struct GeographicMap: View {
   var bottomInset: CGFloat = 110
   var adventure = false
   var showsPlaces = true
+  /// A plan or adventure drawn as a line with numbered stops (Feed pages); the map fits it.
+  var routeLine: [GeoPoint] = []
+  var routeStops: [MapSamplePlace] = []
   var onEvent: ([String: Any]) -> Void = { _ in }
   var body: some View {
     GeographicWebMap(payload: payload, command: command) { event in
@@ -54,6 +57,14 @@ struct GeographicMap: View {
        "radiusMiles": pin.radiusMiles, "color": PinArtwork.hex(pin.category), "category": pin.category.rawValue]
     }
     result["discoveries"] = pins
+    if !routeLine.isEmpty {
+      result["route"] = [
+        "line": routeLine.map { [$0.longitude, $0.latitude] },
+        "stops": routeStops.enumerated().map { index, place -> [String: Any] in
+          ["index": index + 1, "lng": place.longitude, "lat": place.latitude, "color": PinArtwork.hex(place.category)]
+        }
+      ]
+    }
     result["discovery"] = pins.first { $0["id"] as? String == editingPinID?.uuidString }
     return result
   }

@@ -197,7 +197,7 @@ public struct HermiMapPreview: View {
           }
         }
       } else {
-        SavedSync.shared.reset(); PlanSync.shared.reset()
+        SavedSync.shared.reset(); PlanSync.shared.reset(); LiveFeed.shared.reset()
       }
     }
     .onChange(of: PlanSync.shared.notice) { _, notice in
@@ -276,17 +276,17 @@ public struct HermiMapPreview: View {
         PixelIcon(name: "social").frame(width: 26, height: 26).frame(width: 34, height: 34)
           .background((state.panel == .feed ? state.feedOptions.audience == .friends : state.social) ? HermiPalette.lime : HermiPalette.paper, in: PixelPanel(corner: 8))
         .frame(width: 44, height: 44).contentShape(Rectangle())
-      }.accessibilityLabel(state.panel == .feed ? (state.feedOptions.audience == .friends ? "Friends feed. Show public" : "Public feed. Show friends") : (state.social ? "Social map. Switch to Solo" : "Solo map. Switch to Social"))
-        .controlHelp(state.panel == .feed ? "Toggle sample Feed between friends and public" : "Toggle Solo and Social map")
+      }.accessibilityLabel(state.panel == .feed ? (state.feedOptions.audience == .friends ? "Friends feed. Show general" : "General feed. Show friends") : (state.social ? "Social map. Switch to Solo" : "Solo map. Switch to Social"))
+        .controlHelp(state.panel == .feed ? "Switch the Feed between General and Friends" : "Toggle Solo and Social map")
       Button {
         if state.panel == .feed { state.toggleFeedContent() }
         else { state.sheet = .plan; panelLevel = .full }
       } label: {
         PixelIcon(name: "plan").frame(width: 26, height: 26).frame(width: 34, height: 34)
-          .background(state.panel == .feed && state.feedOptions.content == .plans ? HermiPalette.lime : HermiPalette.paper, in: PixelPanel(corner: 8))
+          .background(state.panel == .feed && state.feedOptions.content != .all ? HermiPalette.lime : HermiPalette.paper, in: PixelPanel(corner: 8))
         .frame(width: 44, height: 44).contentShape(Rectangle())
-      }.accessibilityLabel(state.panel == .feed ? (state.feedOptions.content == .plans ? "Show posts" : "Show plans and adventures") : "My Plan, \(state.planIDs.count) places")
-        .controlHelp(state.panel == .feed ? "Filter this audience’s feed between posts and sample plans" : "Open My Plan. Saved is inside its bookmark button")
+      }.accessibilityLabel(state.panel == .feed ? "Feed shows \(state.feedOptions.content.label). Change filter" : "My Plan, \(state.planIDs.count) places")
+        .controlHelp(state.panel == .feed ? "Filter the Feed: everything, posts only or plans only" : "Open My Plan. Saved is inside its bookmark button")
       }
     }.buttonStyle(.plain)
   }

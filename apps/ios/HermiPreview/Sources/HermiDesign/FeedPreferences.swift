@@ -1,10 +1,19 @@
 import Foundation
 
 enum FeedAudience: String, Codable, CaseIterable { case friends = "Friends", publicFeed = "Public" }
-enum FeedContent: String, Codable { case posts, plans }
+enum FeedContent: String, Codable {
+  case all, posts, plans
+  var label: String {
+    switch self {
+    case .all: return "Everything"
+    case .posts: return "Posts"
+    case .plans: return "Plans"
+    }
+  }
+}
 struct FeedPreferences: Codable, Equatable {
   var audience: FeedAudience = .publicFeed
-  var content: FeedContent = .posts
+  var content: FeedContent = .all
 }
 struct FeedPlanSample: Identifiable {
   let id: String
@@ -36,7 +45,11 @@ extension MapPreviewState {
     feedOptions.audience = feedOptions.audience == .friends ? .publicFeed : .friends
   }
   mutating func toggleFeedContent() {
-    feedOptions.content = feedOptions.content == .posts ? .plans : .posts
+    switch feedOptions.content {
+    case .all: feedOptions.content = .posts
+    case .posts: feedOptions.content = .plans
+    case .plans: feedOptions.content = .all
+    }
   }
   mutating func togglePostBookmark(_ id: String) {
     var library = library

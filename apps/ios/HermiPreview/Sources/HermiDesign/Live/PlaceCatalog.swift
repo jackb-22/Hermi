@@ -60,6 +60,12 @@ final class PlaceCatalog {
   }
   var cached: [MapSamplePlace] { cache.values.sorted { $0.id < $1.id } }
 
+  /// Centre of the last reported map area (the Feed's location until the app has real location).
+  var mapCenter: GeoPoint? {
+    guard let b = lastBounds else { return nil }
+    return GeoPoint(latitude: (b[1] + b[3]) / 2, longitude: (b[0] + b[2]) / 2)
+  }
+
   func place(_ id: String) -> MapSamplePlace? {
     cache[id] ?? MapSamplePlace.fixtures.first { $0.id == id }
   }
