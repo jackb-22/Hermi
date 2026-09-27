@@ -6,7 +6,7 @@ This is the user-facing test entry point. Product reference: [unified design sch
 
 Run the updated app with ⌘R in Xcode, with your connected iPhone selected.
 
-1. Map → Social: see a green pixel friend sprite at the sample current place, a pink heart at the sample loved place, a dotted green active-adventure route and a solid pink loved-adventure route. These are independent layers; a friend may have a shared place without a route. The sample-data label must remain visible above attribution.
+1. Map → Social: see a green pixel-edged circle with two simple people inside at the sample current place, a pink heart at the sample loved place, a dotted green active-adventure route and a solid pink loved-adventure route. These are independent layers; a friend may have a shared place without a route. The sample-data label must remain visible above attribution.
 2. Watch green: blink, blink, pause, repeat. Enable iOS Reduce Motion: it remains steady. Pink hearts and paths stay steady. Tap a friend/heart to see its sample identity/context; no text should appear just from holding it.
 3. Switch Solo: all friend icons and both route kinds disappear. Switch Social back: they return without duplicating. Pan and zoom: icons remain tied to their geographic coordinates and the right toolbar stays aligned.
 4. Hold ordinary buttons, including Social, Plan, add/save, Profile controls and discovery pins: no functionality-description popover appears. Quick taps still work. Intentional actions are retained: hold My Plan bookmark for Save Plan, hold/drag category pin, and hold/reorder plan stops.

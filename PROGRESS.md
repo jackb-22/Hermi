@@ -4,6 +4,10 @@ Updated: 2026-09-27. Branch: codex/cairn-frontend. No pushes authorized.
 
 ## Current checkpoint
 
+### Social marker readability correction
+
+User requested a simple circled people icon. Current-place marker now uses a 32-point pixel-edged green circle with a dark outline and two high-contrast head-and-shoulder silhouettes; existing 44-point tap target and blink/pause behavior remain. Map bridge checks pass. Simulator screenshot review records the revised icon in the Social evidence folder. No backend changes.
+
 ### Social map feedback — implemented for local review
 
 User clarified shared current places (green blink–blink–pause), loved places (pink), active adventures (dotted) and loved adventures (solid). Replaced letter placeholders with geographic pixel sprites/hearts plus separate route layers. Social off removes all layers; Profile Adventures and Action do not inherit Home Social fixtures. Reduced Motion disables sprite animation. Taps show sample identity/context; no GPS or real sharing claims.

@@ -19,10 +19,10 @@ html,body,#map{margin:0;width:100%;height:100%;overflow:hidden;background:var(--
 .category-indicator{position:absolute;top:-14px;left:14px;width:16px;height:16px;pointer-events:none}.category-indicator svg{width:16px;height:16px}
  .friend{border:0;background:none;box-shadow:none;width:44px;height:44px;display:grid;place-items:center;padding:0;cursor:pointer}
 .friend svg{width:26px;height:26px;overflow:visible;shape-rendering:crispEdges;filter:drop-shadow(1px 1px var(--paper))}
-.friend.current svg{animation:shared-presence 4s steps(1,end) infinite}
+.friend.current svg{width:32px;height:32px;animation:shared-presence 4s steps(1,end) infinite}
 @keyframes shared-presence{0%,20%,40%,100%{opacity:1}10%,30%{opacity:.3}}
-.reduce-motion .friend.current svg{animation:none}
-@media(prefers-reduced-motion:reduce){#pin-editor{transition:none}.friend.current svg{animation:none}}
+.reduce-motion .friend.current svg{width:32px;height:32px;animation:none}
+@media(prefers-reduced-motion:reduce){#pin-editor{transition:none}.friend.current svg{width:32px;height:32px;animation:none}}
 </style></head><body><div id="map"></div><button id="pin-remove" aria-label="Remove discovery pin"><svg viewBox="0 0 9 9" aria-hidden="true"><path fill="currentColor" d="M0 0h2v1h1v1h1v1h1V2h1V1h1V0h2v2H8v1H7v1H6v1h1v1h1v1h1v2H7V8H6V7H5V6H4v1H3v1H2v1H0V7h1V6h1V5h1V4H2V3H1V2H0z"/></svg></button><div id="pin-editor"><input id="pin-radius" aria-label="Geographic radius in miles" type="range" min="0" max="1" step="0.01" value="0.5"><output id="radius-value">1 mi</output></div><div class="notice" style="display:none"></div><div id="error">Map unavailable. Check your connection.<button onclick="location.reload()">Retry map</button></div><script src="maplibre-gl.js"></script><script>
 const send=body=>window.webkit?.messageHandlers.hermi.postMessage(body);
 let map, pending={},markers=[],loaded=false,placeSignature="",discoveryMarker=null,draggingPin=false,revealDiscovery=false,lastBottomInset=0;
@@ -167,10 +167,17 @@ window.renderHermi=data=>{pending=data;if(!loaded)return;
   if(data.social){for(const item of data.socialMarkers||[]){
    const el=document.createElement('button');el.className='friend '+item.kind;el.setAttribute('aria-label',item.name);
    const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 16 16');svg.setAttribute('aria-hidden','true');
-   const path=document.createElementNS(svg.namespaceURI,'path');
-   path.setAttribute('fill',item.kind==='current'?palette.green:'#D66C9B');
-   path.setAttribute('d',item.kind==='current'?'M3 0h4v4H3zM9 2h4v4H9zM1 6h7v3H6v6H4V9H3v6H1zM9 8h6v3h-2v5h-2v-5H9z':'M2 2h4v2h4V2h4v2h2v6h-2v2h-2v2h-2v2H6v-2H4v-2H2v-2H0V4h2z');
-   svg.append(path);el.append(svg);el.onclick=e=>{e.stopPropagation();send({type:'socialInfo',id:item.id})};
+   const draw=(d,fill,transform)=>{const path=document.createElementNS(svg.namespaceURI,'path');path.setAttribute('d',d);path.setAttribute('fill',fill);if(transform)path.setAttribute('transform',transform);svg.append(path)};
+   if(item.kind==='current'){
+    const circle='M5 0h6v1h2v2h2v2h1v6h-1v2h-2v2h-2v1H5v-1H3v-2H1v-2H0V5h1V3h2V1h2z';
+    draw(circle,palette.ink);
+    draw(circle,palette.green,'translate(1 1) scale(.875)');
+    // Two heads and shoulders only: readable at small map scale.
+    draw('M4 4h2v3H4zM10 4h2v3H10zM4 8h2v1h1v3H3V9h1zM10 8h2v1h1v3H9V9h1z',palette.paper);
+   }else{
+    draw('M2 2h4v2h4V2h4v2h2v6h-2v2h-2v2h-2v2H6v-2H4v-2H2v-2H0V4h2z','#D66C9B');
+   }
+   el.append(svg);el.onclick=e=>{e.stopPropagation();send({type:'socialInfo',id:item.id})};
    markers.push(new maplibregl.Marker({element:el,anchor:'center'}).setLngLat([item.lng,item.lat]).addTo(map));
   }}
  }

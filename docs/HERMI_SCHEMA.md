@@ -189,3 +189,5 @@ Social mode displays only friends' permitted shared information: current place u
 User removes press-and-hold textual control explanations everywhere. Accessibility descriptions remain for assistive technology. Purposeful holds (Save current plan, category-pin drag, timetable reorder) remain actions, not explanations. This supersedes prior global hold-help requirements, including Step 1 wording.
 
 SocialResponse currently supplies recent check-ins (three hours), upcoming friend plans and open plans; it lacks confirmed live presence and loved-place/adventure fields. These backend gaps are flagged, not implemented. The preview's active/loved routes are illustrative fixtures, not inferred friend GPS or saved-item access.
+
+Social current-place marker clarification: use a simple two-person silhouette inside a pixel-edged green circle, with a dark perimeter and light foreground for map readability. Avoid detached full-body sprites. Preserve blink–blink–pause and Reduce Motion behavior.
