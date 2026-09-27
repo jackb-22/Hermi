@@ -4,6 +4,14 @@ Updated: 2026-09-27. Branch: codex/cairn-frontend. No pushes authorized.
 
 ## Current checkpoint
 
+### Step 2 — visual review and physical-phone setup
+
+User asked to test on connected iPhone, otherwise authorized Step 2. Device discovery (outside sandbox) returned no devices; no valid signing identity/development team configured. Opened the standalone Xcode project and saved concise setup in docs/IPHONE_TESTING.md. Physical-iPhone unsigned compilation passed; cannot install until user pairs/signs.
+
+Implemented brighter shared palette; unified native/web marker colors and map terrain/CSS through HermiPalette injected at WK document start. Removed default wordmark/developer menu on all Home pages; Debug --hermi-lab retains tools. Shared pixel glyphs retained and Settings glyph prepared for later wiring. No backend changes. 20 package tests, Mac build, large-iPhone build/launch and JS syntax pass. Large Map/Feed/Profile screenshots captured. Smaller iPhone 16e build/install/launch and Map/Feed/Profile screenshot review passed; controls remain within the screen and media/map fill the viewport. Step 1 touch acceptance and Step 2 aesthetic acceptance remain pending. Next: user phone setup plus test.md feedback, then correct this increment before Step 3.
+
+Opening Xcode caused a scheme-format/version rewrite; preserve it unstaged as incidental project state rather than include it in the visual change.
+
 ### Approved plan Step 1 — navigation implementation ready for user test
 
 2026-09-27: user approved the revision plan and requested only Step 1. Consolidated approved decisions in docs/FRONTEND_IMPLEMENTATION_PLAN.md and schema revision 5. Replaced the pill-level high-priority recognizer with button-scoped exclusive tap/hold handling; Map / Feed / Profile order; rectangular 64×48 hit areas; stationary hold help without navigation; held slide commits a different destination only inside pill bounds; cancellation preserves current page. Accessibility activation and selected traits retained. Other controls' existing help recognizers remain outside this navigation-only change.
@@ -60,7 +68,7 @@ Xcode: /Applications/Xcode.app (26.3). Use DEVELOPER_DIR per command; global xco
 
 ## Next action
 
-Receive the user's Step 1 navigation feedback and record it in test.md. Fix only this increment and repeat relevant checks. Do not advance to Step 2 until accepted. Reopen with `sh apps/ios/HermiPreview/scripts/simulator-preview.sh` from the repository root, or use the already-open Hermi Preview Mac window.
+Help complete iPhone pairing/signing, receive Step 1 touch and Step 2 visual feedback, and record it in test.md. Do not advance to Step 3 until reviewed. Reopen with `sh apps/ios/HermiPreview/scripts/simulator-preview.sh` from the repository root, or use the already-open Hermi Preview Mac window.
 
 ## Build notes
 

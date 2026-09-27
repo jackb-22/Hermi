@@ -2,7 +2,21 @@
 
 This is the user-facing test entry point. Product reference: [unified design schema](docs/HERMI_SCHEMA.md). Resume/checkpoint: [progress](PROGRESS.md).
 
-## Current review: approved plan Step 1 — navigation only
+## Current review: Step 2 — palette and composition; phone setup
+
+You authorized Step 2 while Step 1 touch acceptance remains pending. [iPhone setup instructions](docs/IPHONE_TESTING.md) are saved locally; Xcode is open to the correct preview project.
+
+1. Open Map: the top-left wordmark/menu should be gone; geography fills the screen behind the status bar and bottom pill.
+2. Compare brighter teal water, coral/violet markers and lime selection accents. Confirm the effect is fun but still visually calm.
+3. Open Feed: media reaches every edge; Save and Add controls remain readable; the wordmark is gone.
+4. Open Profile: check the same paper/ink/lime palette, crisp icons, and readable header/navigation. Profile content structure is intentionally unchanged until its later checkpoint.
+5. On your phone, also run the Step 1 quick-tap/hold/scrub/cancel checklist below. Report layout with screenshots and gesture issues with a brief screen recording.
+
+Checks so far: 20 package tests pass; Mac and iPhone 17 Pro Max/16e simulator builds pass; physical-iPhone compilation passes with signing disabled. Map JavaScript syntax passes. Main text contrast against paper is 11.16:1; ink on lime 7.72:1; white on green 4.53:1. These are static token checks, not a full accessibility audit. Phone install remains blocked on device pairing/signing. Screenshot review is in [Step 2 evidence](docs/design-reference/2026-09-27-step-2/REVIEW.md).
+
+To access developer-only preview tools, add `--hermi-lab` under Xcode's scheme Run → Arguments Passed On Launch. Default launches show no developer menu. This does not change app data.
+
+## Pending touch review: approved plan Step 1 — navigation only
 
 The updated build is installed in iPhone Simulator. To reopen from the repository root:
 
@@ -17,7 +31,7 @@ sh apps/ios/HermiPreview/scripts/simulator-preview.sh
 5. **Separate gestures:** pan/pinch Map and swipe Feed vertically outside the pill. Neither should change the selected Home tab.
 6. **Accessibility:** enable VoiceOver and activate each named tab; selection should be announced. Check larger text for clipped help or unreachable controls.
 
-Pass/fail and screenshot feedback: reply with the test number and what happened. For gesture bugs, a short recording is more useful than a still image. Do not advance to Step 2 until this checkpoint is accepted.
+Pass/fail and screenshot feedback: reply with the test number and what happened. For gesture bugs, a short recording is more useful than a still image. Step 2 was subsequently authorized by the user; Step 1 physical-touch acceptance remains pending.
 
 Verification: 20 package state tests passed; iPhone build/install/launch and Mac build passed. Simulator accessibility click activation opened Feed and Profile. Unit tests cover segment ordering and off-pill/nonfinite cancellation boundaries. They do not validate physical gesture timing. Coordinate-only click attempts did not establish reliable physical tap behavior; quick finger taps, hold/scrub, VoiceOver, larger text and pan/pinch remain user acceptance tests. Screenshots: [Step 1 evidence](docs/design-reference/2026-09-27-step-1/REVIEW.md). No backend integration changes.
 

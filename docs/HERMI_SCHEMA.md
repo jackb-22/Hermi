@@ -1,6 +1,6 @@
 # Hermi unified design schema
 
-Revision 5 · 2026-09-27 · Approved incremental revision plan; Step 1 navigation is under review.
+Revision 6 · 2026-09-27 · Step 2 visual review authorized; Step 1 physical-touch acceptance remains pending.
 
 ## Authority and mission
 
@@ -65,7 +65,7 @@ Clarification: remove friends maps from own Adventures. Friends is accessed from
 
 Pixel-game treatment applies throughout custom UI: terrain, icons, sprites, large numbers/headings, card edges, controls, progress, charts and empty states. Preserve native gestures, scrolling, text input and system dialogs. Use readable system body text and inputs. Do not rasterize body text or permission dialogs. Use a restrained youthful palette with one dominant accent per component, ample quiet space, and no antique parchment/borders.
 
-Initial review tokens: ink #243C37; paper #F8FAF3; green #447F65; lime #D5EB93; lake #86BAC7; coral #E58771; lavender #B4ADD6. Four-point spacing, minimum 44-point targets, 16–24-point gutters. Pixel sprites align to integer grids. All meaning remains available to VoiceOver and without color. Large text can scroll. Reduce Motion removes travel/bounce effects. Audio follows user/system preferences.
+Step 2 review tokens: ink #203D39; paper #F8FAF3; green #23856B; lime #BFDE59; lake #69B7CC; coral #EF8067; lavender #A596DD. SwiftUI and the geographic web renderer share these tokens from HermiPalette; category colors use the same source. Four-point spacing, minimum 44-point targets, 16–24-point gutters. Pixel sprites align to integer grids. All meaning remains available to VoiceOver and without color. Large text can scroll. Reduce Motion removes travel/bounce effects. Audio follows user/system preferences.
 
 Use media placements from the beginning: photo, video poster/play affordance, avatar, route card, loading and failed media. An illustrated placeholder says it is sample media; it never pretends to be a verified real photo. Actual media plumbing follows the capture/feed increments.
 
@@ -118,7 +118,7 @@ Backend gates for the clarified Profile/Social remain: own timestamped route his
 
 ## Approved revision plan — 2026-09-27
 
-The user approved [the incremental implementation plan](FRONTEND_IMPLEMENTATION_PLAN.md). Its current decisions supersede conflicting historical revision notes above. Implementation and acceptance are separate: only Step 1 is being implemented now.
+The user approved [the incremental implementation plan](FRONTEND_IMPLEMENTATION_PLAN.md). Its current decisions supersede conflicting historical revision notes above. Implementation and acceptance are separate: the user authorized Step 2 while phone setup and Step 1 touch review remain pending.
 
 - NAV-01 amendment: Map / Feed / Profile; quick release activates once, stationary hold explains without navigating, hold-and-slide selects a different segment on release. Releasing outside the pill cancels. Hold help persists briefly after release. Map/Feed gestures outside the pill never switch tabs. Each navigation button has a 64×48-point rectangular hit area, semantic button activation and selection traits.
 - Visual amendment: brighter unified pixel palette, full-screen map/media, no user-facing top-left wordmark. These changes belong to Step 2.
@@ -131,3 +131,8 @@ The user approved [the incremental implementation plan](FRONTEND_IMPLEMENTATION_
 - Go!/Action: accessible from a nonempty Plan, Directions/Camera only. Location denial blocks tracking/GPS check-in; NFC alternative remains required and tested last. No fake live capability.
 
 Backend gaps, persistence defaults, checkpoint order and screenshot acceptance are recorded in the implementation plan. No later checkpoint is authorized to bypass user testing just because its code compiles.
+
+
+### Step 2 review amendment
+
+The user authorized progressing to Step 2 because Mac interaction testing is difficult. This is authorization to implement, not evidence that Step 1 gestures passed on a physical phone. Keep both checklists pending until reviewed. The default top-left preview menu/wordmark is removed; developer controls are available only in a Debug launch with `--hermi-lab`. Attribution and honest sample-data notices remain visible. Existing shared pixel glyph geometry is preserved; Settings glyph is prepared for the later Settings checkpoint. Pin interior/category behavior still belongs to Steps 3–4.

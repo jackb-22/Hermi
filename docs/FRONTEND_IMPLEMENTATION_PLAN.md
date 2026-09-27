@@ -1,6 +1,6 @@
 # Hermi approved frontend revision plan
 
-Approved 2026-09-27. Frontend branch: `codex/cairn-frontend`. No pushes. Current work: **Step 1**, followed by user acceptance. Source: user's approved technical plan and latest schema amendments. Preserve unrelated legacy prototype changes.
+Approved 2026-09-27. Frontend branch: `codex/cairn-frontend`. No pushes. Current work: **Step 2**, explicitly authorized while Step 1 physical-touch acceptance remains pending. Source: user's approved technical plan and latest schema amendments. Preserve unrelated legacy prototype changes.
 
 ## Architecture and decisions
 
