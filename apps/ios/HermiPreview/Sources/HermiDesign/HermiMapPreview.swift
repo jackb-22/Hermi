@@ -128,6 +128,7 @@ public struct HermiMapPreview: View {
             }
             state.library = library
           }
+          state.planUndoHistory = [] // Fixture setup is not a user edit.
           state.sheet = .plan
         }
         return

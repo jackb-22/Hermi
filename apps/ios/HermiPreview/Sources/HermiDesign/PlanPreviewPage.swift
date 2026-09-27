@@ -13,6 +13,7 @@ struct PlanPreviewPage: View {
   @State private var showDrawer = false
   @State private var showSaveOptions = false
   @State private var saveModal = false
+  @State private var sharingModal = false
   @State private var saveFeedback: String?
   private var warning: Bool { !state.timingConflicts.isEmpty }
   var body: some View {
@@ -49,15 +50,31 @@ struct PlanPreviewPage: View {
               }
             })
             .accessibilityLabel(showDrawer ? "Hide Saved row" : "Show Saved row")
-            .accessibilityHint("Tap for Saved inside My Plan. Hold for Save current plan")
+            .accessibilityHint(state.editingSavedPlan == nil ? "Tap for Saved inside My Plan. Hold for Save current plan" : "Tap for Saved. Hold for sharing draft preferences")
             .accessibilityAddTraits(.isButton)
             .accessibilityAction { showDrawer.toggle() }
-            .accessibilityAction(named: "Save current plan") { showSaveOptions = true }
-            .controlHelp("Tap to show Saved here. Hold to save the current plan")
+            .accessibilityAction(named: "Bookmark options") { showSaveOptions = true }
+            // This control owns its hold gesture; the generic hold-help recognizer would compete with it.
+            .help(state.editingSavedPlan == nil ? "Tap to show Saved here. Hold to save the current plan" : "Tap for Saved. Hold for sharing draft preferences; edits autosave locally")
         }
       }.padding(.horizontal, 16)
       if saved { savedList }
       else {
+        HStack(spacing: 12) {
+          VStack(alignment: .leading, spacing: 3) {
+            Text(state.editingSavedPlan?.name ?? "Current draft").font(.subheadline.bold()).lineLimit(1)
+            Text(state.editingSavedPlan == nil ? "On this device" : "Autosaves on this device")
+              .font(.caption2).foregroundStyle(HermiPalette.secondary)
+          }
+          Spacer()
+          if state.editingSavedPlan != nil {
+            Button("My draft") { state.returnToPlanDraft(); saveFeedback = nil }
+              .font(.caption).frame(minHeight: 44).controlHelp("Return to your preserved unfinished plan")
+          }
+          Button("Undo") { state.undoPlanEdit(); saveFeedback = nil }
+            .font(.caption.bold()).frame(minHeight: 44).disabled(!state.canUndoPlan)
+            .opacity(state.canUndoPlan ? 1 : 0.35).controlHelp("Undo the last change to stops, times or invite selections")
+        }.padding(.horizontal, 20)
         if showDrawer { savedDrawer }
         if let saveFeedback {
           Text(saveFeedback).font(.caption).padding(.horizontal, 18).accessibilityAddTraits(.updatesFrequently)
@@ -129,9 +146,18 @@ struct PlanPreviewPage: View {
                                        times: state.stopTimes ?? [:])
         if didSave {
           state.library = library
+          if let id = library.plans.last?.id { state.bindNewSavedPlan(id) }
           saveFeedback = visibility == .solo ? "Plan saved locally." : "Plan draft saved locally. Nothing was shared or sent."
         }
         return didSave
+      }
+    }
+    .sheet(isPresented: $sharingModal) {
+      if let plan = state.editingSavedPlan {
+        PlanSharingDraftEditor(plan: plan) { visibility, friends in
+          _ = state.setSharingIntent(visibility: visibility, friends: friends)
+          saveFeedback = "Sharing preferences saved locally. Nothing sent."
+        }
       }
     }
     .overlay {
@@ -144,16 +170,23 @@ struct PlanPreviewPage: View {
           VStack(alignment: .leading, spacing: 10) {
             Text("SAVE").font(.system(size: 10, design: .monospaced).bold())
               .foregroundStyle(HermiPalette.secondary)
-            Button {
-              showSaveOptions = false
-              saveModal = true
-            } label: {
-              HStack(spacing: 8) {
-                PixelIcon(name: "save").frame(width: 17, height: 20)
-                Text("Save current plan").font(.subheadline.bold())
-              }.frame(minHeight: 44)
-            }.accessibilityLabel("Save current plan")
-              .controlHelp("Name this plan, choose a folder and set visibility")
+            if state.editingSavedPlan == nil {
+              Button {
+                showSaveOptions = false
+                saveModal = true
+              } label: {
+                HStack(spacing: 8) {
+                  PixelIcon(name: "save").frame(width: 17, height: 20)
+                  Text("Save current plan").font(.subheadline.bold())
+                }.frame(minHeight: 44)
+              }.accessibilityLabel("Save current plan")
+                .controlHelp("Name this plan, choose a folder and set visibility")
+            } else {
+              Text("Saved automatically").font(.caption)
+              Button("Sharing draft") { showSaveOptions = false; sharingModal = true }
+                .font(.subheadline.bold()).frame(minHeight: 44)
+                .controlHelp("Review local audience preferences; no invitations or publishing")
+            }
           }.padding(14).frame(width: 210, alignment: .leading)
             .background(HermiPalette.paper, in: PixelPanel(corner: 7))
             .overlay(PixelPanel(corner: 7).stroke(HermiPalette.ink.opacity(0.2)))
@@ -193,7 +226,9 @@ struct PlanPreviewPage: View {
           if let index = state.planIDs.firstIndex(of: place.id), index > 0 { state.movePlace(place.id, before: state.planIDs[index-1]) }
         }
         .accessibilityAction(named: "Move later") {
-          if let index = state.planIDs.firstIndex(of: place.id), index+1 < state.planIDs.count { state.planIDs.swapAt(index, index+1) }
+          if let index = state.planIDs.firstIndex(of: place.id), index+1 < state.planIDs.count {
+            state.movePlace(place.id, relativeTo: state.planIDs[index+1], after: true)
+          }
         }
     }
   }
@@ -213,7 +248,10 @@ struct PlanPreviewPage: View {
           ForEach(state.savedReferences) { reference in
             VStack(alignment: .leading, spacing: 10) {
               Text(reference.kind.rawValue.uppercased()).font(.system(size: 10, design: .monospaced))
-              Text(savedTitle(reference)).font(.subheadline.bold()).lineLimit(2).frame(maxWidth: .infinity, alignment: .leading)
+              Button { openSaved(reference) } label: {
+                Text(savedTitle(reference)).font(.subheadline.bold()).lineLimit(2).frame(maxWidth: .infinity, alignment: .leading)
+              }.disabled(reference.kind == .post)
+                .controlHelp(reference.kind == .plan ? "Open this saved plan for editing; preserve your current draft" : "Open place details")
               Spacer(minLength: 0)
               Button { append(reference) } label: {
                 PixelIcon(name: "plus").frame(width: 18, height: 18).frame(width: 40, height: 40)
@@ -246,6 +284,12 @@ struct PlanPreviewPage: View {
       "Already in your plan."
   }
 
+  private func openSaved(_ reference: SavedReference) {
+    if reference.kind == .plan {
+      if state.openSavedPlan(reference.refID) { saveFeedback = nil; showDrawer = false }
+    } else if reference.kind == .place { state.selectPlace(reference.refID) }
+  }
+
   private var savedList: some View {
     ScrollView {
       LazyVStack(alignment: .leading, spacing: 18) {
@@ -270,9 +314,9 @@ struct PlanPreviewPage: View {
     HStack(spacing: 8) {
       Text(reference.kind.rawValue.uppercased()).font(.system(size: 9, design: .monospaced))
         .frame(width: 42, alignment: .leading)
-      Button { if reference.kind == .place { state.selectPlace(reference.refID) } } label: {
+      Button { openSaved(reference) } label: {
         Text(savedTitle(reference)).font(.subheadline).lineLimit(2).frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
-      }.disabled(reference.kind != .place)
+      }.disabled(reference.kind == .post)
       Button { append(reference) } label: { PixelIcon(name: "plus").frame(width: 20, height: 20).frame(width: 44, height: 44) }
         .accessibilityLabel("Add \(savedTitle(reference)) to current plan")
         .controlHelp("Append places from this saved item; skip duplicates")
