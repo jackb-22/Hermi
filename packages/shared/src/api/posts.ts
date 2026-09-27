@@ -99,5 +99,8 @@ export const ReportBody = z.object({
 export const BlockBody = z.object({ userId: IdSchema });
 export const PostsListQuery = z.object({
   authorId: IdSchema.optional(),
+  placeId: IdSchema.optional().describe(
+    "A place's posts (the place sheet's grid at full height); without authorId, from everyone",
+  ),
   cursor: z.string().optional(),
 });

@@ -226,6 +226,19 @@ describe('safety', () => {
     expect(
       (await t.app.inject({ url: `/v1/posts/${p.id}`, headers: carl.headers })).statusCode,
     ).toBe(200);
+    // The place sheet's grid: everyone's posts from that place, minus what you reported.
+    const grid = async (who: typeof ben) =>
+      (
+        await t.app.inject({
+          url: '/v1/posts',
+          query: { placeId: gallery!._id },
+          headers: who.headers,
+        })
+      )
+        .json()
+        .items.map((i: { id: string }) => i.id);
+    expect(await grid(carl)).toEqual([p.id]);
+    expect(await grid(ben)).toEqual([]);
     await t.app.inject({
       method: 'POST',
       url: '/v1/blocks',

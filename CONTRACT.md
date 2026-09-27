@@ -70,6 +70,7 @@ Open when running locally. On a deployment every dev affordance needs the header
   - **Weekly nudge:** at most one push a week, on Friday at 3 PM New York time. It leads with the streak closest to lapsing, as `data {kind: 'streak_nudge', friendId}` ("Your 8-week streak with Maya ends Sunday"). The app opens a new plan with that friend invited: `POST /plans`, then `/save {visibility: 'invite', inviteeIds: [friendId]}`. With no streak at risk it sends `{kind: 'xp_expiring'}` ("40 XP expires Sunday. Plans?"); with nothing to say it sends nothing.
   - **Review reminder:** if any checked-in stop of a session is unreviewed, one push goes out at 10 AM the next morning with `{kind: 'review_reminder', sessionId}`.
   - **Dev:** `POST /dev/nudge {userId?}` sends the weekly nudge now for rehearsal and returns a preview.
+- **v0.25.0** — `GET /posts?placeId=` lists a place's posts, newest first, for the place sheet's grid at full height (everyone's, minus blocked authors and posts you reported; add `authorId` to narrow it). Paged with `cursor` like the profile grid.
 
 ## Additions beyond the plan's data model
 

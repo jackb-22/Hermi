@@ -292,14 +292,18 @@ export const postRoutes: FastifyPluginAsyncZod = async (app) => {
       ...authed,
       schema: {
         tags: ['posts'],
-        summary: "A user's posts, newest first (profile Posts grid). Defaults to yours.",
+        summary:
+          "A user's posts (profile Posts grid) or a place's (place sheet grid), newest first. Defaults to yours.",
         security: bearer,
         querystring: PostsListQuery,
         response: { 200: Paged(PostSchema), ...errs(401) },
       },
     },
     async (req) => {
-      const mine: Filter<PostDoc> = { authorId: req.query.authorId ?? req.userId };
+      const { authorId, placeId } = req.query;
+      const mine: Filter<PostDoc> = placeId
+        ? { placeId, ...(authorId ? { authorId } : {}) }
+        : { authorId: authorId ?? req.userId };
       if (req.query.cursor) mine.createdAt = { $lt: new Date(req.query.cursor) };
       const q: Filter<PostDoc> = { $and: [mine, await visible(req.userId)] };
       const docs = await posts(db).find(q).sort({ createdAt: -1 }).limit(PAGE).toArray();
