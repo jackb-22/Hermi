@@ -14,11 +14,13 @@ import {
 import { createCheckin } from '../services/checkins.ts';
 import { groupChatRecap } from '../services/groupChat.ts';
 import { media } from '../services/media.ts';
+import { nextMorning } from '../services/nudges.ts';
 import { places } from '../services/places.ts';
 import { type PlanDoc, plans } from '../services/plans.ts';
 import { sessions, sessionTrace } from '../services/sessions.ts';
 import { getUser } from '../services/users.ts';
 import { awardXp, type XpRow, xpLabel } from '../services/xp.ts';
+import { enqueue } from './queue.ts';
 
 export const STAY_SNAP_M = 60;
 const PARTY_WINDOW_MS = 30 * 60_000;
@@ -314,4 +316,12 @@ export async function finalizeSession(ctx: AppContext, payload: { sessionId: str
     posted: false,
   };
   await sessions(db).updateOne({ _id: s._id }, { $set: { status: 'ended', endedAt, recap } });
+  // Unreviewed stops get one push the next morning.
+  if (recap.stops.some((st) => !st.reviewed))
+    await enqueue(
+      ctx,
+      'review_reminder',
+      { sessionId: s._id },
+      { runAt: nextMorning(endedAt), dedupeKey: `review:${s._id}` },
+    );
 }

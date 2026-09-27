@@ -66,6 +66,10 @@ Open when running locally. On a deployment every dev affordance needs the header
   - **`Plan.textGroup`:** `{recipients, body, bound}` for the host when the agent is configured, otherwise null. Open Messages with expo-sms using these recipients and body, then add friends.
   - **The agent:** it reads the link token in the body, binds that thread to the plan and posts the plan card. After that it counts "in" replies, posts one line per check-in on the plan, and ends with the recap link when the host's session finishes.
   - **`/health`** lists `messenger`.
+- **v0.24.0** — Notifications.
+  - **Weekly nudge:** at most one push a week, on Friday at 3 PM New York time. It leads with the streak closest to lapsing, as `data {kind: 'streak_nudge', friendId}` ("Your 8-week streak with Maya ends Sunday"). The app opens a new plan with that friend invited: `POST /plans`, then `/save {visibility: 'invite', inviteeIds: [friendId]}`. With no streak at risk it sends `{kind: 'xp_expiring'}` ("40 XP expires Sunday. Plans?"); with nothing to say it sends nothing.
+  - **Review reminder:** if any checked-in stop of a session is unreviewed, one push goes out at 10 AM the next morning with `{kind: 'review_reminder', sessionId}`.
+  - **Dev:** `POST /dev/nudge {userId?}` sends the weekly nudge now for rehearsal and returns a preview.
 
 ## Additions beyond the plan's data model
 

@@ -3,6 +3,7 @@ import { registerHooks } from './hooks.ts';
 import { handlers } from './jobs/handlers.ts';
 import { Worker } from './jobs/queue.ts';
 import { startGroupChat } from './services/groupChat.ts';
+import { scheduleWeeklyNudge } from './services/nudges.ts';
 
 // Standalone worker component (App Platform "worker"): media, matching, notifications, session finalize,
 // and the plan group chats' iMessage agent (one long-lived Photon stream).
@@ -12,6 +13,7 @@ if (ctx.config.AUTO_MIGRATE) await ensureSchema(ctx, console.log);
 const worker = new Worker(ctx, handlers);
 worker.start();
 startGroupChat(ctx);
+await scheduleWeeklyNudge(ctx);
 
 const stop = async () => {
   await worker.stop();

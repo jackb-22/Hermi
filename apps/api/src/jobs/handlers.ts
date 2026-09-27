@@ -1,6 +1,7 @@
 import { matchNotify } from '../services/matching.ts';
 import { syncMemory } from '../services/memory.ts';
 import { sendPush } from '../services/notify.ts';
+import { reviewReminder, weeklyNudge } from '../services/nudges.ts';
 import { moderatePost } from '../services/posts.ts';
 import { reviewReport, scanPhoto } from '../services/safety.ts';
 import { finalizeSession } from './finalizeSession.ts';
@@ -17,4 +18,6 @@ export const handlers: Record<string, JobHandler> = {
   match_notify: matchNotify as JobHandler,
   scan_photo: scanPhoto as JobHandler,
   review_report: reviewReport as JobHandler,
+  weekly_nudge: weeklyNudge as JobHandler,
+  review_reminder: reviewReminder as JobHandler,
 };

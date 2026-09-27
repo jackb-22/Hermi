@@ -34,6 +34,8 @@ export interface UserDoc {
   tagId?: string;
   backboardAssistantId?: string;
   pushTokens?: string[];
+  /** Week index of the last weekly nudge (at most one a week). */
+  lastNudgeWeek?: number;
   tasteDone: boolean;
   createdAt: Date;
   deletedAt?: Date;

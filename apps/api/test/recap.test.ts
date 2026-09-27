@@ -4,6 +4,7 @@ import { detectStays, segmentTrace, tilesFromSegments } from '../src/domain/move
 import { handlers } from '../src/jobs/handlers.ts';
 import { enqueue, Worker } from '../src/jobs/queue.ts';
 import { createCheckin } from '../src/services/checkins.ts';
+import { nextMorning } from '../src/services/nudges.ts';
 import { insertPlaces, ORIGIN, offset, placeDoc } from './fixtures/places.ts';
 import { walk } from './fixtures/trace.ts';
 import { devLogin, setupTestApp } from './helpers.ts';
@@ -148,6 +149,11 @@ describe('session end and recap', () => {
     ]);
     expect(recap.footKm).toBeCloseTo(1.2, 1);
     expect(recap.steps).toBe(2000);
+    // The four stops are unreviewed, so one reminder is queued for 10 AM the next morning.
+    const reminder = await t.ctx.db
+      .collection('jobs')
+      .findOne({ type: 'review_reminder', 'payload.sessionId': s.id });
+    expect(reminder?.runAt.toISOString()).toBe(nextMorning(new Date(recap.endedAt)).toISOString());
     expect(recap.planCompleted).toBe(true);
     const xp = Object.fromEntries(
       recap.xp.items.map((i: { kind: string; xp: number }) => [i.kind, i.xp]),
