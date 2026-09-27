@@ -60,8 +60,11 @@ EOF
 # API + worker in one process; restarted if it crashes, stopped by Ctrl-C (a clean exit).
 ROOT=$(pwd)
 run="cd '$ROOT/apps/api' && until pnpm exec tsx --env-file='$ROOT/.env.demo' src/server.ts; do echo 'server exited; restarting in 2 s'; sleep 2; done"
+# In the background and waited on, so Ctrl-C or a kill of this script runs cleanup at once (bash holds traps
+# until a foreground command finishes).
 if command -v systemd-inhibit >/dev/null; then
-  systemd-inhibit --what=sleep:idle:handle-lid-switch --who=hermi --why="demo backend running" bash -c "$run"
+  systemd-inhibit --what=sleep:idle:handle-lid-switch --who=hermi --why="demo backend running" bash -c "$run" &
 else
-  bash -c "$run"
+  bash -c "$run" &
 fi
+wait $!
