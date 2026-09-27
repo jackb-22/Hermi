@@ -18,6 +18,7 @@ struct PlanPreviewPage: View {
   @State private var sharingModal = false
   @State private var saveFeedback: String?
   @State private var viewingPost: SavedReference?
+  @State private var openPlace: SavedReference?
   private var warning: Bool { !state.timingConflicts.isEmpty }
   var body: some View {
     VStack(spacing: 16) {
@@ -34,7 +35,7 @@ struct PlanPreviewPage: View {
         .accessibilityAddTraits(.isButton)
         .accessibilityAction { compact.toggle() }
       HStack {
-        Button { close() } label: { PixelIcon(name: "close").frame(width: 20, height: 20).frame(width: 44, height: 44) }
+        CloseButton { close() }
           .accessibilityLabel("Close planning").controlHelp("Close planning and return to your previous page")
         Text(saved ? "Saved" : "My Plan").font(.title2.bold())
         Spacer()
@@ -139,6 +140,9 @@ struct PlanPreviewPage: View {
         })
       }
     }
+    .sheet(item: $openPlace) { reference in
+      PlaceSheet(state: $state, placeID: reference.refID) { openPlace = nil }
+    }
     .coverScreen(item: $viewingPost) { reference in
       SavedViewer(state: $state, reference: reference, close: { viewingPost = nil },
                   openPlan: { id in viewingPost = nil; _ = state.openSavedPlan(id) }, append: append)
@@ -223,7 +227,7 @@ struct PlanPreviewPage: View {
         .controlHelp("Edit arrival, duration and reminder for \(place.name)")
       Rectangle().fill(HermiPalette.green.opacity(0.4)).frame(width: 2, height: 58)
       HStack(spacing: 4) {
-        Button { state.selectPlace(place.id) } label: {
+        Button { openPlace = SavedReference(kind: .place, refID: place.id) } label: {
           Text(place.name).font(.subheadline).frame(maxWidth: .infinity, minHeight: 54, alignment: .leading)
         }.help("Open place details. Hold and drag this row to reorder")
         Button { participants = place } label: { PixelIcon(name: "menu").frame(width: 22, height: 16).frame(width: 44, height: 48) }
@@ -301,7 +305,7 @@ struct PlanPreviewPage: View {
     if reference.kind == .post { viewingPost = reference; return }
     if reference.kind == .plan {
       if state.openSavedPlan(reference.refID) { saveFeedback = nil; showDrawer = false }
-    } else if reference.kind == .place { state.selectPlace(reference.refID) }
+    } else if reference.kind == .place { openPlace = reference }
   }
 }
 

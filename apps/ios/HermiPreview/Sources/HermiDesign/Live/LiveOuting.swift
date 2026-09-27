@@ -107,9 +107,8 @@ final class LiveOuting {
 
   // MARK: Check-in (NFC stand-in)
 
-  /// "Tap tag": the in-app stand-in for an NFC venue tag. Mints a dev venue tag for the stop (once per outing)
-  /// and checks in with the phone's location, or the stop's own coordinates when there's no fix (Simulator).
-  /// The server still enforces 150 m proximity, cooldowns and XP.
+  /// "Tap tag": the in-app stand-in for an NFC venue tag. It only works where you actually are: the phone's
+  /// real location must be within 150 m of the stop (the server enforces the same rule, plus cooldowns and XP).
   @MainActor
   func checkIn(at place: MapSamplePlace) async {
     guard let api = LiveSession.shared.api, checkingIn == nil, checkins[place.id] == nil else { return }
@@ -117,12 +116,19 @@ final class LiveOuting {
       notice = "Demo Hall has a real NFC tag: tap it with the phone. (The in-app stand-in would replace it.)"
       return
     }
+    guard let fix = lastFix, fix.horizontalAccuracy >= 0, fix.horizontalAccuracy <= 100 else {
+      notice = "Waiting for your location. Hermi only checks you in where you really are. (Simulator: Features → Location.)"
+      return
+    }
+    let meters = GeoPoint(latitude: fix.coordinate.latitude, longitude: fix.coordinate.longitude).distance(to: place.coordinate)
+    if meters > LiveOuting.checkinRadius {
+      let away = meters < 1000 ? "\(Int(meters)) m" : String(format: "%.1f km", meters / 1000)
+      notice = "You’re \(away) from \(place.name). Walk there first: check-ins only work within 150 m."
+      return
+    }
     checkingIn = place.id; notice = nil
     defer { checkingIn = nil }
-    let fix = lastFix.flatMap { $0.horizontalAccuracy >= 0 && $0.horizontalAccuracy <= 100 ? $0 : nil }
-    let simulated = fix == nil
-    let lat = fix?.coordinate.latitude ?? place.latitude
-    let lng = fix?.coordinate.longitude ?? place.longitude
+    let lat = fix.coordinate.latitude, lng = fix.coordinate.longitude
     do {
       let url: String
       if let cached = tags[place.id] { url = cached } else {
@@ -130,14 +136,13 @@ final class LiveOuting {
         tags[place.id] = tag.url; url = tag.url
       }
       let result: CheckinResultDTO = try await api.send("POST", "/checkins", body: TagCheckinBody(
-        tagUrl: url, sessionId: sessionID, lat: lat, lng: lng, accuracy: fix?.horizontalAccuracy ?? 10))
+        tagUrl: url, sessionId: sessionID, lat: lat, lng: lng, accuracy: fix.horizontalAccuracy))
       checkins[place.id] = result
       var message = "Checked in at \(place.name) · +\(result.xp.total) XP"
       if let hangout = result.hangouts?.first {
         let name = FriendDirectory.shared.friends.first { $0.id == hangout.friendId }?.name ?? "a friend"
         message += " · Hangout with \(name) (\(hangout.streakWeeks)-week streak)"
       }
-      if simulated { message += " · simulated location" }
       notice = message
     } catch {
       notice = "Check-in failed: \(error.localizedDescription)"
@@ -145,6 +150,7 @@ final class LiveOuting {
   }
 
   func checkinID(for placeID: String) -> String? { checkins[placeID]?.checkin.id }
+  static let checkinRadius = 150.0
   /// The latest check-in this outing (captures attach to it).
   var latestCheckinID: String? { checkins.values.map(\.checkin.id).max() }
 
@@ -183,9 +189,12 @@ final class LiveOuting {
   func capture(jpeg original: Data, simulated: Bool) async {
     guard let api = LiveSession.shared.api else { return }
     guard let checkinID = latestCheckinID,
-          let placeID = checkins.first(where: { $0.value.checkin.id == checkinID })?.key,
-          let place = MapSamplePlace.find(placeID) else {
+          let placeID = checkins.first(where: { $0.value.checkin.id == checkinID })?.key else {
       notice = "Check in at a stop first. Every photo is tied to a verified check-in."
+      return
+    }
+    guard let fix = lastFix, fix.horizontalAccuracy >= 0, fix.horizontalAccuracy <= 100 else {
+      notice = "Waiting for your location: photos are verified against where you took them."
       return
     }
     // A sample photo is re-stamped so each capture has its own hash.
@@ -196,12 +205,11 @@ final class LiveOuting {
     func update(_ change: (inout OutingCapture) -> Void) {
       if let index = captures.firstIndex(where: { $0.id == item.id }) { change(&captures[index]) }
     }
-    let fix = lastFix.flatMap { $0.horizontalAccuracy >= 0 && $0.horizontalAccuracy <= 100 ? $0 : nil }
     let hash = SHA256.hash(data: bytes).map { String(format: "%02x", $0) }.joined()
     do {
       let presign: PresignResponseDTO = try await api.send("POST", "/media/presign", body: PresignBody(
         checkinId: checkinID, sha256: hash, bytes: bytes.count, capturedAt: Date(),
-        lat: fix?.coordinate.latitude ?? place.latitude, lng: fix?.coordinate.longitude ?? place.longitude))
+        lat: fix.coordinate.latitude, lng: fix.coordinate.longitude))
       guard let uploadURL = URL(string: presign.upload.url) else { throw HermiAPIError(status: 0, code: "BAD_URL", message: "Bad upload URL") }
       var request = URLRequest(url: uploadURL, timeoutInterval: 60)
       request.httpMethod = presign.upload.method ?? "PUT"

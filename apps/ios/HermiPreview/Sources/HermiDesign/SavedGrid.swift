@@ -10,6 +10,7 @@ struct SavedGrid: View {
   var openPlan: (String) -> Void
   @State private var folderID: UUID?
   @State private var viewing: SavedReference?
+  @State private var openPlace: SavedReference?
   @State private var creatingFolder = false
   @State private var folderName = ""
   private let columns = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
@@ -68,6 +69,9 @@ struct SavedGrid: View {
       SavedViewer(state: $state, reference: reference, close: { viewing = nil },
                   openPlan: { id in viewing = nil; openPlan(id) }, append: append)
     }
+    .sheet(item: $openPlace) { reference in
+      PlaceSheet(state: $state, placeID: reference.refID) { openPlace = nil }
+    }
     .alert("New folder", isPresented: $creatingFolder) {
       TextField("Folder name", text: $folderName)
       Button("Create") {
@@ -84,7 +88,7 @@ struct SavedGrid: View {
 
   private func open(_ reference: SavedReference) {
     switch reference.kind {
-    case .place: state.selectPlace(reference.refID)
+    case .place: openPlace = reference
     case .post, .plan: viewing = reference
     }
   }
@@ -230,15 +234,16 @@ struct SavedViewer: View {
   var close: () -> Void
   var openPlan: (String) -> Void
   var append: (SavedReference) -> Void
+  @State private var openPlace: SavedReference?
 
   var body: some View {
     ZStack(alignment: .topLeading) {
       HermiPalette.ink.ignoresSafeArea()
       content.ignoresSafeArea()
-      Button(action: close) {
-        PixelIcon(name: "close").frame(width: 16, height: 16).frame(width: 44, height: 44)
-          .background(HermiPalette.paper, in: PixelPanel(corner: 8))
-      }.buttonStyle(.plain).padding(.leading, 16).padding(.top, 8).accessibilityLabel("Close")
+      CloseButton(action: close).padding(.leading, 12).padding(.top, 4)
+    }
+    .sheet(item: $openPlace) { reference in
+      PlaceSheet(state: $state, placeID: reference.refID) { openPlace = nil }
     }
   }
 
@@ -255,7 +260,7 @@ struct SavedViewer: View {
             Text(post.author).font(.subheadline.bold())
             if !post.caption.isEmpty { Text(post.caption).font(.title3.weight(.medium)).lineLimit(3) }
             if let place {
-              Button { close(); state.selectPlace(place.id) } label: {
+              Button { openPlace = SavedReference(kind: .place, refID: place.id) } label: {
                 HStack { BallpointPin(category: place.category).frame(width: 16, height: 22); Text(place.name) }
                   .font(.subheadline).foregroundStyle(HermiPalette.ink).padding(.horizontal, 12).frame(minHeight: 44)
                   .background(HermiPalette.paper, in: PixelPanel(corner: 6))

@@ -15,7 +15,7 @@ struct PlanSharingDraftEditor: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 20) {
       HStack {
-        Button { dismiss() } label: { PixelIcon(name: "close").frame(width: 20, height: 20).frame(width: 44, height: 44) }
+        CloseButton { dismiss() }
           .accessibilityLabel("Cancel sharing edits")
         Text("Sharing draft").font(.title2.bold())
         Spacer()

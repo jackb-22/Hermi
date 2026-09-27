@@ -22,7 +22,7 @@ struct ProfileDetailSheet: View {
       }.background(HermiPalette.paper)
         .refreshable { await live.load(force: true) }
         .navigationTitle(detail.rawValue)
-        .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() }.controlHelp("Close this account panel") } }
+        .toolbar { ToolbarItem(placement: .cancellationAction) { CloseButton { dismiss() } } }
     }.presentationDetents([.medium, .large])
       .task { await live.load() }
   }

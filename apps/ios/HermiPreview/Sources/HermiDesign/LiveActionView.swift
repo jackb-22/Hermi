@@ -87,7 +87,9 @@ struct LiveActionView: View {
           }
         }.frame(maxHeight: 200)
         if let notice = outing.notice { Text(notice).font(.caption.bold()).foregroundStyle(HermiPalette.green) }
-        if outing.locationDenied { Text("Location is off: check-ins use the stop’s position (simulated).").font(.caption2) }
+        Text("You have to be there: Tap tag only works within 150 m of the stop, like tapping the venue’s NFC tag.")
+          .font(.caption2).foregroundStyle(HermiPalette.secondary)
+        if outing.locationDenied { Text("Location is off. Turn it on to check in (Settings → Privacy → Location).").font(.caption2).foregroundStyle(HermiPalette.error) }
       }
       .padding(16).background(HermiPalette.paper, in: PixelPanel(corner: 10))
       .padding(.horizontal, 14).padding(.bottom, 92)
@@ -98,7 +100,10 @@ struct LiveActionView: View {
     HStack(spacing: 10) {
       Text("\(number)").font(.caption.bold()).frame(width: 22, height: 22)
         .background(HermiPalette.category(place.category), in: PixelPanel(corner: 3))
-      Text(place.name).font(.subheadline).lineLimit(1)
+      VStack(alignment: .leading, spacing: 1) {
+        Text(place.name).font(.subheadline).lineLimit(1)
+        if outing.checkins[place.id] == nil, let away = distanceShort(to: place) { Text(away).font(.caption2).foregroundStyle(HermiPalette.secondary) }
+      }
       Spacer()
       if let result = outing.checkins[place.id] {
         Text("✓ +\(result.xp.total) XP").font(.caption.bold()).foregroundStyle(HermiPalette.green)
@@ -181,6 +186,13 @@ struct LiveActionView: View {
       if let image = PlatformImage(data: capture.imageData) { Image(platform: image).resizable().scaledToFill() }
       else { HermiPalette.secondary }
     }
+  }
+
+  private func distanceShort(to place: MapSamplePlace) -> String? {
+    guard let fix = outing.lastFix else { return nil }
+    let meters = GeoPoint(latitude: fix.coordinate.latitude, longitude: fix.coordinate.longitude).distance(to: place.coordinate)
+    if meters <= LiveOuting.checkinRadius { return "You’re here" }
+    return meters < 1000 ? "\(Int(meters)) m away" : String(format: "%.1f km away", meters / 1000)
   }
 
   private func distanceText(to place: MapSamplePlace) -> String {

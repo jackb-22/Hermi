@@ -24,6 +24,7 @@ public struct HermiMapPreview: View {
   @State private var postPlace: String?
   @State private var profileDetail: ProfileDetail?
   @State private var profilePost: SavedReference?
+  @State private var mapPost: SavedReference?
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @Environment(\.scenePhase) private var scenePhase
   private var pinReviewFixture: Bool {
@@ -122,6 +123,9 @@ public struct HermiMapPreview: View {
     }
     .animation(reduceMotion || reduceMotionOverride ? nil : .easeOut(duration: 0.2), value: state.sheet)
     .animation(reduceMotion || reduceMotionOverride ? nil : .easeOut(duration: 0.15), value: moving)
+    .coverScreen(item: $mapPost) { reference in
+      SavedViewer(state: $state, reference: reference, close: { mapPost = nil }, openPlan: { _ in mapPost = nil }, append: { _ = state.appendSaved($0) })
+    }
     .sheet(isPresented: $lab) {
       VStack(spacing: 0) {
         HStack {
@@ -465,14 +469,12 @@ public struct HermiMapPreview: View {
     .animation(reduceMotion ? nil : .interactiveSpring(response: 0.3, dampingFraction: 0.9), value: panelLevel)
     .frame(maxWidth: .infinity)
     .background(HermiPalette.paper, in: UnevenRoundedRectangle(topLeadingRadius: 24, topTrailingRadius: 24))
-    .overlay(alignment: .topTrailing) {
-      Button {
+    .overlay(alignment: .topLeading) {
+      CloseButton(label: "Close details") {
         if state.returnSheet == .plan || state.returnSheet == .saved { state.goBack() }
         else { state.sheet = nil; state.returnSheet = nil }
         panelLevel = .compact
-      } label: {
-        PixelIcon(name: "close").frame(width: 14, height: 14).frame(width: 44, height: 36)
-      }.buttonStyle(.plain).accessibilityLabel("Close details").controlHelp("Close this place or discovery panel").padding(.trailing, 8)
+      }.padding(.leading, 10).padding(.top, 2)
     }
   }
 
@@ -522,7 +524,8 @@ public struct HermiMapPreview: View {
           .accessibilityLabel(state.planIDs.contains(place.id) ? "Remove from plan" : "Add to plan")
           .controlHelp("Toggle this place in My Plan without changing Saved")
       }
-      PlaceFeedContent(place: place, savedPostIDs: Set(state.library.posts.map(\.refID))) { state.togglePostBookmark($0) }
+      PlaceFeedContent(place: place, savedPostIDs: Set(state.library.posts.map(\.refID)), togglePostSave: { state.togglePostBookmark($0) },
+                       openPost: { mapPost = SavedReference(kind: .post, refID: $0) })
         .id(place.id)
 
     }
@@ -606,7 +609,7 @@ public struct HermiMapPreview: View {
       .sheet(item: Binding(get: { postPlace.flatMap(MapSamplePlace.find) }, set: { postPlace = $0?.id })) { place in
         ScrollView {
           VStack(alignment: .leading, spacing: 20) {
-            HStack { Text(place.name).font(.title2.bold()); Spacer(); Button { postPlace = nil } label: { PixelIcon(name: "close").frame(width: 20, height: 20).frame(width: 30, height: 30) }.accessibilityLabel("Close post").controlHelp("Return to the posts grid") }
+            HStack { CloseButton(label: "Close post") { postPlace = nil }; Text(place.name).font(.title2.bold()); Spacer() }
             Text("Your posts").font(.headline)
             HStack(spacing: 6) { ForEach(0..<3) { mediaTile(place.category, variant: $0).frame(height: 150) } }
             Text("Your review").font(.headline)

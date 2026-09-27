@@ -21,7 +21,7 @@ struct SavePlanPreviewModal: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 0) {
       HStack {
-        Button { dismiss() } label: { PixelIcon(name: "close").frame(width: 18, height: 18).frame(width: 44, height: 44) }
+        CloseButton { dismiss() }
           .accessibilityLabel("Cancel saving plan")
         Text("Save Plan").font(.title2.bold())
         Spacer()

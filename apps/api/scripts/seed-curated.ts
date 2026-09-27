@@ -289,7 +289,8 @@ for (const folder of folders) {
   if (!place || dry) continue;
 
   // Multi-part posts: up to 3 photos plus one clip each, captioned with a short review line.
-  const captions = reviews.filter((r) => r.text.length <= 140);
+  // Captions use short, positive review lines; the rest become review posts.
+  const captions = reviews.filter((r) => r.text.length <= 140 && r.again);
   const groups: { photos: string[]; video?: string }[] = [];
   for (let i = 0, v = 0; i < photos.length || v < videos.length; i += 3, v++) {
     const group = { photos: photos.slice(i, i + 3), video: videos[v] };
@@ -307,14 +308,15 @@ for (const folder of folders) {
     );
     const mediaIds: string[] = [];
     const parts: { bytes: Buffer; kind: 'photo' | 'video'; contentType: string }[] = [
+      // The clip leads each multi-part post.
+      ...(group.video
+        ? [{ bytes: videoClip(group.video), kind: 'video' as const, contentType: 'video/mp4' }]
+        : []),
       ...group.photos.map((f) => ({
         bytes: photoJpeg(f),
         kind: 'photo' as const,
         contentType: 'image/jpeg',
       })),
-      ...(group.video
-        ? [{ bytes: videoClip(group.video), kind: 'video' as const, contentType: 'video/mp4' }]
-        : []),
     ];
     for (const part of parts) {
       const mediaId = newId();

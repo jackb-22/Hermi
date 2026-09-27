@@ -28,7 +28,7 @@ sh scripts/judge-sim.sh --two    # …and a second simulator as @ben, to see the
 ```
 It asks for the demo token once. The first build takes a few minutes.
 
-In the Simulator, set **Features → Location → Custom Location → 40.8068, -73.9640** (Lerner Hall, Columbia). With no camera, the Simulator uses a clearly labelled sample photo.
+In the Simulator, **Features → Location → Custom Location…** is how you "walk" between stops (coordinates in the route below). With no camera, the Simulator uses a clearly labelled sample photo.
 
 ### Option B: your own iPhone (a Mac with Xcode and a free Apple ID)
 1. Open `apps/ios/HermiPreview/HermiPreview.xcodeproj`.
@@ -47,20 +47,78 @@ We can install it on your iPhone by cable, or hand you our two phones, already s
 
 ---
 
-## The route (about 10 minutes)
+## The route (about 10–12 minutes)
 
-**ava** and **ben** are seeded, verified Columbia students who are friends with each other. Each has 30 days of history, a Score, and friends with streaks. The route is set around **Lerner Hall** and **Butler Library** (90 m apart).
+**ava** and **ben** are seeded, verified Columbia students who are friends with each other. Each has 30 days of history, a Score, and friends with streaks. You'll plan a two-stop outing: **Movement Harlem**, a bouldering gym on 125th St, then **Alfred Lerner Hall** on campus, 1.2 km apart.
 
-| Step | What to do | What it shows |
-|---|---|---|
-| **1. Discover** | Pan and zoom the map: thousands of real venues, bounded to the five boroughs. Swipe the pin at top right to **Food**, then hold and drag it onto the map next to Columbia. Tap a restaurant, e.g. **The Hungarian Pastry Shop**: real photos, videos and reviews. Tap **+** to add it. Tap the pin once for **citywide** Food; tap again for everything. | Radius discovery, place pages, plan membership |
-| **2. Plan** | Tap the plan icon (top right). Add **Alfred Lerner Hall** and **Butler Library**; hold a stop to reorder it. Hold the **bookmark** → **Save plan** → **Friends** → pick **ben**. | Plans synced to your account, invitations to real friends |
-| **3. Friend joins** | As **ben** (second simulator, or Settings → **@ben**): **My Plan → From friends** shows "ava invited you". Tap **Join**, then **Go!** | Shared plans |
-| **4. Explore** | **Feed**: photos, videos, plans drawn on the map, open plans with **Join / Request**. Top right switches General ⇄ Friends; the chevron filters Everything / Posts / Plans. **Social** (map, top right): friends' recent check-ins blink, plan lines, and "!" open plans from matched students. **Saved** (Profile → bookmark): folders and full-screen media. | The social layer |
-| **5. Adventure** | **Go!** opens Directions: route, next stop and distance. At a stop, tap **Tap tag**, our stand-in for the NFC tag at the venue. You get **+XP**, and "Hangout with ben" if you both check in within 30 minutes. Switch to **Camera** and take a photo: it uploads, is hashed, and is **Verified** against your check-in. Check in at Butler, then **End**. | In-person verification, the verified capture pipeline |
-| **6. Recap and post** | The recap shows the XP breakdown, stops, distance and new map tiles. Answer "Would you go again?", then **Post** your photos with the route card. The post appears in your friend's Feed and on your Profile. | Verified posting |
-| **7. Score** | **Profile**: your Score went up. Tap **Score** for the cairn and 30-day chart, **Rank** for friends and campus, **Friends** for streaks, and **(i)** on the map for coverage, steps and hours outside. | The outdoor Score |
-| **8. In-person friends** | Watch our video of two phones tapping NFC tags to become friends, which starts an IRL streak. | Friendship only happens in person |
+> ### ⚠️ The adventure only works where you physically are
+> Hermi exists to get you outside, so **every check-in, photo and XP point requires being at the place**. The phone's real location must be within **150 m** of the stop, and the server checks it again.
+> - **On a phone:** you would **actually walk** from Movement Harlem to Lerner Hall.
+> - **In the Simulator,** which can't walk, you **move it** by setting its location (**Features → Location → Custom Location…**). **That is the only thing simulated.** Everything else (check-ins, verification, XP, recap) is the real system.
+>
+> | Stop | Latitude | Longitude |
+> |---|---|---|
+> | Movement Harlem | 40.80965 | -73.95021 |
+> | Alfred Lerner Hall | 40.80675 | -73.96398 |
+
+### 1. Discover with pins (Map, as ava)
+- **Pan and pinch-zoom.** Thousands of real venues load in tile by tile, and the map stays bounded to the five boroughs.
+- **The pin at the top right:**
+  - swipe it sideways to change category;
+  - **tap** it to show that category **citywide**, and tap again for everything;
+  - **hold and drag** it onto the map to drop a discovery pin.
+- **Find Lerner Hall with a pin.** It won't appear as a dot on its own; that's intentional, since pins are how you discover.
+  1. Swipe the pin to **Culture** and drop it on Columbia's campus, near Broadway and 115th.
+  2. The **Nearby** row lists culture places inside the circle, nearest first. Drag the radius slider to widen or narrow it.
+  3. Open **Alfred Lerner Hall**: real photos, the would-go-again percentage and a review summary. Tap **+** to add it.
+- **Find Movement Harlem's video.**
+  1. Swipe the pin to **Sports** and drop it on 125th St near Frederick Douglass Blvd.
+  2. Open **Movement Harlem** and **tap the first post**. It opens full screen with the **climbing video playing first**; swipe sideways for the photos.
+  3. Close it with the **X** (top-left, like every sheet), then tap **+**.
+- Tapping empty map closes a sheet.
+
+### 2. Plan and invite
+- Open **My Plan** (top-right icon): both stops, with times and stay lengths.
+  - **Hold a stop to reorder** it, and put Movement Harlem first.
+  - Tap a stop to open its page on top of the plan.
+- **Hold the bookmark** → **Save plan** → name it → **Friends** → select **ben** → Save. It's synced to ava's account, and ben gets a real invitation.
+
+### 3. The friend joins (as ben)
+Use the second simulator, or Profile → ⚙︎ → Server → **@ben**. Go to **My Plan → From friends**: "ava invited you". Tap **Join**. The plan now shows **Go!** for ben.
+
+### 4. Explore the social layer
+- **Feed:** real photos, clips and reviews from places around Columbia.
+  - Posts with several parts swipe **sideways** (dots at the top); vertical swipes move between posts.
+  - Plans are drawn as routes on the map. Open plans have a big **Join plan** / **Request to join** button.
+  - **Top right:** the people icon switches **General ⇄ Friends**. The chevron cycles **Everything → Posts → Plans**, turning white, blue then green.
+  - **Bookmark** saves a post. **+** adds its place to your plan.
+- **Saved** (Profile → bookmark icon):
+  - a grid of folders, posts, plans and places;
+  - posts and plans open full screen;
+  - hold a box to move it to a folder, and use **New folder** to create one.
+- **Social map** (Map, top-right people icon):
+  - friends' check-ins from the last 3 hours, **blinking** while they're there;
+  - friends' plan lines, dotted while planned and solid once done;
+  - **"!"** markers for open plans from matched students.
+
+### 5. The adventure (ava, then ben). Read the box above first.
+1. My Plan → **Go!**. The **Directions** screen shows the route, the next stop, its distance and walking time, and Open in Maps. Each stop is marked with how far away you are.
+2. **Try to cheat:** before moving anywhere, tap **Tap tag** at **Alfred Lerner Hall**. Hermi **refuses**: "You're … away from Alfred Lerner Hall. Walk there first: check-ins only work within 150 m." (Or "Waiting for your location" if the Simulator has none yet.)
+3. Set the Simulator's location to **Movement Harlem** and tap **Tap tag** → **+XP**. "Tap tag" is our in-app stand-in for tapping the venue's NFC tag.
+4. **Camera** → shutter. The photo is hashed, uploaded and **Verified** against your check-in's place and time. The Simulator uses a labelled sample photo; a phone uses the real camera.
+5. Set the location to **Alfred Lerner Hall** and tap **Tap tag** → **+XP**.
+   - If **ben** also checks in there within 30 minutes: "**Hangout with ava**". That's an IRL streak.
+6. **End** → **Recap**: time, distance, new map tiles and the **XP breakdown**.
+   - Answer **"Would you go again?"** for each stop.
+   - **Post** your photos with the route card. They appear in the other person's **Feed**, and on the Social map your check-in blinks for friends.
+
+### 6. Your outdoor Score (Profile)
+- **Score** has gone up. Tap it for the **cairn**, the 30-day chart and the XP that expires soon. **Rank** shows your friends and campus leaderboards.
+- **Friends** shows streaks and where each friend last went out. **Adventures** colours the tiles you've explored, and **(i)** shows coverage, steps and hours outside.
+- **Posts** is your verified posts. ⚙︎ has **Ghost mode**, which hides your check-ins from friends, and **Open to plans**, for find-someone matching.
+
+### 7. Friends only in person
+There's no friend search and no friend requests. You add a friend by **tapping phones** (personal NFC tags), and streaks count weeks with a real hangout. Our video shows this with real NFC tags, which we couldn't get for this build.
 
 ---
 
@@ -81,7 +139,7 @@ We can install it on your iPhone by cable, or hand you our two phones, already s
 - **Find someone** (matching verified students with similar taste) works server-side, but needs a pool of real students to be meaningful.
 
 **Stand-ins, because we couldn't get NFC hardware in time:**
-- Venue check-ins use **Tap tag**, an in-app button that mints a venue tag and checks in through exactly the same `/checkins` path as a real tap. Your real location must still be within 150 m of the venue; in the Simulator, the stop's own position is used.
+- Venue check-ins use **Tap tag**, an in-app button that mints a venue tag and checks in through exactly the same `/checkins` path as a real tap. **Your real location must be within 150 m of the venue**; there's no fallback. In the Simulator, you set its location to the stop.
 - Friend pairing by tapping phones is shown on video. The API (`/taps`) is built and was tested with simulated taps.
 
 **Not built yet:**

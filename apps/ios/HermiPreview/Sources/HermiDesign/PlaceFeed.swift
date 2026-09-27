@@ -50,6 +50,8 @@ struct PlaceFeedContent: View {
   let place: MapSamplePlace
   var savedPostIDs: Set<String> = []
   var togglePostSave: ((String) -> Void)?
+  /// Opens a post full screen (parts page sideways; clips play).
+  var openPost: ((String) -> Void)? = nil
   @State private var livePosts: [PlaceFeedPost]?
   @State private var loadError: String?
 
@@ -94,6 +96,7 @@ struct PlaceFeedContent: View {
                 }
               }
             }.scrollIndicators(.hidden)
+              .onTapGesture { if post.isLive { openPost?(post.id) } }
           }
           if !post.caption.isEmpty { Text(post.caption).font(.subheadline) }
         }.accessibilityElement(children: .contain)
