@@ -37,8 +37,8 @@ Paste any compile or test failure back verbatim.
 ## Step checklists
 
 ### Step 0: merge main into `frontend` (no app change)
-- [ ] `swift test` passes (55 tests, as before).
-- [ ] The Simulator launches to the Map exactly as before.
+- [ ] `swift test` passes: 62 tests, which is 55 from the frontend, plus 2 brand intro tests, plus 5 live contract tests.
+- [ ] The Simulator launches to the Map exactly as before. On a first open with no saved preview, the crab intro plays first; that's the teammate's `58abb12`.
 
 ### Step 1: API client, Connect and live identity
 - [ ] Without connecting: Profile still shows the sample "Alex" header, and Settings shows the **SAMPLE** badge.
@@ -74,5 +74,5 @@ Items that are unconnected, need UI or backend work, or depart from `docs/HERMI_
 | D16 | Action | NFC is replaced by a dev-tag **Check in here** button. GPS dwell check-in is not surfaced. | Matches the prerecorded-demo decision. |
 | D17 | Camera | Capture uses `UIImagePickerController` instead of the custom viewfinder. There is no ambient audio, no 15 s video and no QR scanning in the viewfinder. A DEBUG sample-photo fallback exists for the Simulator. | Speed. |
 | D18 | Security | App Attest is not integrated. | The demo runs `ATTEST_MODE=log`. |
-| D19 | Repo | The legacy `apps/ios/Package.swift` (CairnKit prototype) is broken and left untouched. | Not used by HermiPreview. |
+| D19 | Repo | The legacy `apps/ios/Package.swift` (CairnKit prototype, re-added on main in `50125cd`) is a separate package and is left untouched. | Not used by HermiPreview. |
 | D20 | Config | The base URL must be re-entered whenever the quick tunnel restarts. | Use `NGROK_DOMAIN` with `demo-up.sh` for a stable URL. |
