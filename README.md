@@ -1,4 +1,4 @@
-# Hermi: get out of your shell
+# Hermi: Come out of your shell
 
 **Hermi turns "we should go out sometime" into an outing that actually happens, and proves it did.** You discover real places on a pixel map of New York, build a plan with friends (and AI), go, and check in at each stop in person. You capture verified photos and come home to a recap, XP and a post your friends can trust.
 

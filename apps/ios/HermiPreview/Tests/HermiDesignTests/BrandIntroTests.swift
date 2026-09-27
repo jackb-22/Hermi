@@ -20,4 +20,13 @@ final class BrandIntroTests: XCTestCase {
     XCTAssertEqual(CrabIntroFrame(elapsed: 5).logoOpacity, 1)
     XCTAssertGreaterThan(CrabIntroFrame.duration, 5)
   }
+  func testCautiousSecondStepAccelerationAndSteadyCrawl() {
+    XCTAssertEqual(CrabIntroFrame(elapsed: 2).travel, CrabIntroFrame(elapsed: 2.1).travel)
+    let early = CrabIntroFrame(elapsed: 2.4).travel - CrabIntroFrame(elapsed: 2.3).travel
+    let later = CrabIntroFrame(elapsed: 2.7).travel - CrabIntroFrame(elapsed: 2.6).travel
+    XCTAssertGreaterThan(later, early)
+    XCTAssertEqual(CrabIntroFrame(elapsed: 3.2).travel - CrabIntroFrame(elapsed: 3.1).travel,
+                   CrabIntroFrame(elapsed: 3.7).travel - CrabIntroFrame(elapsed: 3.6).travel, accuracy: 0.0001)
+  }
+
 }

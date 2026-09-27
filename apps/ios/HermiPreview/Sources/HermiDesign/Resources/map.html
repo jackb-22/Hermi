@@ -4,11 +4,11 @@
 const palette=window.hermiPalette;
 for(const [name,color] of Object.entries(palette))document.documentElement.style.setProperty('--'+name,color);
 </script><style>
-html,body,#map{margin:0;width:100%;height:100%;overflow:hidden;background:var(--lake)}canvas{image-rendering:pixelated}.maplibregl-ctrl-attrib{font:8px system-ui;background:color-mix(in srgb,var(--paper) 80%,transparent)!important}.maplibregl-ctrl-bottom-right{bottom:78px;right:4px}.pin{border:0;padding:0;background:none;width:44px;height:52px;cursor:pointer;display:flex;align-items:flex-end;justify-content:center}.pin svg{width:33px;height:42px;overflow:visible;image-rendering:pixelated}.notice{position:absolute;bottom:112px;left:10px;font:9px monospace;color:var(--ink);background:color-mix(in srgb,var(--paper) 86%,transparent);padding:3px;pointer-events:none}#error{display:none;position:absolute;top:45%;left:16px;right:85px;padding:16px;background:var(--paper);font:13px system-ui;color:var(--ink);box-shadow:4px 4px var(--ink)}#error button{padding:10px;margin-top:8px;background:var(--lime);border:0;display:block}a{color:var(--ink)}
+html,body,#map{margin:0;width:100%;height:100%;overflow:hidden;background:var(--water)}canvas{image-rendering:pixelated}.maplibregl-ctrl-attrib{font:8px system-ui;background:color-mix(in srgb,var(--paper) 80%,transparent)!important}.maplibregl-ctrl-bottom-right{bottom:78px;right:4px}.pin{z-index:20;filter:drop-shadow(1px 2px 0 #29343f30);border:0;padding:0;background:none;width:44px;height:52px;cursor:pointer;display:flex;align-items:flex-end;justify-content:center}.pin svg{width:33px;height:42px;overflow:visible;image-rendering:pixelated}.notice{position:absolute;bottom:112px;left:10px;font:9px monospace;color:var(--ink);background:color-mix(in srgb,var(--paper) 86%,transparent);padding:3px;pointer-events:none}#error{display:none;position:absolute;top:45%;left:16px;right:85px;padding:16px;background:var(--paper);font:13px system-ui;color:var(--ink);box-shadow:4px 4px var(--ink)}#error button{padding:10px;margin-top:8px;background:var(--lime);border:0;display:block}a{color:var(--ink)}
 
 
-#pin-editor{display:none;position:absolute;z-index:3;width:44px;right:20px;color:var(--ink);font:11px system-ui;text-align:center;touch-action:none;transition:bottom .2s ease-out}
-#pin-remove{display:none;position:absolute;z-index:4;width:44px;height:44px;padding:16px;border:0;background:none;color:var(--ink);cursor:pointer;touch-action:none}
+#pin-editor{display:none;position:absolute;z-index:30;width:44px;right:20px;color:var(--ink);font:11px system-ui;text-align:center;touch-action:none;transition:bottom .2s ease-out}
+#pin-remove{display:none;position:absolute;z-index:31;width:44px;height:44px;padding:16px;border:0;background:none;color:var(--ink);cursor:pointer;touch-action:none}
 #pin-remove svg{width:12px;height:12px;shape-rendering:crispEdges;filter:drop-shadow(1px 1px var(--paper))}
 #pin-editor input{writing-mode:vertical-lr;direction:rtl;display:block;width:44px;height:100px;margin:0;touch-action:none;-webkit-appearance:none;appearance:none;background:transparent;border:0;border-radius:0}
 #pin-editor input::-webkit-slider-runnable-track{width:4px;background:var(--green);border-radius:0}
@@ -17,7 +17,7 @@ html,body,#map{margin:0;width:100%;height:100%;overflow:hidden;background:var(--
 .recommendation{border:0;padding:0;background:none;width:28px;height:28px;display:grid;place-items:center;cursor:pointer}
 .recommendation span{display:block;width:8px;height:8px;clip-path:polygon(25% 0,75% 0,75% 25%,100% 25%,100% 75%,75% 75%,75% 100%,25% 100%,25% 75%,0 75%,0 25%,25% 25%)}
 .route-stop{width:24px;height:24px;display:grid;place-items:center;font:bold 12px system-ui;color:var(--ink);border:3px solid var(--ink);box-shadow:2px 2px 0 var(--paper)}
-.category-indicator{position:absolute;top:-14px;left:14px;width:16px;height:16px;pointer-events:none}.category-indicator svg{width:16px;height:16px}
+.landmark{width:52px;height:64px;pointer-events:none!important;z-index:1;filter:drop-shadow(2px 3px 0 #29343f25)}.landmark svg{width:100%;height:100%;shape-rendering:crispEdges;overflow:visible}.landmark-label{position:absolute;top:100%;left:50%;transform:translateX(-50%);white-space:nowrap;font:600 9px system-ui;color:var(--ink);background:color-mix(in srgb,var(--paper) 92%,transparent);padding:1px 3px;border-radius:3px}.friend,.route-stop{z-index:10}
  .friend{border:0;background:none;box-shadow:none;width:44px;height:44px;display:grid;place-items:center;padding:0;cursor:pointer}
 .friend svg{width:26px;height:26px;overflow:visible;shape-rendering:crispEdges;filter:drop-shadow(1px 1px var(--paper))}
 .friend.current svg{width:32px;height:32px;animation:shared-presence 4s steps(1,end) infinite}
@@ -28,7 +28,8 @@ html,body,#map{margin:0;width:100%;height:100%;overflow:hidden;background:var(--
 </style></head><body><div id="map"></div><button id="pin-remove" aria-label="Remove discovery pin"><svg viewBox="0 0 9 9" aria-hidden="true"><path fill="currentColor" d="M0 0h2v1h1v1h1v1h1V2h1V1h1V0h2v2H8v1H7v1H6v1h1v1h1v1h1v2H7V8H6V7H5V6H4v1H3v1H2v1H0V7h1V6h1V5h1V4H2V3H1V2H0z"/></svg></button><div id="pin-editor"><input id="pin-radius" aria-label="Geographic radius in miles" type="range" min="0" max="1" step="0.01" value="0.5"><output id="radius-value">1 mi</output></div><div class="notice" style="display:none"></div><div id="error">Map unavailable. Check your connection.<button onclick="location.reload()">Retry map</button></div><script src="maplibre-gl.js"></script><script>
 const send=body=>window.webkit?.messageHandlers.hermi.postMessage(body);
 let map, pending={},markers=[],loaded=false,placeSignature="",socialSignature="",lastViewportSent=0,discoveryMarker=null,draggingPin=false,revealDiscovery=false,lastBottomInset=0;
-const discoveryMarkers=new Map(), categoryRepresentatives=new Map();
+const discoveryMarkers=new Map();
+let updateLandmarks=()=>{};
 const empty={type:'FeatureCollection',features:[]};
 const error=document.getElementById('error');
 // The five boroughs plus a little surrounding land; panning and zooming stay inside.
@@ -38,7 +39,8 @@ map=new maplibregl.Map({container:'map',center:[-73.965,40.8075],zoom:15.1,minZo
 {id:'land',type:'background',paint:{'background-color':palette.land}},
 {id:'cover',type:'fill',source:'world','source-layer':'landcover',paint:{'fill-color':palette.cover,'fill-antialias':false}},
 {id:'parks',type:'fill',source:'world','source-layer':'landuse',filter:['in','class','park','grass','wood','recreation_ground','cemetery'],paint:{'fill-color':palette.parks,'fill-antialias':false}},
-{id:'water',type:'fill',source:'world','source-layer':'water',paint:{'fill-color':palette.lake,'fill-antialias':false}},
+{id:'water',type:'fill',source:'world','source-layer':'water',paint:{'fill-color':palette.water,'fill-antialias':false}},
+{id:'building-shadows',type:'fill',source:'world','source-layer':'building',minzoom:13,paint:{'fill-color':palette.shadow,'fill-translate':[2,3],'fill-opacity':0.55,'fill-antialias':false}},
 {id:'buildings',type:'fill',source:'world','source-layer':'building',minzoom:13,paint:{'fill-color':palette.buildings,'fill-antialias':false}},
 {id:'roads',type:'line',source:'world','source-layer':'transportation',filter:['!=','class','rail'],paint:{'line-color':palette.paper,'line-width':['interpolate',['linear'],['zoom'],8,0.5,13,1.5,17,7,19,14]}},
 {id:'paths',type:'line',source:'world','source-layer':'transportation',filter:['==','class','path'],minzoom:14,paint:{'line-color':palette.paths,'line-width':1,'line-dasharray':[2,2]}}
@@ -48,14 +50,112 @@ map.addControl(new maplibregl.AttributionControl({compact:true}),'bottom-right')
 map.on('load',()=>{loaded=true;error.style.display='none';map.addSource('social-routes',{type:'geojson',data:empty});
 map.addLayer({id:'social-current',type:'line',source:'social-routes',filter:['==','kind','current'],paint:{'line-color':palette.green,'line-width':4,'line-dasharray':[1,2]}});
 map.addLayer({id:'social-loved',type:'line',source:'social-routes',filter:['==','kind','loved'],paint:{'line-color':'#D66C9B','line-width':4}});map.addLayer({id:'social-planned',type:'line',source:'social-routes',filter:['==','kind','planned'],paint:{'line-color':palette.green,'line-width':4,'line-dasharray':[1,2]}});map.addLayer({id:'social-done',type:'line',source:'social-routes',filter:['==','kind','done'],paint:{'line-color':palette.green,'line-width':4}});
-map.addSource('explored',{type:'geojson',data:empty});map.addLayer({id:'explored-fill',type:'fill',source:'explored',paint:{'fill-color':palette.lime,'fill-opacity':0.75,'fill-antialias':false}});map.addLayer({id:'explored-line',type:'line',source:'explored',paint:{'line-color':palette.green,'line-width':1}});map.addSource('adventure',{type:'geojson',data:empty});map.addLayer({id:'adventure',type:'line',source:'adventure',paint:{'line-color':palette.green,'line-width':4,'line-dasharray':[2,1]}});map.addSource('discovery-radius',{type:'geojson',data:empty});map.addLayer({id:'discovery-radius-fill',type:'fill',source:'discovery-radius',paint:{'fill-color':palette.lime,'fill-opacity':0.13}});map.addLayer({id:'discovery-radius-line',type:'line',source:'discovery-radius',paint:{'line-color':palette.green,'line-width':2,'line-dasharray':[3,2]}});map.addSource('places',{type:'geojson',data:empty});map.addLayer({id:'places',type:'symbol',source:'places',layout:{'icon-image':['get','icon'],'icon-allow-overlap':true,'icon-ignore-placement':true}});renderHermi(pending);send({type:'ready'});send({type:'viewport',...viewport()})});
+map.addSource('explored',{type:'geojson',data:empty});map.addLayer({id:'explored-fill',type:'fill',source:'explored',paint:{'fill-color':palette.lime,'fill-opacity':0.75,'fill-antialias':false}});map.addLayer({id:'explored-line',type:'line',source:'explored',paint:{'line-color':palette.green,'line-width':1}});map.addSource('adventure',{type:'geojson',data:empty});map.addLayer({id:'adventure',type:'line',source:'adventure',paint:{'line-color':palette.green,'line-width':4,'line-dasharray':[2,1]}});map.addSource('discovery-radius',{type:'geojson',data:empty});map.addLayer({id:'discovery-radius-fill',type:'fill',source:'discovery-radius',paint:{'fill-color':palette.lime,'fill-opacity':0.13}});map.addLayer({id:'discovery-radius-line',type:'line',source:'discovery-radius',paint:{'line-color':palette.green,'line-width':2,'line-dasharray':[3,2]}});map.addSource('places',{type:'geojson',data:empty});map.addLayer({id:'places',type:'symbol',source:'places',layout:{'icon-image':['get','icon'],'icon-allow-overlap':true,'icon-ignore-placement':true}});installLandmarks();renderHermi(pending);send({type:'ready'});send({type:'viewport',...viewport()})});
 map.on('error',()=>{error.style.display='block';send({type:'error'})});
 map.on('idle',()=>{if(map.areTilesLoaded()){error.style.display='none';send({type:'ready'})}});
-map.on('move',()=>{positionEditor();updateCategoryIndicators();const now=Date.now();if(now-lastViewportSent>250){lastViewportSent=now;send({type:'viewport',...viewport()})}});
+map.on('move',()=>{positionEditor();updateLandmarks();const now=Date.now();if(now-lastViewportSent>250){lastViewportSent=now;send({type:'viewport',...viewport()})}});
 map.on('click',e=>{if(draggingPin)return;const hit=e&&e.point?placeAt(e.point):null;if(hit){send({type:'place',id:hit});return}{pending.editingDiscovery=false;positionEditor();map.getSource('discovery-radius').setData(empty);send({type:'mapTap'})}});
 map.on('movestart',()=>send({type:'moving'}));map.on('moveend',()=>send({type:'stopped',...viewport()}));
 window.addEventListener('resize',()=>map.resize());
 }catch(e){error.style.display='block';send({type:'error'})}
+
+// Original pixel miniatures respond to zoom, but leave every gesture to the map/pins.
+function installLandmarks(){
+ const stone='#E7D7B7', light='#FFF1D4', shade='#A29A8E', blue='#8AB8D4', dark=palette.ink;
+ const copper='#71B6A3', copperShade='#3B8179', gold='#F7BF48', red='#DD665E';
+ const r=(x,y,w,h,c)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${c}"/>`;
+ const path=(d,c)=>`<path d="${d}" fill="${c}"/>`;
+ const windows=(x,y,cols,rows,dx=5,dy=6)=>{let a='';for(let i=0;i<cols;i++)for(let j=0;j<rows;j++)a+=r(x+i*dx,y+j*dy,2,3,'#667789')+r(x+i*dx,y+j*dy,1,1,light);return a};
+ const base=r(9,65,46,3,dark)+r(12,64,40,1,shade);
+ let empire=r(31,1,2,10,dark)+r(28,11,8,8,dark)+r(25,19,14,9,dark)+r(21,28,22,12,dark)+r(16,40,32,25,dark);
+ empire+=r(29,12,5,7,stone)+r(26,20,10,9,stone)+r(22,29,17,13,stone)+r(17,41,25,23,stone)+r(42,41,5,23,shade);
+ empire+=r(22,29,17,1,light)+r(17,41,25,1,light)+windows(20,44,5,3)+windows(25,32,3,1)+r(29,22,2,5,'#667789')+r(33,22,2,5,'#667789')+base;
+ // Flatiron: narrow triangular roof, two unequal facades and a pointed corner.
+ let flatiron=path('M8 23V20H12V17H17V14H22V11H27V8H31V10H35V14H39V19H43V25H47V32H51V63H31V66H27V64H8Z',dark);
+ flatiron+=path('M10 24V21H14V18H19V15H24V12H29V14H33V18H37V23H41V29H45V34H49V36H29V34H25V32H21V30H17V28H13V26Z',light);
+ flatiron+=path('M10 27H13V29H17V31H21V33H25V35H28V63H25V61H21V59H17V57H13V55H10Z',stone)+r(30,37,19,26,shade);
+ for(let y=37;y<60;y+=6)flatiron+=r(12,y-5,3,3,'#667789')+r(18,y-2,3,3,'#667789')+r(24,y+1,2,3,'#667789')+r(33,y+2,3,3,'#667789')+r(40,y+2,3,3,'#667789');
+ flatiron+=r(28,35,2,30,light)+base;
+ // Columbia's blue crown with five lifted tips and a small cross.
+ let crown=r(30,9,3,8,dark)+r(27,12,9,2,dark)+path('M8 25H12V32H16V35H21V25H25V31H29V20H34V31H38V25H42V35H47V32H51V25H55V42H52V56H11V42H8Z',dark);
+ crown+=path('M11 29H12V36H18V39H23V30H24V35H31V23H32V35H40V30H41V39H49V36H52V29H53V41H49V52H14V41H11Z',blue)+r(13,53,38,3,light)+r(16,58,32,4,dark)+r(18,58,28,2,blue);
+ crown+=r(19,44,3,5,light)+r(30,42,3,7,light)+r(41,44,3,5,light);
+ let pigeon=path('M7 45H15V38H34V22H39V18H51V22H54V37H58V40H51V52H45V58H20V55H13V51H7Z',dark);
+ pigeon+=r(37,23,14,20,'#9DAAB9')+r(18,40,29,13,'#ADB7C5')+r(22,42,17,8,'#77859B')+r(36,37,12,7,copperShade)+r(38,38,7,3,copper)+r(46,25,4,4,'#FFFFFF')+r(48,26,2,3,dark)+r(52,33,6,3,gold)+r(23,58,2,6,red)+r(39,57,2,7,red)+r(19,64,8,2,dark)+r(36,64,8,2,dark)+r(22,43,9,1,light);
+ let sail=r(30,8,2,45,dark)+r(11,52,44,4,dark)+r(15,56,36,5,red)+r(20,61,26,3,dark)+r(12,66,39,2,blue);
+ for(let y=13;y<48;y+=2){const w=Math.floor((y-9)/2);sail+=r(32,y,w,2,light)+r(29-w,y,w,2,blue)}
+ sail+=r(34,52,7,2,light)+r(21,56,20,1,'#F9AE84');
+ let liberty=r(22,57,24,9,dark)+r(24,58,20,7,stone)+r(20,66,28,3,dark);
+ liberty+=path('M27 29H39V32H43V51H47V57H22V52H25V40H22V34H17V24H14V19H19V23H22V28H27Z',dark);
+ liberty+=path('M28 31H37V34H41V50H44V55H25V51H28V37H24V32H20V24H18V22H17V26H19V33H25V40H27Z',copper);
+ liberty+=r(31,37,2,17,copperShade)+r(36,40,2,14,copperShade)+r(37,37,7,12,blue)+r(38,38,4,9,light);
+ liberty+=r(28,21,11,9,dark)+r(29,22,9,7,copper)+r(30,24,1,2,dark)+r(35,24,1,2,dark);
+ for(const [x,y,h]of [[24,18,5],[28,15,5],[32,13,7],[36,15,5],[40,18,5]])liberty+=r(x,y,2,h,copperShade);
+ liberty+=r(11,16,12,3,dark)+r(13,13,8,4,gold)+r(15,8,4,7,gold)+r(16,10,2,5,light)+r(14,19,6,3,copper);
+ let bridge=r(3,54,58,4,dark)+r(3,52,58,2,stone)+r(15,24,10,35,dark)+r(41,24,10,35,dark);
+ for(const x of [16,42])bridge+=r(x,25,8,33,stone)+r(x+2,35,4,18,dark)+r(x+3,34,2,2,dark)+r(x-1,22,10,3,stone)+r(x+1,27,2,4,shade)+r(x+5,27,2,4,shade);
+ for(let x=3;x<61;x+=2){const y=30+Math.round(Math.min(Math.abs(x-20),Math.abs(x-46))*0.8);bridge+=r(x,y,2,1,dark);if(x%4===3)bridge+=r(x,y,1,52-y,shade)}
+ bridge+=r(7,63,48,2,blue)+r(12,67,38,1,blue);
+ let times=r(10,19,18,45,dark)+r(31,9,21,55,dark)+r(27,30,6,34,shade)+r(36,4,3,6,dark);
+ times+=r(12,21,14,13,'#E782BD')+r(12,36,14,16,blue)+r(33,11,17,17,gold)+r(33,30,17,14,red)+r(34,47,15,11,'#967CE2');
+ times+=r(15,24,8,2,light)+r(18,23,2,8,light)+r(15,41,7,2,light)+r(20,40,2,8,light)+r(36,15,11,2,dark)+r(37,20,8,2,dark)+r(36,34,3,7,light)+r(42,34,5,2,light)+r(42,38,5,2,light)+r(37,51,9,2,light)+r(17,55,5,9,stone)+base;
+ let chrysler=r(31,1,2,14,dark);
+ for(let y=14;y<37;y+=5){const w=4+(y-14)*0.6;chrysler+=r(32-w,y,w*2,5,dark)+r(33-w,y+1,w*2-2,4,'#C9D7DD')+r(31,y+2,2,2,dark)}
+ chrysler+=r(18,37,28,28,dark)+r(20,38,24,26,stone)+r(41,39,3,25,shade)+r(14,38,7,3,'#C9D7DD')+r(43,38,7,3,'#C9D7DD')+windows(23,42,4,4)+base;
+ let terminal=r(7,36,50,28,dark)+r(10,37,44,26,stone)+path('M7 36V33H14V30H21V27H28V24H36V27H43V30H50V33H57V36Z',dark)+path('M12 34H18V31H25V28H39V31H46V34Z',stone);
+ terminal+=r(28,18,8,8,dark)+r(30,20,4,4,gold)+r(31,20,1,3,dark)+r(31,22,3,1,dark);
+ for(let x=16;x<51;x+=12)terminal+=r(x,40,7,19,dark)+r(x+1,42,5,14,blue)+r(x+3,42,1,14,stone)+r(x+1,49,5,1,stone);
+ terminal+=r(8,62,48,3,light)+base;
+ let arch=r(12,23,40,9,dark)+r(15,32,10,32,dark)+r(39,32,10,32,dark)+r(14,25,36,6,light)+r(17,32,7,30,stone)+r(40,32,7,30,stone)+r(24,32,16,4,stone)+r(24,36,4,4,stone)+r(36,36,4,4,stone)+r(29,26,6,3,shade)+r(13,19,38,4,stone)+r(12,63,15,3,light)+r(37,63,15,3,light);
+ arch+=r(19,38,2,13,light)+r(42,38,2,13,light)+base;
+ let globe='';
+ // Stepped globe, latitude bands, meridian and chunky continent shapes.
+ globe+=path('M24 10H40V13H47V17H52V24H55V40H52V47H47V51H40V54H24V51H17V47H12V40H9V24H12V17H17V13H24Z',dark);
+ globe+=path('M25 12H39V15H46V19H50V25H53V39H50V45H46V49H39V52H25V49H18V45H14V39H11V25H14V19H18V15H25Z',blue);
+ globe+=r(12,25,40,1,light)+r(10,33,44,1,light)+r(14,41,36,1,light)+r(31,12,1,40,light)+r(21,17,1,31,light)+r(42,17,1,31,light);
+ globe+=path('M17 18H27V21H30V26H25V31H22V28H18V24H15V21H17Z',shade)+path('M25 34H32V38H35V43H31V49H28V44H26Z',stone)+path('M37 18H44V22H48V29H42V32H37V29H34V23H37Z',stone)+r(29,54,6,9,dark)+r(18,63,29,4,shade)+r(12,68,40,1,blue);
+ let stadium=path('M8 28H14V23H23V20H41V23H50V28H56V52H50V58H14V52H8Z',dark)+path('M10 30H16V26H24V23H40V26H48V30H54V49H48V54H16V49H10Z',stone);
+ stadium+=r(14,31,36,4,blue)+r(14,36,36,4,shade)+path('M18 43H23V39H41V43H46V48H40V52H24V48H18Z','#76A06A')+path('M27 43H37V47H33V50H31V47H27Z',light);
+ for(let x=12;x<54;x+=4)stadium+=r(x,29,2,3,light)+r(x,52,2,5,light);
+ stadium+=r(13,10,2,15,dark)+r(49,10,2,15,dark)+r(10,9,8,3,light)+r(46,9,8,3,light)+base;
+ let wheel=r(29,27,6,6,dark)+r(31,32,2,29,dark)+path('M29 35H31V42H28V49H25V56H22V63H19V61H21V54H24V47H27V40H29Z',red)+path('M33 35H35V40H37V47H40V54H43V61H45V63H42V56H39V49H36V42H33Z',red);
+ wheel+=`<path d="M32 11L42 14L51 22L54 32L51 43L42 51L32 54L21 51L13 43L10 32L13 22L21 14Z" fill="none" stroke="${dark}" stroke-width="1"/>`;
+ const rim=[[29,8],[39,11],[48,19],[51,29],[48,40],[39,48],[29,51],[18,48],[10,40],[7,29],[10,19],[18,11]];
+ for(const [x,y]of rim){for(let t=0;t<1;t+=0.12)wheel+=r(Math.round(32+(x-29-3)*t),Math.round(30+(y-27-3)*t),1,1,shade);wheel+=r(x,y,7,6,dark)+r(x+1,y+1,5,3,blue)}
+ wheel+=r(13,64,38,3,dark)+r(15,63,34,1,gold);
+ // Priority order keeps signature sights visible when the island becomes crowded.
+ const specs=[
+  ['Statue of Liberty',-74.0445,40.6892,liberty],['Empire State',-73.9857,40.7484,empire],
+  ['Central Park',-73.9712,40.7812,pigeon],['Brooklyn Bridge',-73.9969,40.7061,bridge],
+  ['Times Square',-73.9855,40.7580,times],['Columbia',-73.9626,40.8075,crown],
+  ['Unisphere',-73.8458,40.7464,globe],['Yankee Stadium',-73.9262,40.8296,stadium],
+  ['Coney Island',-73.9797,40.5747,wheel],['Washington Sq.',-73.9973,40.7308,arch],
+  ['Flatiron',-73.9897,40.7411,flatiron],['Chrysler',-73.9753,40.7516,chrysler],
+  ['Grand Central',-73.9772,40.7527,terminal],['Hudson River',-73.995,40.789,sail]
+ ];
+ const items=specs.map(([name,lng,lat,art])=>{
+  const el=document.createElement('div');el.className='landmark';el.setAttribute('aria-hidden','true');
+  el.innerHTML=`<svg viewBox="0 0 64 72" xmlns="http://www.w3.org/2000/svg">${art}</svg><span class="landmark-label">${name}</span>`;
+  new maplibregl.Marker({element:el,anchor:'bottom'}).setLngLat([lng,lat]).addTo(map);
+  return {el,lng,lat};
+ });
+ updateLandmarks=()=>{
+  const zoom=map.getZoom(), scale=1+Math.min(1,Math.max(0,(16-zoom)/5))*0.25;
+  const width=Math.round(52*scale),height=Math.round(64*scale),occupied=[];
+  const container=map.getContainer();
+  for(const item of items){
+   const {el,lng,lat}=item,point=map.project({lng,lat});
+   el.style.width=width+'px';el.style.height=height+'px';
+   const bounds={left:point.x-48,right:point.x+48,top:point.y-height-5,bottom:point.y+18};
+   const onscreen=bounds.right>0&&bounds.left<container.clientWidth&&bounds.bottom>0&&bounds.top<container.clientHeight;
+   const overlaps=occupied.some(b=>bounds.left<b.right&&bounds.right>b.left&&bounds.top<b.bottom&&bounds.bottom>b.top);
+   const visible=onscreen&&!overlaps;
+   el.style.display=visible?'block':'none';if(visible)occupied.push(bounds);
+  }
+ };
+ map.on('zoom',updateLandmarks);updateLandmarks();
+}
+
 // Place dots are one WebGL symbol layer (thousands of points); each colour gets a pixel image with an ink edge.
 const DOT=['.IIII.','IccccI','IccccI','IccccI','IccccI','.IIII.'];
 function rgb(hex){const n=parseInt(String(hex).slice(1),16);return [n>>16&255,n>>8&255,n&255]}
@@ -145,29 +245,6 @@ removeButton.onclick=e=>{e.stopPropagation();if(pending.discovery)send({type:'pi
 for(const event of ['pointerdown','pointermove','pointerup','touchstart','touchmove','touchend'])removeButton.addEventListener(event,e=>e.stopPropagation());
 function discoveryPins(){return pending.discoveries|| (pending.discovery?[pending.discovery]:[])}
 function currentPin(id){return discoveryPins().find(p=>p.id===id)}
-function categoryIndicator(p){
- const badge=document.createElement('span');badge.className='category-indicator';badge.setAttribute('aria-hidden','true');
- const rows=p.categoryRows||p.rows, svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
- svg.setAttribute('viewBox',`0 0 ${rows[0].length} ${rows.length}`);svg.setAttribute('shape-rendering','crispEdges');
- rows.forEach((row,y)=>[...row].forEach((pixel,x)=>{if(pixel!=='I')return;const r=document.createElementNS(svg.namespaceURI,'rect');for(const [k,v]of Object.entries({x,y,width:1,height:1,fill:palette.ink}))r.setAttribute(k,v);svg.append(r)}));
- badge.append(svg);return badge;
-}
-function updateCategoryIndicators(){
- if(!map||!loaded)return;
- const groups=new Map(), width=map.getContainer().clientWidth, bottom=map.getContainer().clientHeight-(pending.bottomInset||110);
- for(const p of discoveryPins()){
-  const marker=discoveryMarkers.get(p.id);if(!marker)continue;
-  marker.categoryBadge.style.display='none';
-  const xy=map.project(marker.getLngLat());
-  if(xy.x<0||xy.x>width||xy.y<75||xy.y>bottom)continue;
-  if(!groups.has(p.category))groups.set(p.category,[]);groups.get(p.category).push(p.id);
- }
- for(const [category,ids]of groups){
-  const previous=categoryRepresentatives.get(category), id=ids.includes(previous)?previous:ids[0];
-  categoryRepresentatives.set(category,id);discoveryMarkers.get(id).categoryBadge.style.display='block';
- }
- for(const category of categoryRepresentatives.keys())if(!groups.has(category))categoryRepresentatives.delete(category);
-}
 function renderDiscovery(){
  const pins=discoveryPins(), ids=new Set(pins.map(p=>p.id));
  if(lastBottomInset!==pending.bottomInset){lastBottomInset=pending.bottomInset;revealDiscovery=true}
@@ -176,10 +253,9 @@ function renderDiscovery(){
   let marker=discoveryMarkers.get(p.id);
   if(!marker){
    const el=pin(p.color,p.category+' discovery pin. Drag to move; tap to edit radius.',p.rows);
-   const badge=categoryIndicator(p);el.append(badge);
    el.onclick=e=>{e.stopPropagation();send({type:'discovery',id:p.id})};
    marker=new maplibregl.Marker({element:el,anchor:'bottom',draggable:true}).setLngLat([p.lng,p.lat]).addTo(map);
-   marker.pinID=p.id;marker.categoryBadge=badge;marker.isDragging=false;discoveryMarkers.set(p.id,marker);revealDiscovery=true;
+   marker.pinID=p.id;marker.isDragging=false;discoveryMarkers.set(p.id,marker);revealDiscovery=true;
    const cancelDrag=()=>{
     const original=currentPin(p.id);if(!marker.isDragging||!original)return;
     marker.isDragging=false;draggingPin=false;marker.setLngLat([original.lng,original.lat]);
@@ -195,7 +271,7 @@ function renderDiscovery(){
  }
  const p=pending.editingDiscovery?pending.discovery:null;
  discoveryMarker=p?discoveryMarkers.get(p.id):null;
- if(!p||!discoveryMarker){editor.style.display='none';removeButton.style.display='none';map.getSource('discovery-radius').setData(empty);updateCategoryIndicators();return}
+ if(!p||!discoveryMarker){editor.style.display='none';removeButton.style.display='none';map.getSource('discovery-radius').setData(empty);return}
  if(revealDiscovery&&!draggingPin){
   revealDiscovery=false;
   const screen=map.project(discoveryMarker.getLngLat()), usableBottom=map.getContainer().clientHeight-(pending.bottomInset||110)-44;
@@ -204,7 +280,7 @@ function renderDiscovery(){
  // Always sync when selection changes, even while the range has keyboard focus.
  if(radius.pinID!==p.id||document.activeElement!==radius)radius.value=Math.log(p.radiusMiles/0.1)/Math.log(40);
  radius.pinID=p.id;radiusValue.textContent=Number(p.radiusMiles.toPrecision(2))+' mi';radius.setAttribute('aria-valuetext',radiusValue.textContent);
- map.getSource('discovery-radius').setData(radiusFeature(p));positionEditor();updateCategoryIndicators();
+ map.getSource('discovery-radius').setData(radiusFeature(p));positionEditor();
 }
 window.renderHermi=data=>{pending=data;if(!loaded)return;
  document.documentElement.className=data.reduceMotion?'reduce-motion':'';
