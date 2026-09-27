@@ -551,8 +551,13 @@ async function viaBackboard(
   }
   if (r.status === 'FAILED' || r.status === 'CANCELLED')
     throw new Error(`backboard run ${r.status}`);
+  // Backboard's free tier covers memory but not model calls, and says so as the reply; that is not an answer.
+  if (!ed.changes.length && BILLING_NOTICE.test(r.content ?? ''))
+    throw new Error(`backboard cannot run the model: ${(r.content ?? '').slice(0, 120)}`);
   return { text: r.content ?? '', threadId: r.thread_id };
 }
+
+const BILLING_NOTICE = /free credit|add credits|billing page|subscription/i;
 
 const PREFERENCE =
   /\b(no|not|never|don'?t|hate|avoid|prefer|love|always|allergic|vegetarian|vegan)\b/i;

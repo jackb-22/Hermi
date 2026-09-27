@@ -192,6 +192,7 @@ describe('POST /plans/:id/ask through Backboard (stub server)', () => {
   let t: Awaited<ReturnType<typeof setupTestApp>>;
   let u: Awaited<ReturnType<typeof devLogin>>;
   let id: Record<string, string>;
+  let billing = false;
 
   beforeAll(async () => {
     stub = Fastify();
@@ -204,19 +205,31 @@ describe('POST /plans/:id/ask through Backboard (stub server)', () => {
     });
     stub.post('/assistants', async () => ({ assistant_id: 'asst_1', name: 'x' }));
     stub.post('/assistants/:id/memories', async () => ({ id: 'mem_1' }));
-    stub.post('/threads/messages', async () => ({
-      status: 'REQUIRES_ACTION',
-      thread_id: 'thr_1',
-      run_id: 'run_1',
-      content: null,
-      tool_calls: [
-        {
-          id: 'call_1',
-          type: 'function',
-          function: { name: 'search_places', arguments: '{"category":"food","tags":["cheap"]}' },
-        },
-      ],
-    }));
+    stub.post('/threads/messages', async () =>
+      billing
+        ? {
+            status: 'COMPLETED',
+            thread_id: 'thr_2',
+            content:
+              "Your free credit is reserved for Memory & RAG, so it can't cover LLM chat. Add credits or start a subscription on the Billing page to continue.",
+          }
+        : {
+            status: 'REQUIRES_ACTION',
+            thread_id: 'thr_1',
+            run_id: 'run_1',
+            content: null,
+            tool_calls: [
+              {
+                id: 'call_1',
+                type: 'function',
+                function: {
+                  name: 'search_places',
+                  arguments: '{"category":"food","tags":["cheap"]}',
+                },
+              },
+            ],
+          },
+    );
     let round = 0;
     stub.post('/threads/:thread/runs/:run/submit-tool-outputs', async (req) => {
       const out = (req.body as { tool_outputs: { output: string }[] }).tool_outputs[0]!.output;
@@ -303,6 +316,32 @@ describe('POST /plans/:id/ask through Backboard (stub server)', () => {
       (await t.ctx.db.collection('users').findOne({ _id: u.id as never }))?.backboardAssistantId,
     ).toBe('asst_1');
     expect((await t.ctx.db.collection('plans').findOne({ _id: p.id }))?.aiThreadId).toBe('thr_1');
+  });
+
+  test("Backboard's no-credit notice is not shown as the answer: the chip falls back to rules", async () => {
+    billing = true;
+    const p = (
+      await t.app.inject({
+        method: 'POST',
+        url: '/v1/plans',
+        headers: u.headers,
+        payload: {
+          startAt: tomorrowAt(t.ctx.clock.now(), 17),
+          stops: [{ placeId: id['Riverside Park'] }, { placeId: id['Small Gallery'] }],
+        },
+      })
+    ).json();
+    const r = await t.app.inject({
+      method: 'POST',
+      url: `/v1/plans/${p.id}/ask`,
+      headers: u.headers,
+      payload: { chip: 'add_dinner' },
+    });
+    billing = false;
+    const body = r.json();
+    expect(body.via).toBe('code');
+    expect(body.message).not.toMatch(/credit/i);
+    expect(body.plan.ghostChanges).toEqual([expect.objectContaining({ kind: 'add_stop' })]);
   });
 
   test('behaviour memories sync to the assistant through a job', async () => {
