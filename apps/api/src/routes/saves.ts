@@ -96,12 +96,20 @@ export const saveRoutes: FastifyPluginAsyncZod = async (app) => {
   /** Saving someone else's plan copies it to your plans, ready to start. */
   const copyPlan = async (src: PlanDoc, userId: string): Promise<string> => {
     const now = clock.now();
+    const startAt = src.startAt > now ? src.startAt : nextQuarterHour(now);
     const copy: PlanDoc = {
       ...src,
       _id: newId(),
       hostId: userId,
       nameIsDefault: false,
-      startAt: src.startAt > now ? src.startAt : nextQuarterHour(now),
+      startAt,
+      // The end-by time moves with the start; the source's AI thread, group chat and matches stay with it.
+      endBy: src.endBy && new Date(src.endBy.getTime() + startAt.getTime() - src.startAt.getTime()),
+      aiThreadId: undefined,
+      imessageRsvps: undefined,
+      matchCount: undefined,
+      matchedAt: undefined,
+      notifiedMatchIds: undefined,
       visibility: 'just_me',
       status: 'draft',
       stops: src.stops.map((s) => ({ ...s, id: newId(), done: false, checkinId: undefined })),

@@ -164,6 +164,25 @@ describe('saves and folders', () => {
       })
     ).json();
     expect(r.copiedPlanId).not.toBe(theirs.id);
+    // Their planner thread, group chat and matches are theirs; only the stops come along.
+    const plans = t.ctx.db.collection('plans');
+    await plans.updateOne(
+      { _id: theirs.id },
+      { $set: { aiThreadId: 'thr_pal', imessageRsvps: ['+1555'], notifiedMatchIds: ['u1'] } },
+    );
+    const again = (
+      await t.app.inject({
+        method: 'POST',
+        url: '/v1/saves',
+        headers: me.headers,
+        payload: { type: 'plan', refId: theirs.id },
+      })
+    ).json();
+    const copy = await plans.findOne({ _id: again.copiedPlanId });
+    expect(copy).toMatchObject({ sourcePlanId: theirs.id, hostId: me.id });
+    expect(copy).not.toHaveProperty('aiThreadId');
+    expect(copy).not.toHaveProperty('imessageRsvps');
+    expect(copy).not.toHaveProperty('notifiedMatchIds');
     expect(r.saved.plan).toMatchObject({
       name: 'Pal plan',
       isHost: true,
