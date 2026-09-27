@@ -25,6 +25,7 @@ struct SavedPlanDraft: Codable, Equatable, Identifiable {
   var stopIDs: [String]
   var times: [String: PreviewStopTime]
   var inviteDrafts: [String: Set<String>]?
+  var isBookmarked: Bool? // Older saved plans are bookmarked by default.
 }
 
 struct SavedLibrary: Codable, Equatable {
@@ -95,7 +96,7 @@ extension MapPreviewState {
   }
   var savedReferences: [SavedReference] {
     let places = MapSamplePlace.all.filter { savedIDs.contains($0.id) }.map { SavedReference(kind: .place, refID: $0.id) }
-    return places + library.posts + library.plans.map { SavedReference(kind: .plan, refID: $0.id.uuidString) }
+    return places + library.posts + library.plans.filter { $0.isBookmarked != false }.map { SavedReference(kind: .plan, refID: $0.id.uuidString) }
   }
   mutating func appendSaved(_ reference: SavedReference) -> SavedAppendResult {
     let ids: [String]
