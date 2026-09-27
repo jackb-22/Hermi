@@ -486,7 +486,7 @@ for (let i = 0; i < seedUsers.length; i++) {
 
 // ---------- posts with real media (renditions made by the media worker) ----------
 const dir = mkdtempSync(join(tmpdir(), 'itp-seed-'));
-const captures: { bytes: Buffer; contentType: string; kind: 'photo' | 'video' }[] = [];
+const captures: { bytes: Buffer; contentType: string; kind: 'photo' | 'video'; generated?: boolean }[] = [];
 if (values['media-dir']) {
   for (const f of readdirSync(values['media-dir']).sort()) {
     const ext = extname(f).toLowerCase();
@@ -526,7 +526,7 @@ for (let i = captures.length; i < 20; i++) {
     'format=yuvj420p',
     out,
   ]);
-  captures.push({ bytes: readFileSync(out), contentType: 'image/jpeg', kind: 'photo' });
+  captures.push({ bytes: readFileSync(out), contentType: 'image/jpeg', kind: 'photo', generated: true });
 }
 const posters = [...recentCheckins.entries()].flatMap(([userId, cs]) =>
   cs.map((c) => ({ userId, ...c })),
@@ -563,6 +563,7 @@ for (const cap of captures.slice(0, Math.max(20, captures.length))) {
   const post: PostDoc & { seed: boolean } = {
     _id: newId(),
     authorId: c.userId,
+    ...(cap.generated ? { placeholder: true } : {}),
     type: cap.kind === 'video' ? 'clip' : 'photos',
     status: 'live',
     placeId: c.placeId,

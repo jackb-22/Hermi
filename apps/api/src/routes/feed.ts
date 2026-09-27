@@ -22,6 +22,8 @@ interface SeenDoc {
   createdAt: Date;
 }
 
+const tier = (p: PostDoc) => (p.placeholder ? 2 : p.mediaIds.length ? 0 : 1);
+
 export const feedRoutes: FastifyPluginAsyncZod = async (app) => {
   const { db, config, clock } = app.ctx;
   const seenColl = () => db.collection<SeenDoc>('feed_seen');
@@ -122,7 +124,9 @@ export const feedRoutes: FastifyPluginAsyncZod = async (app) => {
               ageH: (now.getTime() - p.createdAt.getTime()) / 3600_000,
             }),
           }))
-          .sort((a, b) => b.score - a.score)
+          // Real photos/clips first (plans are interleaved among them), then text-only posts, then
+          // placeholder filler; rank decides within each tier.
+          .sort((a, b) => tier(a.p) - tier(b.p) || b.score - a.score)
           .slice(0, budget)
           .map((x) => x.p);
         return { ranked, hydrated: await hydratePosts(app.ctx, ranked) };

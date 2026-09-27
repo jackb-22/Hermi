@@ -34,6 +34,8 @@ export interface PostDoc {
   stamp: { placeName: string; time: Date; tier: 'gps' | 'tag' };
   /** Reporters no longer see the post; it is queued for review. */
   hiddenFrom: string[];
+  /** Demo seed filler with generated pictures: shown after real content in the Feed. */
+  placeholder?: boolean;
   createdAt: Date;
   liveAt?: Date;
 }
