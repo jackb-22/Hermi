@@ -51,6 +51,8 @@ const Env = z.object({
 
   GEMINI_API_KEY: optStr,
   GEMINI_MODEL: z.string().default('gemini-3.8-flash'),
+  /** Retried once when GEMINI_MODEL is overloaded or out of quota; empty to disable. */
+  GEMINI_BACKUP_MODEL: z.string().default('gemini-3.7-flash'),
   GOOGLE_MAPS_KEY: optStr,
   BACKBOARD_API_KEY: optStr,
   BACKBOARD_BASE_URL: z.string().default('https://app.backboard.io/api'),

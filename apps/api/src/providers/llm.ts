@@ -1,4 +1,4 @@
-import { type Content, GoogleGenAI } from '@google/genai';
+import { type Content, type GenerateContentParameters, GoogleGenAI } from '@google/genai';
 import { DEFAULT_STAY_MIN, type LatLng, type PinType } from '@itp/shared';
 import type { Config } from '../config.ts';
 import { clampStay } from '../domain/schedule.ts';
@@ -123,9 +123,34 @@ export class GeminiLlm implements Llm {
   constructor(
     key: string,
     readonly model: string,
+    /** Tried once when the main model is overloaded (503) or out of quota (429); free-tier quotas are per model. */
+    readonly backupModel?: string,
     private fallback = new FakeLlm(),
   ) {
     this.ai = new GoogleGenAI({ apiKey: key });
+  }
+
+  /**
+   * One model call within `timeoutMs`, on the backup model if the main one is overloaded or out of quota. The
+   * budget is enforced here (an abort), not as Gemini's server deadline, which refuses anything under 10 s.
+   */
+  async generate(params: Omit<GenerateContentParameters, 'model'>, timeoutMs: number) {
+    const abortSignal = AbortSignal.timeout(timeoutMs);
+    const call = (model: string) =>
+      this.ai.models.generateContent({
+        ...params,
+        model,
+        config: { ...params.config, abortSignal },
+      });
+    try {
+      return await call(this.model);
+    } catch (e) {
+      const status = (e as { status?: number }).status;
+      const busy = status === 429 || status === 503 || /"code":\s*(429|503)/.test(String(e));
+      if (!busy || !this.backupModel || this.backupModel === this.model || abortSignal.aborted)
+        throw e;
+      return call(this.backupModel);
+    }
   }
 
   /** Every call has a timeout; each caller falls back to code when it fires, so the app never waits on AI. */
@@ -135,16 +160,17 @@ export class GeminiLlm implements Llm {
     parts: object[] = [],
     timeoutMs = 10_000,
   ): Promise<T> {
-    const res = await this.ai.models.generateContent({
-      model: this.model,
-      contents: [{ role: 'user', parts: [{ text: prompt }, ...parts] }],
-      config: {
-        responseMimeType: 'application/json',
-        responseJsonSchema: schema,
-        temperature: 0.3,
-        httpOptions: { timeout: timeoutMs },
+    const res = await this.generate(
+      {
+        contents: [{ role: 'user', parts: [{ text: prompt }, ...parts] }],
+        config: {
+          responseMimeType: 'application/json',
+          responseJsonSchema: schema,
+          temperature: 0.3,
+        },
       },
-    });
+      timeoutMs,
+    );
     return JSON.parse(res.text ?? 'null') as T;
   }
 
@@ -162,16 +188,17 @@ export class GeminiLlm implements Llm {
       parametersJsonSchema: t.parameters,
     }));
     for (let round = 0; round < (o.maxRounds ?? 8); round++) {
-      const res = await this.ai.models.generateContent({
-        model: this.model,
-        contents,
-        config: {
-          systemInstruction: o.system,
-          tools: [{ functionDeclarations }],
-          temperature: 0.2,
-          httpOptions: { timeout: 15_000 },
+      const res = await this.generate(
+        {
+          contents,
+          config: {
+            systemInstruction: o.system,
+            tools: [{ functionDeclarations }],
+            temperature: 0.2,
+          },
         },
-      });
+        15_000,
+      );
       const calls = res.functionCalls ?? [];
       if (!calls.length) return res.text ?? '';
       const turn = res.candidates?.[0]?.content;
@@ -188,15 +215,18 @@ export class GeminiLlm implements Llm {
 
   async askMaps(question: string, near: LatLng): Promise<MapsAnswer> {
     try {
-      const res = await this.ai.models.generateContent({
-        model: this.model,
-        contents: [{ role: 'user', parts: [{ text: question }] }],
-        config: {
-          tools: [{ googleMaps: {} }],
-          toolConfig: { retrievalConfig: { latLng: { latitude: near.lat, longitude: near.lng } } },
-          httpOptions: { timeout: 12_000 },
+      const res = await this.generate(
+        {
+          contents: [{ role: 'user', parts: [{ text: question }] }],
+          config: {
+            tools: [{ googleMaps: {} }],
+            toolConfig: {
+              retrievalConfig: { latLng: { latitude: near.lat, longitude: near.lng } },
+            },
+          },
         },
-      });
+        12_000,
+      );
       const chunks = res.candidates?.[0]?.groundingMetadata?.groundingChunks ?? [];
       const seen = new Set<string>();
       const sources = chunks.flatMap((c) => {
@@ -370,5 +400,7 @@ export function mergeRerank(
 }
 
 export function createLlm(c: Config): Llm {
-  return c.GEMINI_API_KEY ? new GeminiLlm(c.GEMINI_API_KEY, c.GEMINI_MODEL) : new FakeLlm();
+  return c.GEMINI_API_KEY
+    ? new GeminiLlm(c.GEMINI_API_KEY, c.GEMINI_MODEL, c.GEMINI_BACKUP_MODEL)
+    : new FakeLlm();
 }

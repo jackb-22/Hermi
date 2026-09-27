@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest';
 import { loadConfig } from '../src/config.ts';
 import { ChainEta, EstimateEta, type EtaProvider } from '../src/providers/eta.ts';
 import { createProviders } from '../src/providers/index.ts';
-import { FakeLlm } from '../src/providers/llm.ts';
+import { FakeLlm, GeminiLlm } from '../src/providers/llm.ts';
 import { ORIGIN, offset } from './fixtures/places.ts';
 
 describe('provider selection', () => {
@@ -74,5 +74,44 @@ describe('fallbacks', () => {
         })
       ).split(' ').length,
     ).toBeLessThanOrEqual(6);
+  });
+});
+
+describe('Gemini client', () => {
+  const stub = (fail: Record<string, { status: number } | undefined>) => {
+    const llm = new GeminiLlm('k', 'main-model', 'backup-model');
+    const calls: { model: string; config: Record<string, unknown> }[] = [];
+    (llm.ai.models as unknown as { generateContent: unknown }).generateContent = async (p: {
+      model: string;
+      config: Record<string, unknown>;
+    }) => {
+      calls.push(p);
+      const err = fail[p.model];
+      if (err) throw Object.assign(new Error(`{"error":{"code":${err.status}}}`), err);
+      return { text: JSON.stringify({ label: `from ${p.model}` }) };
+    };
+    return { llm, calls };
+  };
+  const labelSchema = { type: 'object', properties: { label: { type: 'string' } } };
+
+  test('an overloaded or out-of-quota model is retried once on the backup model', async () => {
+    for (const status of [503, 429]) {
+      const { llm, calls } = stub({ 'main-model': { status } });
+      expect(await llm.json('x', labelSchema, [], 5000)).toEqual({ label: 'from backup-model' });
+      expect(calls.map((c) => c.model)).toEqual(['main-model', 'backup-model']);
+    }
+  });
+
+  test("budgets under Gemini's 10 s server minimum are enforced by an abort, not a server deadline", async () => {
+    const { llm, calls } = stub({});
+    await llm.json('x', labelSchema, [], 5000);
+    expect(calls[0]!.config.abortSignal).toBeInstanceOf(AbortSignal);
+    expect(calls[0]!.config).not.toHaveProperty('httpOptions');
+  });
+
+  test('other errors are not retried', async () => {
+    const { llm, calls } = stub({ 'main-model': { status: 400 } });
+    await expect(llm.json('x', labelSchema)).rejects.toThrow();
+    expect(calls).toHaveLength(1);
   });
 });
