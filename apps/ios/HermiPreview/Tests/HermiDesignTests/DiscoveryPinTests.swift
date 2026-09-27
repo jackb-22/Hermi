@@ -50,10 +50,10 @@ final class DiscoveryPinTests: XCTestCase {
     XCTAssertEqual(state.planIDs, ["cafe"]); XCTAssertEqual(state.savedIDs, ["garden"])
   }
   func testRadiusBoundsMidpointAndStaleEvents() throws {
-    XCTAssertEqual(DiscoveryPin.miles(at: 0), 0.25)
-    XCTAssertEqual(DiscoveryPin.miles(at: 0.5), 1)
+    XCTAssertEqual(DiscoveryPin.miles(at: 0), 0.1)
+    XCTAssertEqual(DiscoveryPin.miles(at: 0.5), sqrt(0.4), accuracy: 1e-12)
     XCTAssertEqual(DiscoveryPin.miles(at: 1), 4)
-    XCTAssertEqual(DiscoveryPin.fraction(for: 1), 0.5)
+    XCTAssertEqual(DiscoveryPin.fraction(for: 1), log(10)/log(40), accuracy: 1e-12)
     var state = MapPreviewState()
     state.dropGeographicPin(at: .init(latitude: 40.8073, longitude: -73.9654))
     let pin = try XCTUnwrap(state.discoveryPin)
@@ -66,7 +66,7 @@ final class DiscoveryPinTests: XCTestCase {
     state.setDiscoveryRadius(id: pin.id, miles: 9)
     XCTAssertEqual(state.discoveryPin?.radiusMiles, 4)
     state.setDiscoveryRadius(id: pin.id, miles: -2)
-    XCTAssertEqual(state.discoveryPin?.radiusMiles, 0.25)
+    XCTAssertEqual(state.discoveryPin?.radiusMiles, 0.1)
   }
   func testRadiusChangesResultsAndMenuDoesNotReclassifyPlacedPin() throws {
     var state = MapPreviewState()

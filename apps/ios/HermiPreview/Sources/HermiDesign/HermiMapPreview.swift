@@ -99,7 +99,7 @@ public struct HermiMapPreview: View {
     .onAppear {
       if pinReviewFixture {
         state = MapPreviewState()
-        state.dropGeographicPin(at: .init(latitude: 40.8073, longitude: -73.9654))
+        state.dropGeographicPin(at: .init(latitude: 40.8073, longitude: -73.9666))
         editingDiscovery = true
         return
       }
@@ -144,21 +144,24 @@ public struct HermiMapPreview: View {
           restorePill?.cancel(); moving = false
         }
       } label: {
-        PixelIcon(name: "menu").frame(width: 20, height: 20).frame(width: 44, height: 44)
+        PixelIcon(name: "menu").frame(width: 20, height: 20).frame(width: 30, height: 30)
           .background(HermiPalette.paper.opacity(0.96), in: PixelPanel(corner: 6))
       }.fixedSize().accessibilityLabel("Hermi preview options")
       }
       Spacer()
       mapTools(in: size)
+        .padding(.trailing, state.panel == .map && expanded && state.sheet != nil && state.sheet != .plan && state.sheet != .saved ? 60 : 0)
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: expanded)
     }
   }
 
   private func mapTools(in size: CGSize) -> some View {
-    VStack(spacing: 12) {
+    VStack(spacing: 6) {
       if state.panel == .map {
         CategoryPinControl(category: $state.category, onFilter: { state.filterEnabled.toggle() }, onDrop: { point in
           // The geographic view can have an origin different from the root/safe area.
-          guard point.x < size.width - 84, point.y > 100, point.y < size.height - 110,
+          let overlapsTools = point.x > size.width - 84 && (point.y < 280 || point.y > size.height - 250)
+          guard !overlapsTools, point.y > 100, point.y < size.height - 110,
                 let normalized = MapDropProjection.normalized(point, in: mapFrame) else {
             pinNotice = "Drop on the map, away from the controls."; return
           }
@@ -170,21 +173,24 @@ public struct HermiMapPreview: View {
         if state.panel == .feed { friendsFeed.toggle() }
         else { state.social.toggle(); state.switchPanel(.map) }
       } label: {
-        PixelIcon(name: "social").frame(width: 26, height: 26).frame(width: 52, height: 52)
+        PixelIcon(name: "social").frame(width: 26, height: 26).frame(width: 34, height: 34)
           .background((state.panel == .feed ? friendsFeed : state.social) ? HermiPalette.lime : HermiPalette.paper, in: PixelPanel(corner: 8))
+        .frame(width: 44, height: 44).contentShape(Rectangle())
       }.accessibilityLabel(state.panel == .feed ? (friendsFeed ? "Friends feed. Show public" : "Public feed. Show friends") : (state.social ? "Social map. Switch to Solo" : "Solo map. Switch to Social"))
         .controlHelp(state.panel == .feed ? "Toggle sample Feed between friends and public" : "Toggle Solo and Social map")
       Button { state.sheet = .plan; expanded = true } label: {
-        PixelIcon(name: "plan").frame(width: 26, height: 26).frame(width: 52, height: 52)
+        PixelIcon(name: "plan").frame(width: 26, height: 26).frame(width: 34, height: 34)
           .background(HermiPalette.paper, in: PixelPanel(corner: 8))
+        .frame(width: 44, height: 44).contentShape(Rectangle())
       }.accessibilityLabel("My Plan, \(state.planIDs.count) places").controlHelp("Open My Plan. Saved is inside its bookmark button")
     }.buttonStyle(.plain)
   }
 
   private func map(in size: CGSize) -> some View {
     GeographicMap(state: state, command: mapCommand, editingDiscovery: editingDiscovery,
-      revision: mapRevision, bottomInset: state.sheet == .nearby ? min(300, size.height * 0.39) + 12 : 110) { event in
+      revision: mapRevision, bottomInset: mapControlsBottom(in: size)) { event in
       switch event["type"] as? String {
+      case "mapTap": editingDiscovery = false
       case "moving": beginMapGesture()
       case "stopped", "error": endMapGesture()
       case "place": if let id = event["id"] as? String { editingDiscovery = false; state.selectPlace(id); expanded = false }
@@ -228,17 +234,24 @@ public struct HermiMapPreview: View {
         .onChange(of: geometry.frame(in: .named("mapPreview"))) { _, frame in mapFrame = frame }
     })
     .overlay(alignment: .bottomTrailing) {
-      VStack(spacing: 8) {
+      VStack(spacing: 0) {
         mapButton("plus", label: "Zoom in", action: "in")
         mapButton("minus", label: "Zoom out", action: "out")
         mapButton("locate", label: "Recenter on Columbia", action: "recenter")
-      }.padding(.trailing, 18).padding(.bottom, 170)
+      }.padding(.trailing, 18).padding(.bottom, mapControlsBottom(in: size))
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: mapControlsBottom(in: size))
     }
   }
+  private func mapControlsBottom(in size: CGSize) -> CGFloat {
+    guard let sheet = state.sheet, sheet != .plan, sheet != .saved else { return 110 }
+    return (expanded ? size.height * 0.65 : min(300, size.height * 0.39)) + 8
+  }
+
   private func mapButton(_ icon: String, label: String, action: String) -> some View {
     Button { mapCommand = MapCommand(action: action) } label: {
-      PixelIcon(name: icon).frame(width: 20, height: 20).frame(width: 44, height: 44)
+      PixelIcon(name: icon).frame(width: 20, height: 20).frame(width: 30, height: 30)
         .background(HermiPalette.paper, in: PixelPanel(corner: 6))
+      .frame(width: 44, height: 44).contentShape(Rectangle())
     }.buttonStyle(.plain).accessibilityLabel(label).controlHelp(label)
   }
 
@@ -313,7 +326,7 @@ public struct HermiMapPreview: View {
     VStack(alignment: .leading, spacing: 12) {
       HStack {
         Button { state.goBack() } label: {
-          PixelIcon(name: "back").frame(width: 20, height: 20).frame(width: 44, height: 44)
+          PixelIcon(name: "back").frame(width: 20, height: 20).frame(width: 30, height: 30)
         }.buttonStyle(.plain).accessibilityLabel(state.returnSheet == .plan ? "Back to My plan" : (state.returnSheet == .saved ? "Back to Saved" : "Back")).controlHelp("Return to the previous panel")
         Text(place.name).font(.headline).lineLimit(1)
         Spacer(minLength: 4)
@@ -411,7 +424,7 @@ public struct HermiMapPreview: View {
       .sheet(item: Binding(get: { postPlace.flatMap(MapSamplePlace.find) }, set: { postPlace = $0?.id })) { place in
         ScrollView {
           VStack(alignment: .leading, spacing: 20) {
-            HStack { Text(place.name).font(.title2.bold()); Spacer(); Button { postPlace = nil } label: { PixelIcon(name: "close").frame(width: 20, height: 20).frame(width: 44, height: 44) }.accessibilityLabel("Close post").controlHelp("Return to the posts grid") }
+            HStack { Text(place.name).font(.title2.bold()); Spacer(); Button { postPlace = nil } label: { PixelIcon(name: "close").frame(width: 20, height: 20).frame(width: 30, height: 30) }.accessibilityLabel("Close post").controlHelp("Return to the posts grid") }
             Text("Your posts").font(.headline)
             HStack(spacing: 6) { ForEach(0..<3) { mediaTile(place.category, variant: $0).frame(height: 150) } }
             Text("Your review").font(.headline)

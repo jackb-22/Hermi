@@ -7,10 +7,10 @@ struct DiscoveryPin: Identifiable, Codable, Equatable {
   var radiusMiles: Double = 1
   var radiusMeters: Double { radiusMiles * 1609.344 }
   static func miles(at fraction: Double) -> Double {
-    pow(16, min(1, max(0, fraction))) * 0.25
+    pow(40, min(1, max(0, fraction))) * 0.1
   }
   static func fraction(for miles: Double) -> Double {
-    log(min(4, max(0.25, miles)) / 0.25) / log(16)
+    log(min(4, max(0.1, miles)) / 0.1) / log(40)
   }
 }
 

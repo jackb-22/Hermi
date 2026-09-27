@@ -72,7 +72,7 @@ struct MapPreviewState: Codable, Equatable {
       discoveryPin = DiscoveryPin(category: category, coordinate: point)
     }
     if let pin = discoveryPin,
-       !NYCLandMask.shared.allows(pin.coordinate) || !pin.radiusMiles.isFinite || !(0.25...4).contains(pin.radiusMiles) {
+       !NYCLandMask.shared.allows(pin.coordinate) || !pin.radiusMiles.isFinite || !(0.1...4).contains(pin.radiusMiles) {
       discoveryPin = nil
     }
     geographicDiscovery = discoveryPin?.coordinate
@@ -86,7 +86,7 @@ struct MapPreviewState: Codable, Equatable {
   }
   mutating func setDiscoveryRadius(id: UUID, miles: Double) {
     guard discoveryPin?.id == id, miles.isFinite else { return }
-    discoveryPin?.radiusMiles = min(4, max(0.25, miles))
+    discoveryPin?.radiusMiles = min(4, max(0.1, miles))
   }
   mutating func removeDiscovery(id: UUID) {
     guard discoveryPin?.id == id else { return }

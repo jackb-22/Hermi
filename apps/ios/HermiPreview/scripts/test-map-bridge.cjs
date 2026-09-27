@@ -32,9 +32,19 @@ context.renderHermi({...payload,discovery:{...pin,radiusMiles:2}});assert.equal(
 marker.handlers.dragstart();marker.setLngLat([-73.96,40.81]);marker.handlers.dragend();assert.equal(messages.at(-1).type,'pinMove');assert.equal(messages.at(-1).id,'pin-1');
 // Native validation rejects the move and returns its previous coordinate, same stable marker.
 context.renderHermi({...payload,revision:1});assert.equal(marker.getLngLat().lng,pin.lng);assert.equal(marker.removed,undefined);
-nodes.get('pin-radius').value='0.5';nodes.get('pin-radius').listeners.input();assert.equal(messages.at(-1).miles,1);
+nodes.get('pin-radius').value=String(Math.log(10)/Math.log(40));nodes.get('pin-radius').listeners.input();assert.ok(Math.abs(messages.at(-1).miles-1)<1e-9);
 marker.handlers.dragstart();marker.setLngLat([-73.9,40.9]);marker.options.element.listeners.pointercancel();marker.handlers.dragend();
 assert.equal(messages.at(-1).type,'pinDragCancelled');assert.equal(marker.getLngLat().lng,pin.lng);
-nodes.get('pin-remove').onclick();assert.equal(messages.at(-1).type,'pinRemove');
+nodes.get('pin-remove').onclick({stopPropagation(){}});assert.equal(messages.at(-1).type,'pinRemove');
 context.renderHermi({places:[],social:false});assert.equal(marker.removed,true);assert.equal(nodes.get('pin-editor').style.display,'none');
-console.log('Map bridge passed: readiness, CSS coordinate scaling, bounds, stable drag marker, rejected-move restore, radius and remove.');
+// Tap-away hides editing without removing pin or recommendations.
+context.renderHermi({...payload,places:[{id:'cafe',name:'Cafe',color:'#EF8067',lng:-73.965,lat:40.807}]});
+const dot=markers.findLast(m=>m.options.element.className==='recommendation');
+assert.ok(dot);assert.equal(dot.options.anchor,'center');
+map.events.click();assert.equal(messages.at(-1).type,'mapTap');
+assert.equal(nodes.get('pin-editor').style.display,'none');assert.equal(nodes.get('pin-remove').style.display,'none');
+assert.equal(dot.removed,undefined);assert.equal(map.getSource('discovery-radius').data.features.length,0);
+context.renderHermi({...payload,editingDiscovery:true,bottomInset:520});
+assert.equal(nodes.get('pin-editor').style.bottom,'656px');assert.equal(nodes.get('pin-remove').style.display,'block');
+for(const [value,expected] of [['0',0.1],['1',4]]){nodes.get('pin-radius').value=value;nodes.get('pin-radius').listeners.input();assert.equal(messages.at(-1).miles,expected)}
+console.log('Map bridge passed: dots, tap-away, panel clearance, 0.1–4 radius, readiness, CSS coordinate scaling, bounds, stable drag marker, rejected-move restore, radius and remove.');

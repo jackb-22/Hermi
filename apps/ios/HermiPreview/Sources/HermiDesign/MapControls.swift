@@ -35,6 +35,8 @@ struct PixelIcon: View {
     case "route": return ["III        ","I I IIIIII ","III I    I ","    I    I ","    I    I ","    IIII I ","       I   ","       I III","       I I I","       I III"]
     case "grid": return ["III III III","III III III","III III III","           ","III III III","III III III","III III III","           ","III III III","III III III","III III III"]
     case "close": return ["II     II"," II   II ","  II II  ","   III   ","  II II  "," II   II ","II     II"]
+    case "left": return ["   II", "  II ", " II  ", "II   ", " II  ", "  II ", "   II"]
+    case "right": return ["II   ", " II  ", "  II ", "   II", "  II ", " II  ", "II   "]
     case "back": return ["   II    ","  II     "," II      ","IIIIIIIII"," II      ","  II     ","   II    "]
     case "plus": return ["   II   ","   II   ","   II   ","IIIIIIII","IIIIIIII","   II   ","   II   ","   II   "]
     case "minus": return ["        ","        ","IIIIIIII","IIIIIIII","        ","        "]
@@ -63,67 +65,52 @@ struct CategoryPinControl: View {
   @GestureState private var touching = false
   private let categories = HermiCategory.allCases
   var body: some View {
-    let hold = LongPressGesture(minimumDuration: 0.3, maximumDistance: 24)
-      .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .named("mapPreview")))
-      .onChanged { value in
-        if case .second(true, let drag) = value {
-          if !showing { originCategory = category; showing = true; feedback += 1 }
-          if let drag {
-            dragging = drag.translation
-            if !dropping && abs(drag.translation.width) > 40 {
-              dropping = true; onDragBegan()
-            }
-            if !dropping {
-              let start = categories.firstIndex(of: originCategory) ?? 0
-              let delta = Int((-drag.translation.height / 48).rounded())
-              let index = (start + delta % categories.count + categories.count) % categories.count
-              if category != categories[index] { category = categories[index]; feedback += 1 }
-            }
-          }
+    let swipe = DragGesture(minimumDistance: 8, coordinateSpace: .named("mapPreview"))
+      .onChanged { drag in
+        if !showing { originCategory = category; showing = true }
+        dragging = drag.translation
+        if !dropping && abs(drag.translation.width) > 24 && abs(drag.translation.width) > abs(drag.translation.height) {
+          dropping = true; onDragBegan()
+        }
+        if !dropping {
+          let start = categories.firstIndex(of: originCategory) ?? 0
+          let delta = Int((-drag.translation.height / 36).rounded())
+          let index = (start + delta % categories.count + categories.count) % categories.count
+          if category != categories[index] { category = categories[index]; feedback += 1 }
         }
       }
-    BallpointPin(category: category).frame(width: 33, height: 42)
-      .opacity(dropping ? 0.35 : 1)
-      .frame(width: 52, height: 52).contentShape(Rectangle())
-      // Keep the gesture's source stationary; only the noninteractive ghost moves.
-      .overlay {
-        if dropping {
-          BallpointPin(category: category).frame(width: 33, height: 42)
-            .offset(dragging).allowsHitTesting(false)
-        }
-      }
-      .gesture(hold.exclusively(before: TapGesture())
-        .updating($touching) { _, active, _ in active = true }
-        .onEnded { value in
-          switch value {
-          case .second: onFilter()
-          case .first(.second(true, let drag?)):
-            if dropping { onDrop(drag.location) }
-          default: break
+    VStack(spacing: 2) {
+      HStack(spacing: 6) {
+        PixelIcon(name: "left").frame(width: 8, height: 12).allowsHitTesting(false)
+        BallpointPin(category: category).frame(width: 33, height: 42)
+          .opacity(dropping ? 0.35 : 1)
+          .frame(width: 44, height: 44).contentShape(Rectangle())
+          .overlay {
+            if dropping {
+              BallpointPin(category: category).frame(width: 33, height: 42)
+                .offset(dragging).allowsHitTesting(false)
+            }
           }
-          showing = false; dropping = false; dragging = .zero
-        })
+          .gesture(swipe.exclusively(before: TapGesture())
+            .updating($touching) { _, active, _ in active = true }
+            .onEnded { value in
+              switch value {
+              case .second: onFilter()
+              case .first(let drag): if dropping { onDrop(drag.location) }
+              }
+              showing = false; dropping = false; dragging = .zero
+            })
+        PixelIcon(name: "right").frame(width: 8, height: 12).allowsHitTesting(false)
+      }
+      Text(category.rawValue).font(.caption2.weight(.semibold)).fixedSize()
+    }
       .onChange(of: touching) { _, active in
         if !active { showing = false; dropping = false; dragging = .zero }
-      }
-      .overlay(alignment: .topTrailing) {
-        if showing && !dropping {
-          VStack(spacing: 4) {
-            ForEach(-1...1, id: \.self) { offset in
-              let index = ((categories.firstIndex(of: category) ?? 0) + offset + categories.count) % categories.count
-              HStack(spacing: 8) {
-                Text(categories[index].rawValue).font(.caption.weight(offset == 0 ? .bold : .regular))
-                CategorySprite(category: categories[index]).frame(width: 20, height: 20)
-              }.frame(height: 36).opacity(offset == 0 ? 1 : 0.45)
-            }
-          }.frame(width: 150).fixedSize(horizontal: true, vertical: true).padding(10).background(HermiPalette.paper, in: PixelPanel(corner: 6)).offset(x: -62)
-            .allowsHitTesting(false)
-        }
       }
       .sensoryFeedback(.selection, trigger: feedback)
       .accessibilityElement(children: .ignore).accessibilityLabel("Activity pin")
       .accessibilityValue(category.rawValue)
-      .accessibilityHint("Hold, slide vertically to choose, release to keep. Hold and drag left onto map to discover.")
+      .accessibilityHint("Swipe up or down to choose a category. Drag sideways onto the map to discover.")
       .accessibilityAdjustableAction { direction in
         let current = categories.firstIndex(of: category) ?? 0
         category = categories[(current + (direction == .increment ? 1 : categories.count-1)) % categories.count]
