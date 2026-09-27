@@ -97,16 +97,16 @@ struct CategoryPinControl: View {
                 .offset(dragging).allowsHitTesting(false)
             }
           }
-          .gesture(hold.exclusively(before: swipe.exclusively(before: TapGesture()))
+          .gesture(hold.exclusively(before: swipe)
             .updating($touching) { _, active, _ in active = true }
             .onEnded { value in
               switch value {
-              case .second(.second): onFilter()
               case .first(.second(true, let drag?)): if dropping { onDrop(drag.location) }
               default: break
               }
               showing = false; dropping = false; dragging = .zero
             })
+          .simultaneousGesture(TapGesture().onEnded { if !dropping { onFilter() } })
         PixelIcon(name: "right").frame(width: 8, height: 12).allowsHitTesting(false)
       }
       Text(category.rawValue).font(.caption2.weight(.semibold)).fixedSize()

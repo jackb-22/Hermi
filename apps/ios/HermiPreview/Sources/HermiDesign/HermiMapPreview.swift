@@ -274,7 +274,13 @@ public struct HermiMapPreview: View {
       revision: mapRevision, bottomInset: mapControlsBottom(in: size)) { event in
       switch event["type"] as? String {
       case "socialInfo": if state.social, let id = event["id"] as? String { pinNotice = SocialMapPreview.detail(id) }
-      case "mapTap": editingPinID = nil
+      case "mapTap":
+        editingPinID = nil
+        if let sheet = state.sheet, sheet != .plan, sheet != .saved {
+          if state.returnSheet == .plan || state.returnSheet == .saved { state.goBack() }
+          else { state.sheet = nil; state.returnSheet = nil }
+          panelLevel = .compact
+        }
       case "moving": beginMapGesture()
       case "stopped", "error":
         endMapGesture()

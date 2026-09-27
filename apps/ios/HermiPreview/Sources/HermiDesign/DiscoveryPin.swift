@@ -70,6 +70,11 @@ struct NYCLandMask {
     land = document.land.map(Polygon.init)
     water = document.water.map(Polygon.init)
   }
+  /// Inside a borough's land outline (water holes ignored, so waterfront venues stay).
+  func isInCity(_ point: GeoPoint) -> Bool {
+    guard point.isValid, available else { return true }
+    return land.contains { $0.contains(point) }
+  }
   func allows(_ point: GeoPoint) -> Bool {
     guard point.isValid, available else { return false }
     return land.contains { $0.contains(point) } && !water.contains { $0.contains(point) }

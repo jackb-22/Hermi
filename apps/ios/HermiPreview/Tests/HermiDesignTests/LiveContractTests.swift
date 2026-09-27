@@ -143,4 +143,14 @@ final class LiveContractTests: XCTestCase {
     state.addPlace("cafe"); state.toggleSave("garden")
     XCTAssertEqual(state.referencedPlaceIDs, ["cafe", "garden"])
   }
+
+  func testCityFilterDropsNewJerseyButKeepsBoroughsAndWaterfront() {
+    let mask = NYCLandMask.shared
+    XCTAssertTrue(mask.available)
+    XCTAssertFalse(mask.isInCity(.init(latitude: 40.7440, longitude: -74.0324)), "Hoboken")
+    XCTAssertFalse(mask.isInCity(.init(latitude: 40.7178, longitude: -74.0431)), "Jersey City")
+    XCTAssertTrue(mask.isInCity(.init(latitude: 40.7580, longitude: -73.9855)), "Times Square")
+    XCTAssertTrue(mask.isInCity(.init(latitude: 40.6710, longitude: -73.9814)), "Park Slope")
+    XCTAssertTrue(mask.isInCity(.init(latitude: 40.7447, longitude: -73.9485)), "Long Island City")
+  }
 }

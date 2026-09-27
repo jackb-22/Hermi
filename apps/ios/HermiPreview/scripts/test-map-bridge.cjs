@@ -7,7 +7,7 @@ function node(){return {style:{setProperty(){}},value:'0.5',attributes:{},listen
 const document={documentElement:node(),activeElement:null,getElementById(id){if(!nodes.has(id))nodes.set(id,node());return nodes.get(id)},querySelector(id){return this.getElementById(id)},createElement:node,createElementNS:node};
 let map;
 class MapStub {
- constructor(){map=this;this.events={};this.sources={};this.layers={};this.images={};this.rendered=[];this.touchZoomRotate={disableRotation(){}};}
+ constructor(options){map=this;this.options=options;this.events={};this.sources={};this.layers={};this.images={};this.rendered=[];this.touchZoomRotate={disableRotation(){}};}
  on(k,f){this.events[k]=f;return this} addControl(){} addLayer(layer){this.layers[layer.id]=layer} resize(){} areTilesLoaded(){return true}
  addSource(k,v){this.sources[k]={data:v.data,setData(d){this.data=d}}} getSource(k){return this.sources[k]}
  panBy(offset){this.lastPan=offset}
@@ -24,6 +24,7 @@ const context={document,console,setTimeout,clearTimeout,hermiPalette:{ink:'#203D
 context.window=context;vm.createContext(context);vm.runInContext(scripts,context);
 context.commandHermi({id:'early',action:'drop',x:0.5,y:0.5});assert.equal(messages.at(-1).type,'dropRejected');
 map.events.load();
+assert.equal(JSON.stringify(map.options.maxBounds),"[[-74.34,40.44],[-73.62,40.98]]");assert.equal(map.options.minZoom,9);
 {const v=messages.find(m=>m.type==='viewport');assert.ok(v);assert.deepEqual(Array.from(v.bounds),[-73.97,40.80,-73.96,40.81]);assert.equal(v.zoom,15.1);
  map.events.moveend();const s=messages.at(-1);assert.equal(s.type,'stopped');assert.equal(s.bounds.length,4)}
 context.commandHermi({id:'drop-1',action:'drop',x:0.5,y:0.5});

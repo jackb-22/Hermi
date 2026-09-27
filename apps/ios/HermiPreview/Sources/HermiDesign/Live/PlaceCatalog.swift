@@ -26,7 +26,7 @@ final class PlaceCatalog {
   private static let storageKey = "hermi.live.places.v1"
 
   /// Viewport grid (n×n requests) and places per category per cell.
-  static let viewportGrid = 3, viewportLimit = 30
+  static let viewportGrid = 3, viewportLimit = 18
   /// Citywide category: all of NYC in a grid, up to `citywideLimit` per cell.
   static let citywideBounds: [Double] = [-74.26, 40.49, -73.70, 40.92]
   static let citywideGrid = 4, citywideLimit = 100
@@ -122,7 +122,7 @@ final class PlaceCatalog {
     for pin in query.pins {
       let box = PlaceCatalog.bbox(latitude: pin.latitude, longitude: pin.longitude, radiusMeters: pin.radiusMeters)
       // Big circles are split so the server's per-request cap doesn't thin them out.
-      let cells = pin.radiusMeters > 1.5 * 1609.344 ? 2 : 1
+      let cells = pin.radiusMeters > 2 * 1609.344 ? 3 : (pin.radiusMeters > 0.5 * 1609.344 ? 2 : 1)
       requests += PlaceCatalog.grid(box, cells).map { PlaceRequest(bbox: $0, category: pin.category.serverName, limit: 100) }
     }
     if let citywide = query.citywide {
@@ -164,7 +164,8 @@ final class PlaceCatalog {
           let bbox = request.bbox.map { String(format: "%.5f", $0) }.joined(separator: ",")
           let response: PlacesResponseDTO = try await api.send("GET", "/places",
             query: ["bbox": bbox, "cat": request.category, "limit": String(request.limit)])
-          return (index, response.items.compactMap(\.place))
+          // Five boroughs only: earlier imports clipped New Jersey.
+          return (index, response.items.compactMap(\.place).filter { NYCLandMask.shared.isInCity($0.coordinate) })
         }
       }
       var ordered = [[MapSamplePlace]](repeating: [], count: requests.count)

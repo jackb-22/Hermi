@@ -29,8 +29,10 @@ let map, pending={},markers=[],loaded=false,placeSignature="",socialSignature=""
 const discoveryMarkers=new Map(), categoryRepresentatives=new Map();
 const empty={type:'FeatureCollection',features:[]};
 const error=document.getElementById('error');
+// The five boroughs plus a little surrounding land; panning and zooming stay inside.
+const NYC_BOUNDS=[[-74.34,40.44],[-73.62,40.98]];
 try {
-map=new maplibregl.Map({container:'map',center:[-73.965,40.8075],zoom:15.1,minZoom:1,maxZoom:19,pixelRatio:0.5,attributionControl:false,dragRotate:false,pitchWithRotate:false,style:{version:8,sources:{world:{type:'vector',url:'https://tiles.openfreemap.org/planet'}},layers:[
+map=new maplibregl.Map({container:'map',center:[-73.965,40.8075],zoom:15.1,minZoom:9,maxZoom:19,maxBounds:NYC_BOUNDS,pixelRatio:0.5,attributionControl:false,dragRotate:false,pitchWithRotate:false,style:{version:8,sources:{world:{type:'vector',url:'https://tiles.openfreemap.org/planet'}},layers:[
 {id:'land',type:'background',paint:{'background-color':palette.land}},
 {id:'cover',type:'fill',source:'world','source-layer':'landcover',paint:{'fill-color':palette.cover,'fill-antialias':false}},
 {id:'parks',type:'fill',source:'world','source-layer':'landuse',filter:['in','class','park','grass','wood','recreation_ground','cemetery'],paint:{'fill-color':palette.parks,'fill-antialias':false}},

@@ -2,17 +2,21 @@
  * Loads Overture places (geojsonseq from `overturemaps download --type=place`) into MongoDB `places`,
  * mapped onto the seven pin types. Idempotent: upserts by overtureId.
  *
- *   uvx --python 3.12 overturemaps download --no-stac --bbox=-74.02,40.70,-73.91,40.88 \
- *     -f geojsonseq --type=place -o apps/api/data/manhattan_places.geojsonseq
- *   pnpm --filter @itp/api exec tsx --env-file=../../.env scripts/import-overture.ts data/manhattan_places.geojsonseq
+ * Only places inside the five boroughs are kept (tile lookup in services/boroughs.ts, water excluded),
+ * so a bbox that clips New Jersey or Nassau imports nothing from them.
+ *
+ *   uvx --python 3.12 overturemaps download --no-stac --bbox=-74.26,40.49,-73.70,40.92 \
+ *     -f geojsonseq --type=place -o apps/api/data/nyc_places.geojsonseq
+ *   pnpm --filter @itp/api exec tsx --env-file=../../.env scripts/import-overture.ts data/nyc_places.geojsonseq
  */
 import { createReadStream } from 'node:fs';
 import { createInterface } from 'node:readline';
-import { newId } from '@itp/shared';
+import { latLngToTile, newId } from '@itp/shared';
 import type { AnyBulkWriteOperation } from 'mongodb';
 import { closeContext, createContext, ensureSchema } from '../src/boot.ts';
 import type { PlaceDoc } from '../src/db/placeTypes.ts';
 import { mapOvertureCategory } from '../src/domain/overtureCategories.ts';
+import { boroughOf } from '../src/services/boroughs.ts';
 
 const MIN_CONFIDENCE = 0.6;
 const file = process.argv[2];
@@ -24,6 +28,7 @@ const places = ctx.db.collection<PlaceDoc>('places');
 
 let read = 0;
 let kept = 0;
+let outside = 0;
 let batch: AnyBulkWriteOperation<PlaceDoc>[] = [];
 const flush = async () => {
   if (batch.length) await places.bulkWrite(batch, { ordered: false });
@@ -46,6 +51,11 @@ for await (const raw of rl) {
     p.basic_category,
   );
   if (!mapped) continue;
+  const [lng, lat] = f.geometry.coordinates as [number, number];
+  if (!boroughOf(latLngToTile({ lat, lng }))) {
+    outside++;
+    continue;
+  }
   const a = p.addresses?.[0];
   kept++;
   batch.push({
@@ -102,5 +112,5 @@ await places.updateOne(
 const byCat = await places
   .aggregate([{ $group: { _id: '$category', n: { $sum: 1 } } }, { $sort: { n: -1 } }])
   .toArray();
-console.log(`read ${read}, kept ${kept}`, byCat);
+console.log(`read ${read}, kept ${kept}, outside NYC ${outside}`, byCat);
 await closeContext(ctx);

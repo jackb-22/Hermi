@@ -80,6 +80,21 @@ Paste any compile or test failure back verbatim.
 - [ ] **Parks and forests** on the map are clearly darker green.
 - [ ] **Brooklyn:** Williamsburg and the Queens and Brooklyn waterfront have places. Park Slope and Downtown Brooklyn are empty because there's no data there yet (D21).
 
+### Step 3c: NYC-only map, category tap, tap-away, density
+- [ ] `swift test` passes: 71 tests. `node scripts/test-map-bridge.cjs` also passes.
+- [ ] **Bounds:** you can't pan or zoom far from NYC. A little New Jersey or Long Island shows at the edges, but no further.
+- [ ] **No New Jersey dots:** look across the Hudson at Hoboken and Jersey City. There are no place dots there, while the Manhattan waterfront still has them.
+- [ ] **Category pin tap:** tapping the category pin at the top right toggles citywide for that category. The underline shows it's on, and only that category shows, across the city. Tap again: general recommendations for all categories come back. Swiping still changes the category, and hold-then-drag still drops a pin.
+- [ ] **Tap-away:** with a place or Nearby sheet open, tapping empty map closes the sheet. A place opened from My Plan goes back to the Plan.
+- [ ] **Density:** a bit sparser map-wide (about 600–700 in Midtown), while inside a pin's circle it's dense: up to 100 per cell, and bigger circles are split into more cells.
+- [ ] **Brooklyn and all boroughs:** only after Jack runs the import below. Park Slope, Queens, the Bronx and Staten Island then have places.
+
+**Borough import (Jack, laptop):** the file `apps/api/data/nyc_places.geojsonseq` is already downloaded (816 MB). The importer now keeps only places inside the five boroughs: 65,719 of them (Manhattan 31.2k, Brooklyn 15.8k, Queens 11.6k, Bronx 4.9k, Staten Island 2.3k). It upserts by Overture ID, so existing places and their visits are kept.
+```sh
+cd apps/api
+pnpm exec tsx --env-file=../../.env.demo scripts/import-overture.ts data/nyc_places.geojsonseq
+```
+
 ---
 
 ## Deferred / deviations log
@@ -108,7 +123,8 @@ Items that are unconnected, need UI or backend work, or depart from `docs/HERMI_
 | D18 | Security | App Attest is not integrated. | The demo runs `ATTEST_MODE=log`. |
 | D19 | Repo | The legacy `apps/ios/Package.swift` (CairnKit prototype, re-added on main in `50125cd`) is a separate package and is left untouched. | Not used by HermiPreview. |
 | D20 | Config | The base URL must be re-entered whenever the quick tunnel restarts. | Use `NGROK_DOMAIN` with `demo-up.sh` for a stable URL. |
-| D21 | Data | Places cover only Manhattan plus the Queens and Brooklyn waterfront (import bbox `-74.02,40.70,-73.91,40.88`). Most of Brooklyn and all of the Bronx and Staten Island are empty. | Importing more boroughs writes to the production database; Jack runs it. Mind the Atlas free-tier storage limit. |
+| D21 | Data | Places covered only Manhattan plus the Queens and Brooklyn waterfront. The all-borough import is ready (see Step 3c) and Jack runs it on production. New Jersey rows from the old import are still in the database and hidden by the app's NYC land filter; deleting them is Jack's call. | Production writes are Jack's. |
 | D22 | Accessibility | Place dots are drawn as a WebGL layer, so VoiceOver can't focus individual dots. The Nearby row is still accessible. | Needed for performance with about 1,000+ dots. |
 | D23 | Design amendment | New discovery pins start at 0.25 mi instead of 1 mi. Park and forest map colours are darker. | User request, 2026-09-27. Supersedes the frontend docs. |
+| D24 | Map | Places are hidden unless they fall inside a borough's land outline. A venue on a pier beyond the shoreline outline would be hidden too. | Filters out the New Jersey rows without a production delete. |
 
