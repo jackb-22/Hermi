@@ -2,7 +2,21 @@
 
 This is the user-facing test entry point. Product reference: [unified design schema](docs/HERMI_SCHEMA.md). Resume/checkpoint: [progress](PROGRESS.md).
 
-## Current review: Step 6 — Plan timeline and Go
+## Current review: Step 7 — Saved drawer, folders and Save Plan
+
+Build/run HermiPreview with **⌘R** on your iPhone. For a seeded Simulator screen, from `apps/ios/HermiPreview` run `sh scripts/simulator-preview.sh --hermi-saved-review`; the fixture has three plan stops, two bookmarked places, a sample post and a two-item folder. It never overwrites normal local preview data. Run without that flag to test restart persistence.
+
+1. **Separate Saved:** from My Plan, tap the bookmark at top right. It opens the full Saved page. Expand the “Weekend ideas” folder: it contains a saved plan and sample post. The two bookmarked places remain in All saved. Tap the bookmark again to return; current stop order must be unchanged.
+2. **Horizontal drawer:** tap the small chevron immediately left of the bookmark. Swipe sideways through Place, Post and Plan cards; the timeline below still scrolls vertically. Collapse the drawer with the chevron; the timeline and Go remain available.
+3. **Explicit add:** tap + on The book nook, then on the saved Saturday loop. Only missing places append to the current plan, in the saved order. Tap either + again: no duplicate stop appears, and the message says it was already present. A saved post’s + adds only its linked place. Bookmarks stay saved.
+4. **Folders:** from full Saved, use a row’s folder icon to move a place into Weekend ideas; expand that folder and confirm it now contains Place, Post and Plan. Moving it must not add it to My Plan.
+5. **Save Plan modal:** tap Save Plan. Cancel with a partially entered name or folder; no new folder/plan should appear. Reopen, name the plan, choose the existing folder or create a new folder, select Solo, then save. Find that snapshot in Saved. Name and folder have length checks; an empty plan cannot save.
+6. **Audience draft:** save another plan with Friends and select specific sample friends; an empty friend selection disables Save Draft. Try Public too. Both save **local visibility intent only**; no invite or feed post is sent. Check the confirmation wording.
+7. **Restore and visuals:** on a normal launch, save a plan/folder, force-quit and relaunch. Saved entries, active stop order and time data should return. Check quick taps, horizontal drawer versus vertical timeline, small iPhone layout and VoiceOver button names. Send screenshots of the drawer, expanded folder and modal, plus any gesture recording.
+
+Automated verification: 42 Swift tests pass; iPhone 16e Simulator build/launch and visual inspection passed. Local Solo Save was clicked and confirmed. [Screenshot evidence](docs/design-reference/2026-09-27-step-7/REVIEW.md). The user’s physical-phone gesture/layout and normal-run persistence review remain open. Backend supports place/post/plan folder references, but not standalone image saves; Public feed distribution and invitations are not connected. Server still caps plans at 12 stops, contrary to product truth; this preview never silently truncates.
+
+## Previous review: Step 6 — Plan timeline and Go
 
 Step 5 accepted; Step 6 authorized. Build/run HermiPreview with **⌘R** on your phone. Simulator currently contains a temporary Plan fixture with three stops and an intentional time overlap. Normal launches persist your actual preview plan; the fixture does not.
 

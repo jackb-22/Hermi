@@ -4,6 +4,14 @@ Updated: 2026-09-27. Branch: codex/cairn-frontend. No pushes authorized.
 
 ## Current checkpoint
 
+### Step 7 — Saved drawer and Save Plan ready for user review
+
+User authorized the next increment. Built the horizontal Saved drawer in My Plan, separate full Saved page with mixed Place/Post/Plan folder references, post bookmarks in contextual place content, duplicate-safe explicit append, and pixel-style Save Plan modal with name, existing/new folder and Solo/Friends/Public intent. Existing preview snapshots still decode; normal local state serializes saved plans, folder membership and stop time snapshots. Friends and Public are **local drafts** only; there are no invites or public posts. No standalone image saving is represented. No backend files were changed.
+
+All 42 Swift tests pass, including four Step 7 state/migration cases. iPhone 16e Simulator builds and launches. Screenshots and visual notes: [Step 7 review](docs/design-reference/2026-09-27-step-7/REVIEW.md). Simulator Solo Save was exercised. Physical touch, folder/gesture feedback and normal-launch persistence remain for user acceptance in [test.md](test.md). The preview should not be mistaken for authenticated backend persistence; server stop cap (12), image save, sharing/invitation delivery and public taste feed are unresolved backend gates. Preserve user-owned signing/project changes and unrelated Cairn prototype work; no push.
+
+Next: collect user Step 7 screenshots/feedback and correct this increment before Step 8 autosave/Undo/share.
+
 ### Step 6 — Plan timeline ready for user review
 
 User accepted Step 5 and authorized next phase. Completed durable per-place local timing/invite drafts in MapPreviewState, migration from legacy UserDefaults, validation, before/after reorder insertion, removal in attendee sheet with per-stop draft cleanup, advisory overlap warnings and nonempty Go guards. Place X now restores Plan/Saved origin. Action stop list preserves order and scrolls without a product count cap. No live trip/camera/notifications/invitations implemented.
@@ -111,7 +119,7 @@ Xcode: /Applications/Xcode.app (26.3). Use DEVELOPER_DIR per command; global xco
 
 ## Next action
 
-Install Step 3 once the iPhone reconnects, follow the current test.md checklist, and correct feedback before Step 4. Simulator preview is available using `sh apps/ios/HermiPreview/scripts/simulator-preview.sh` from the repository root. Keep unrelated prototype/signing changes untouched; no pushes.
+Run the Step 7 checklist in test.md on iPhone, record feedback, and correct this boundary before Step 8. Simulator preview is available using `sh apps/ios/HermiPreview/scripts/simulator-preview.sh` from the repository root. Keep unrelated prototype/signing changes untouched; no pushes.
 
 ## Build notes
 
