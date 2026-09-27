@@ -25,6 +25,8 @@ struct LiveConfig: Equatable {
     defaults.set(devToken, forKey: LiveConfig.keys.dev)
     defaults.set(username, forKey: LiveConfig.keys.user)
     if let jwt { defaults.set(jwt, forKey: LiveConfig.keys.jwt) } else { defaults.removeObject(forKey: LiveConfig.keys.jwt) }
+    // Flush now: closing the Simulator shuts the device down and can drop a pending write.
+    defaults.synchronize()
   }
 
   var url: URL? {
@@ -79,23 +81,37 @@ final class LiveSession {
     }
   }
 
-  /// On launch: reuse a saved token if the server still accepts it.
+  /// On launch and on return to foreground: reuse a saved token if the server still accepts it.
+  /// A freshly booted Simulator often has no network for the first seconds, so transport errors retry.
   @MainActor
   func restore() async {
-    guard me == nil, let url = config.url, let jwt = config.jwt else { return }
+    guard me == nil, status != .connecting, let url = config.url, let jwt = config.jwt else { return }
     status = .connecting
     let client = HermiAPI(baseURL: url, token: jwt, devToken: config.devToken)
-    do {
-      me = try await client.send("GET", "/me", as: MeDTO.self)
-      status = .live
-    } catch let error as HermiAPIError where error.status == 401 {
-      config.jwt = nil; config.save()
-      me = nil; status = .failed("Session expired. Connect again.")
-    } catch {
-      // Keep the token (the tunnel may just be down) but stay in sample mode.
-      me = nil; status = .failed(error.localizedDescription)
+    var attempt = 0
+    while true {
+      do {
+        me = try await client.send("GET", "/me", as: MeDTO.self)
+        status = .live
+        return
+      } catch let error as HermiAPIError where error.status == 401 {
+        config.jwt = nil; config.save()
+        me = nil; status = .failed("Session expired. Connect again.")
+        return
+      } catch {
+        attempt += 1
+        if attempt >= 4 || Task.isCancelled {
+          // Keep the token (the tunnel may just be down); the next foreground retries.
+          me = nil; status = .failed("Couldn’t reach the server: \(error.localizedDescription) Tap Connect to retry.")
+          return
+        }
+        try? await Task.sleep(for: .seconds(attempt * 2))
+      }
     }
   }
+
+  /// A saved login exists but is not active yet (restoring, or the last restore failed).
+  var hasSavedLogin: Bool { config.jwt != nil && config.url != nil }
 
   @MainActor
   func disconnect() {

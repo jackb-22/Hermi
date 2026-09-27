@@ -43,8 +43,9 @@ Paste any compile or test failure back verbatim.
 ### Step 1: API client, Connect and live identity
 - [ ] Without connecting: Profile still shows the sample "Alex" header, and Settings shows the **SAMPLE** badge.
 - [ ] Settings → Server: enter URL, dev token and `jack`, then Connect. The badge shows **LIVE · @jack**, and the Profile header shows Jack's name and `@jack`.
-- [ ] Quit the app and relaunch it with `simulator-preview.sh`: it is still LIVE, with no need to reconnect.
-- [ ] Enter a wrong dev token and Connect: an error message appears (UNAUTHORIZED or FORBIDDEN), and the app keeps working in sample mode.
+- [ ] Quit the app and relaunch it with `simulator-preview.sh`: it is still LIVE, with no need to reconnect. Also try with the Simulator fully closed: the device boots cold, and the retry can take up to about 12 s. If it doesn't come back, open Settings and note the red message under Server.
+- [ ] Send the app to the background and bring it back: it stays LIVE, and if the first restore had failed it retries.
+- [ ] Enter a wrong dev token and Connect: an error message appears (UNAUTHORIZED or FORBIDDEN), and the app keeps working in sample mode. A failed Connect also clears the saved login, so reconnect with the right token before the next check.
 - [ ] Disconnect: the badge goes back to SAMPLE and the header shows Alex again.
 - [ ] The privacy preferences in the same Settings page still save as before.
 

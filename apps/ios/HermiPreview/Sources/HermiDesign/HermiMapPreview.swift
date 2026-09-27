@@ -24,6 +24,7 @@ public struct HermiMapPreview: View {
   @State private var postPlace: String?
   @State private var profileDetail: ProfileDetail?
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  @Environment(\.scenePhase) private var scenePhase
   private var pinReviewFixture: Bool {
     #if DEBUG
     ProcessInfo.processInfo.arguments.contains("--hermi-pin-review") || ProcessInfo.processInfo.arguments.contains("--hermi-multipin-review") || ProcessInfo.processInfo.arguments.contains("--hermi-plan-review") || ProcessInfo.processInfo.arguments.contains("--hermi-saved-review") || ProcessInfo.processInfo.arguments.contains("--hermi-feed-review")
@@ -177,6 +178,9 @@ public struct HermiMapPreview: View {
     }
     .task { _ = await Task.detached { NYCLandMask.shared.available }.value }
     .task { await LiveSession.shared.restore() }
+    .onChange(of: scenePhase) { _, phase in
+      if phase == .active { Task { await LiveSession.shared.restore() } }
+    }
     .task(id: pinNotice) {
       guard pinNotice != nil else { return }
       do { try await Task.sleep(for: .seconds(4)) } catch { return }

@@ -39,6 +39,9 @@ struct ServerSettingsSection: View {
             .background(.white, in: PixelPanel(corner: 6))
         }
       }
+      if !live.isLive, live.hasSavedLogin, live.status != .connecting {
+        Text("Saved login for @\(live.config.username) is not active.").font(.caption)
+      }
       if case .failed(let message) = live.status {
         Text(message).font(.caption).foregroundStyle(HermiPalette.error)
       }
