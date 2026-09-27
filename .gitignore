@@ -12,3 +12,8 @@ apps/ios/.build/
 apps/ios/.preview/
 apps/ios/.swiftpm/
 **/xcuserdata/
+
+# Isolated Hermi visual foundation
+apps/ios/HermiPreview/.build/
+apps/ios/HermiPreview/.preview/
+apps/ios/HermiPreview/.swiftpm/
