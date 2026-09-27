@@ -153,4 +153,35 @@ final class LiveContractTests: XCTestCase {
     XCTAssertTrue(mask.isInCity(.init(latitude: 40.6710, longitude: -73.9814)), "Park Slope")
     XCTAssertTrue(mask.isInCity(.init(latitude: 40.7447, longitude: -73.9485)), "Long Island City")
   }
+
+  func testPlacePostsDecodeToScopedFeedPosts() throws {
+    let json = #"{"items":[{"id":"01M3H03ZC2X0HNJ1DMXPQPG059","type":"photos","status":"live","author":{"id":"01M3H03RA9YANZGQVSVQGHATRN","name":"Pixel Pat","username":"seed_pixel_pat","spriteUrl":null,"photoUrl":null,"verified":true,"campus":"Columbia"},"place":{"id":"01M3GBFK883G2J74GXT99ZZZ9V","name":"Barnard Archives and Special Collections","category":"culture","loc":{"lat":40.80905654,"lng":-73.96376181}},"planId":null,"media":[{"id":"01M3H03Z7SBZEH6M11MQFZ1HVE","kind":"photo","url":"https://x.trycloudflare.com/media/r/60ec61bb.jpg","posterUrl":null,"ambientUrl":null,"verifyUrl":"https://x.trycloudflare.com/verify/03d4"},{"id":"v1","kind":"video","url":"https://x.trycloudflare.com/media/r/clip.mp4","posterUrl":"https://x.trycloudflare.com/media/p/clip.jpg","ambientUrl":null,"verifyUrl":null}],"text":"new favorite spot","again":null,"route":null,"stamp":{"placeName":"Barnard","time":"2026-09-26T17:20:09.376Z","tier":"gps"},"counts":{"been":5,"going":0},"createdAt":"2026-09-26T18:20:09.376Z"},{"id":"noplace","type":"recap","status":"live","author":{"id":"a","name":"A","username":"a","spriteUrl":null,"photoUrl":null,"verified":true,"campus":null},"place":null,"planId":"p","media":[],"text":null,"again":null,"route":null,"stamp":{"placeName":"","time":"2026-09-26T17:20:09.376Z","tier":"gps"},"counts":{"been":0,"going":0},"createdAt":"2026-09-26T18:20:09.376Z"}],"nextCursor":null}"#
+    let page = try HermiAPI.decoder.decode(PostsPageDTO.self, from: Data(json.utf8))
+    XCTAssertEqual(page.items.count, 2)
+    let posts = page.items.compactMap(\.feedPost)
+    XCTAssertEqual(posts.count, 1, "posts without a place cannot be place-scoped")
+    let post = try XCTUnwrap(posts.first)
+    XCTAssertEqual(post.placeID, "01M3GBFK883G2J74GXT99ZZZ9V")
+    XCTAssertEqual(post.author, "Pixel Pat")
+    XCTAssertEqual(post.caption, "new favorite spot")
+    XCTAssertTrue(post.isLive)
+    XCTAssertEqual(post.mediaCount, 2)
+    XCTAssertFalse(post.media[0].isVideo)
+    XCTAssertEqual(post.media[0].url?.lastPathComponent, "60ec61bb.jpg")
+    XCTAssertTrue(post.media[1].isVideo)
+    XCTAssertEqual(post.media[1].posterURL?.lastPathComponent, "clip.jpg")
+  }
+
+  func testPlaceDetailDecodesWithUnknownHoursAndSummary() throws {
+    let json = #"{"id":"01M3GBFK883G2J74GXT99ZZZ9V","name":"Barnard Archives and Special Collections","category":"culture","tags":["library","indoor","cheap"],"loc":{"lat":40.80905654,"lng":-73.96376181},"address":"3009 Broadway, New York","been":5,"wouldGoAgainPct":100,"distanceM":202,"walkMin":3,"tasteMatch":0.615,"hereNow":0,"friendsBeen":3,"going":0,"hours":null,"reviewSummary":null}"#
+    let detail = try HermiAPI.decoder.decode(PlaceDetailDTO.self, from: Data(json.utf8))
+    XCTAssertEqual(detail.friendsBeen, 3)
+    XCTAssertEqual(detail.hereNow, 0)
+    XCTAssertNil(detail.hours, "null hours means unknown, not closed")
+    XCTAssertNil(detail.reviewSummary)
+    let withHours = #"{"id":"x","name":"X","category":"food","loc":{"lat":40.8,"lng":-73.9},"hereNow":1,"friendsBeen":0,"going":2,"hours":[{"day":1,"open":"09:00","close":"17:00"}],"reviewSummary":"Cozy and quiet."}"#
+    let open = try HermiAPI.decoder.decode(PlaceDetailDTO.self, from: Data(withHours.utf8))
+    XCTAssertEqual(open.hours?.first, .init(day: 1, open: "09:00", close: "17:00"))
+    XCTAssertEqual(open.reviewSummary, "Cozy and quiet.")
+  }
 }

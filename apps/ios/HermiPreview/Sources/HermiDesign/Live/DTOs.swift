@@ -59,3 +59,67 @@ extension HermiCategory {
   init?(serverName: String) { self.init(rawValue: serverName.capitalized) }
   var serverName: String { rawValue.lowercased() }
 }
+
+/// `PlaceDetail`: a Place plus live counts, hours and the review summary (all nullable = unknown).
+struct PlaceDetailDTO: Decodable, Sendable {
+  struct Hours: Decodable, Equatable, Sendable {
+    var day: Int
+    var open: String
+    var close: String
+  }
+  var id: String
+  var name: String
+  var category: String
+  var tags: [String]?
+  var loc: LatLngDTO
+  var address: String?
+  var been: Int?
+  var wouldGoAgainPct: Double?
+  var walkMin: Double?
+  var tasteMatch: Double?
+  var hereNow: Int?
+  var friendsBeen: Int?
+  var going: Int?
+  var hours: [Hours]?
+  var reviewSummary: String?
+}
+
+/// `UserCard` (packages/shared/src/api/social.ts).
+struct UserCardDTO: Decodable, Equatable, Sendable {
+  var id: String
+  var name: String
+  var username: String
+  var photoUrl: String?
+  var verified: Bool?
+}
+
+/// `Post` (packages/shared/src/api/posts.ts).
+struct PostDTO: Decodable, Sendable {
+  struct Media: Decodable, Sendable {
+    var id: String
+    var kind: String
+    var url: String?
+    var posterUrl: String?
+  }
+  struct PostPlace: Decodable, Sendable {
+    var id: String
+    var name: String
+    var category: String
+    var loc: LatLngDTO
+  }
+  var id: String
+  var type: String
+  var status: String?
+  var author: UserCardDTO
+  var place: PostPlace?
+  var planId: String?
+  var media: [Media]
+  var text: String?
+  var again: Bool?
+  var createdAt: Date?
+}
+
+struct PostsPageDTO: Decodable, Sendable {
+  var items: [PostDTO]
+  var nextCursor: String?
+}

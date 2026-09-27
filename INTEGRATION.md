@@ -105,6 +105,14 @@ cd apps/api
 pnpm exec tsx --env-file=../../.env.demo scripts/import-overture.ts data/nyc_places.geojsonseq
 ```
 
+### Step 4: place sheet detail and real posts
+- [ ] `check.sh` passes: 73 tests.
+- [ ] Connected: tap a real venue near Columbia. Under its name the sheet shows the address, four counters (**been · friends · here now · going**), and a line like "100% would go again · Hours unknown". Unknown values show "—" or "unknown", never 0 or "closed".
+- [ ] Places with seeded posts show a **real photo**, the author's name and the caption. Try Butler Library, Book Culture, Havana Central at The West End, Barnard Archives, Macy Art Gallery or Cafe Amrita. While a photo loads it shows the pixel placeholder with a spinner.
+- [ ] A place without posts shows "No posts here yet." after a brief "Loading posts…".
+- [ ] Bookmark a post in the sheet: it toggles and appears in Saved (Plan → bookmark) during this session. It won't survive a relaunch until Step 5.
+- [ ] Sample mode (Disconnected): the sample places still show their 3 sample posts with placeholders, and no detail block.
+
 ---
 
 ## Deferred / deviations log
@@ -137,4 +145,5 @@ Items that are unconnected, need UI or backend work, or depart from `docs/HERMI_
 | D22 | Accessibility | Place dots are drawn as a WebGL layer, so VoiceOver can't focus individual dots. The Nearby row is still accessible. | Needed for performance with about 1,000+ dots. |
 | D23 | Design amendment | New discovery pins start at 0.25 mi instead of 1 mi. Park and forest map colours are darker. | User request, 2026-09-27. Supersedes the frontend docs. |
 | D24 | Map | Places are hidden unless they fall inside a borough's land outline. A venue on a pier beyond the shoreline outline would be hidden too. | Filters out the New Jersey rows without a production delete. |
+| D25 | Place sheet | There's no walking time until the app has the user's location (Step 10); the server computes it from `lat`/`lng`. Recap and review posts without media show text only, with no route drawing. | Location comes with Action mode. |
 

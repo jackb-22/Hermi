@@ -472,10 +472,6 @@ public struct HermiMapPreview: View {
           .accessibilityLabel(state.planIDs.contains(place.id) ? "Remove from plan" : "Add to plan")
           .controlHelp("Toggle this place in My Plan without changing Saved")
       }
-      if let address = place.address {
-        Text([address, place.wouldGoAgainPct.map { "\(Int($0))% would go again" }].compactMap { $0 }.joined(separator: " · "))
-          .font(.caption).foregroundStyle(HermiPalette.secondary)
-      }
       PlaceFeedContent(place: place, savedPostIDs: Set(state.library.posts.map(\.refID))) { state.togglePostBookmark($0) }
         .id(place.id)
 

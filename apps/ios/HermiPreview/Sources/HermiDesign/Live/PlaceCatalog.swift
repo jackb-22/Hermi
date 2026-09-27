@@ -16,6 +16,8 @@ final class PlaceCatalog {
   private(set) var filterIDs: [String] = []
   private(set) var loading = false
   private(set) var lastError: String?
+  /// Live posts seen this run, so Saved and the Feed can resolve a post ID.
+  private(set) var posts: [String: PlaceFeedPost] = [:]
 
   @ObservationIgnored private var viewportTask: Task<Void, Never>?
   @ObservationIgnored private var lastBounds: [Double]?
@@ -51,6 +53,10 @@ final class PlaceCatalog {
 
   func place(_ id: String) -> MapSamplePlace? {
     cache[id] ?? MapSamplePlace.fixtures.first { $0.id == id }
+  }
+
+  func remember(posts: [PlaceFeedPost]) {
+    for post in posts { self.posts[post.id] = post }
   }
 
   func upsert(_ places: [MapSamplePlace]) {
