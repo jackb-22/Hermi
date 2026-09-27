@@ -1,6 +1,7 @@
 import type { LatLng } from '@itp/shared';
 import type { Config } from '../config.ts';
 import { estimateLegMin, type Mode } from '../domain/schedule.ts';
+import { deadline } from '../util/deadline.ts';
 import { appleDevToken } from './appleJwt.ts';
 
 export interface Eta {
@@ -107,19 +108,20 @@ export class GoogleRoutesEta implements EtaProvider {
   }
 }
 
-/** Tries each provider in order; the offline estimate always answers last. */
+/** Tries each provider in order, giving each `timeoutMs`; the offline estimate always answers last. */
 export class ChainEta implements EtaProvider {
   readonly name: string;
   constructor(
     private chain: EtaProvider[],
     private log: (m: string) => void = console.warn,
+    private timeoutMs = 5000,
   ) {
     this.name = chain.map((p) => p.name).join('>');
   }
   async eta(o: LatLng, d: LatLng, mode: Mode, departAt: Date): Promise<Eta> {
     for (const p of this.chain) {
       try {
-        return await p.eta(o, d, mode, departAt);
+        return await deadline(p.eta(o, d, mode, departAt), this.timeoutMs, `${p.name} eta`);
       } catch (e) {
         this.log(`[eta] ${p.name} failed: ${(e as Error).message}`);
       }

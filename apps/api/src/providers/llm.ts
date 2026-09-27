@@ -121,7 +121,13 @@ export class GeminiLlm implements Llm {
     this.ai = new GoogleGenAI({ apiKey: key });
   }
 
-  async json<T>(prompt: string, schema: object, parts: object[] = []): Promise<T> {
+  /** Every call has a timeout; each caller falls back to code when it fires, so the app never waits on AI. */
+  async json<T>(
+    prompt: string,
+    schema: object,
+    parts: object[] = [],
+    timeoutMs = 10_000,
+  ): Promise<T> {
     const res = await this.ai.models.generateContent({
       model: this.model,
       contents: [{ role: 'user', parts: [{ text: prompt }, ...parts] }],
@@ -129,6 +135,7 @@ export class GeminiLlm implements Llm {
         responseMimeType: 'application/json',
         responseJsonSchema: schema,
         temperature: 0.3,
+        httpOptions: { timeout: timeoutMs },
       },
     });
     return JSON.parse(res.text ?? 'null') as T;
@@ -155,6 +162,7 @@ export class GeminiLlm implements Llm {
           systemInstruction: o.system,
           tools: [{ functionDeclarations }],
           temperature: 0.2,
+          httpOptions: { timeout: 15_000 },
         },
       });
       const calls = res.functionCalls ?? [];
@@ -179,6 +187,7 @@ export class GeminiLlm implements Llm {
         config: {
           tools: [{ googleMaps: {} }],
           toolConfig: { retrievalConfig: { latLng: { latitude: near.lat, longitude: near.lng } } },
+          httpOptions: { timeout: 12_000 },
         },
       });
       const chunks = res.candidates?.[0]?.groundingMetadata?.groundingChunks ?? [];
@@ -241,6 +250,8 @@ ${stops.map((s) => `- id=${s.id} "${s.name}" (${s.category}) arriving ${s.arriva
       const out = await this.json<{ label: string }>(
         `Write a label of six words or fewer suggesting this next stop on a city outing. Place: "${o.placeName}" (${o.category}). Context: ${o.context}. Example: "Sunset at Pier 45".`,
         { type: 'object', properties: { label: { type: 'string' } }, required: ['label'] },
+        [],
+        5000,
       );
       return sixWords(out.label);
     } catch {
@@ -253,6 +264,8 @@ ${stops.map((s) => `- id=${s.id} "${s.name}" (${s.category}) arriving ${s.arriva
       const out = await this.json<{ name: string }>(
         `Name this outing in four words or fewer, playful but plain. Stops: ${names.join(', ')}.`,
         { type: 'object', properties: { name: { type: 'string' } }, required: ['name'] },
+        [],
+        5000,
       );
       return sixWords(out.name);
     } catch {
@@ -282,6 +295,8 @@ ${cands.map((c) => `- id=${c.id} "${c.name}" (${c.category}; ${c.tags.join(', ')
           },
           required: ['picks'],
         },
+        [],
+        5000,
       );
       return mergeRerank(cands, out.picks);
     } catch (e) {
@@ -305,6 +320,7 @@ Text: ${JSON.stringify(o.text ?? '')}`,
           required: ['allowed', 'reason'],
         },
         parts,
+        20_000,
       );
     } catch (e) {
       // Fail open for the demo, but say so in the reason so it is visible in logs and the review queue.

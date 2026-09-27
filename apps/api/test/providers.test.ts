@@ -42,6 +42,21 @@ describe('fallbacks', () => {
     expect(logs[0]).toMatch(/broken failed/);
   });
 
+  test('a provider that hangs times out and the chain falls through', async () => {
+    const hung: EtaProvider = { name: 'hung', eta: () => new Promise(() => {}) };
+    const logs: string[] = [];
+    const t0 = performance.now();
+    const eta = await new ChainEta([hung, new EstimateEta()], (m) => logs.push(m), 100).eta(
+      ORIGIN,
+      offset(ORIGIN, 800, 0),
+      'walk',
+      new Date(),
+    );
+    expect(eta).toEqual({ minutes: 13, source: 'estimate' });
+    expect(performance.now() - t0).toBeLessThan(1000);
+    expect(logs[0]).toMatch(/hung eta timed out after 100 ms/);
+  });
+
   test('fake llm returns category defaults and short labels', async () => {
     const llm = new FakeLlm();
     expect(

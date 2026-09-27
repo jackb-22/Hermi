@@ -4,6 +4,7 @@ import type { z } from 'zod';
 import type { AppContext } from '../context.ts';
 import { moveItem, proposeFix } from '../domain/fixes.ts';
 import { assemble, clampStay, type Issue, type Mode } from '../domain/schedule.ts';
+import { deadline } from '../util/deadline.ts';
 import { places } from './places.ts';
 import {
   type GhostChangeDoc,
@@ -47,11 +48,15 @@ export async function schedulePlan(
         const p = s.placeId ? byId.get(s.placeId) : undefined;
         if (!p || p.hours) return;
         try {
-          const h = await providers.hours.hours({
-            name: p.name,
-            loc: { lat: p.loc.coordinates[1], lng: p.loc.coordinates[0] },
-            googlePlaceId: p.googlePlaceId,
-          });
+          const h = await deadline(
+            providers.hours.hours({
+              name: p.name,
+              loc: { lat: p.loc.coordinates[1], lng: p.loc.coordinates[0] },
+              googlePlaceId: p.googlePlaceId,
+            }),
+            5000,
+            'opening hours',
+          );
           if (h)
             await places(db).updateOne(
               { _id: p._id },

@@ -25,6 +25,7 @@ export class ResendEmail implements EmailProvider {
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${this.key}`, 'Content-Type': 'application/json' },
+      signal: AbortSignal.timeout(15_000),
       body: JSON.stringify({ from: this.from, to, subject, text }),
     });
     if (!res.ok) throw new Error(`resend ${res.status}: ${await res.text()}`);
