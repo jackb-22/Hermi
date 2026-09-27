@@ -20,6 +20,7 @@ if [ "${1:-}" = "--build-only" ]; then exit 0; fi
 # Boot can report an already-booted device; bootstatus is the readiness check.
 xcrun simctl boot "$DEVICE_ID" 2>/dev/null || true
 xcrun simctl bootstatus "$DEVICE_ID" -b
+xcrun simctl terminate "$DEVICE_ID" tech.hermi.designpreview 2>/dev/null || true
 xcrun simctl install "$DEVICE_ID" .build/xcode/Build/Products/Debug-iphonesimulator/HermiPreview.app
 open -a Simulator
 xcrun simctl launch "$DEVICE_ID" tech.hermi.designpreview

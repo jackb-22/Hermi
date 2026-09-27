@@ -4,6 +4,14 @@ Updated: 2026-09-26. Branch: codex/cairn-frontend. No pushes authorized.
 
 ## Current checkpoint
 
+### Active correction: 01b
+
+The user rejected the text/card-led gallery as inconsistent with their Miro layout. `../My First Board.pdf` has now been text-extracted and visually inspected, including detailed main map and feed/plan regions. Current work replaces the launch view with a map-first composition, right-side category/social controls, bottom Feed/Map/Profile pill and contextual sheets. Component lab moves behind the preview menu. Default map is labeled illustration/sample, not live geography. Preserve prior work and do not advance to backend/device features.
+
+Revision 01b is ready for user review. 14 local state tests passed; Mac and iPhone builds passed. Map and place-sheet composition inspected, explicit Add/duplicate prevention/My plan exercised. Feed inspection exposed an oversized media layout shifting controls offscreen; the media now has an explicit viewport frame. Simulator launch terminates the previous preview process before installing. No backend changes or pushes. Next: user checklist in test.md; do not advance until aesthetic acceptance.
+
+### Previous handoff
+
 - Increment 00: user reviewed the plan and supplied corrections. Consolidated into [unified schema](docs/HERMI_SCHEMA.md). Do not request the same review again.
 - Increment 01: **ready for user test**. No visual acceptance yet; do not begin 02 without user acceptance.
 - Delivered: isolated SwiftUI gallery with Places, Controls and Score specimens, photo/video placements, sample states, accessibility preview options, durable sample state and Reset.
@@ -32,7 +40,7 @@ Xcode: /Applications/Xcode.app (26.3). Use DEVELOPER_DIR per command; global xco
 
 ## Next action
 
-Receive the user's increment01 feedback and record it in test.md. Fix only this increment and repeat relevant checks. Do not advance to navigation/map implementation until the user accepts this visual foundation. Reopen with `sh apps/ios/HermiPreview/scripts/simulator-preview.sh` from the repository root, or use the already-open Hermi Preview Mac window.
+Receive the user's revision01b feedback and record it in test.md. Fix only this increment and repeat relevant checks. Do not advance to live navigation/map integration until the user accepts this visual foundation. Reopen with `sh apps/ios/HermiPreview/scripts/simulator-preview.sh` from the repository root, or use the already-open Hermi Preview Mac window.
 
 ## Build notes
 

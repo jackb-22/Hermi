@@ -2,9 +2,31 @@
 
 This is the user-facing test entry point. Product reference: [unified design schema](docs/HERMI_SCHEMA.md). Resume/checkpoint: [progress](PROGRESS.md).
 
-## Current review: 01 — visual foundation
+## Current review: 01b — map-first composition
 
-Status: **ready for user test**. Implementation commit `77ad3ef`; schema consolidation `65ba236`. Verified 2026-09-26 on macOS15.7.3 and an iPhone17 Pro Max simulator running iOS26.3. The app uses sample data and does not contact the backend. No component is visually accepted yet.
+User feedback on 01: the gallery did not follow `My First Board.pdf`; maximize the map/visual area and use the three-button pill. Revision01b implements that correction. The previous gallery remains behind **hermi → Component lab**. It is not the product home screen.
+
+### Your revised checklist
+
+1. Open the updated preview. The map should fill the screen; no large heading, introductory text or place card should cover it.
+2. Check the single bottom pill: **Feed / Map / Profile**, with Map centered and initially selected. Tap each and return to Map; Feed should be media-first and Profile map-first.
+3. Use the right-side arrows to change the activity category. Tap its icon to filter/unfilter sample markers.
+4. Drag the category pin into the map. A small nearby panel and My plan control should appear, with **zero** places added.
+5. Select a nearby place or map marker. Check the compact photo/video placements; only tapping **Add** inserts that place. My plan shows explicit places only.
+6. Close the detail panel. The map should again dominate. Open My plan → select its place → Back; return to My plan.
+7. Pan the map. The pill should hide during movement and return after it stops; panning never changes panels. Recenter with the location-arrow button.
+8. Toggle the person icon between Solo and Social; the extra markers are sample friend check-ins, not live locations.
+9. Open the small **hermi** menu to Reset preview or inspect the Component lab. Review settings should not consume the main screen.
+
+The geography, media frames, feed/profile and social markers are composition fixtures. Real tiles, playback, full feed/profile data, sensors and backend writes remain later increments. These controls demonstrate layout and basic navigation without claiming those features are complete.
+
+Status: ready for review. 14 local state tests passed; Mac and iPhone simulator builds passed. Map and compact place-sheet layouts inspected; selecting, adding, duplicate prevention, dismissal and My plan contents exercised on Mac. iPhone panel composition checked. Drag/pan, larger text and VoiceOver still need hands-on review. Your aesthetic acceptance remains pending.
+
+The updated app is running in Simulator. Reopen from `apps/ios/HermiPreview` with `sh scripts/simulator-preview.sh`. The current SwiftUI canvas entry is `Sources/HermiDesign/HermiMapPreview.swift`.
+
+## Previous review: 01 — component gallery
+
+Status: **changes requested**. Implementation commit `77ad3ef`; schema consolidation `65ba236`. Verified 2026-09-26 on macOS15.7.3 and an iPhone17 Pro Max simulator running iOS26.3. The app uses sample data and does not contact the backend. No component is visually accepted yet.
 
 Both the Mac preview and Simulator were opened for this handoff. Use the **Hermi Preview** window or the app already running in **Simulator**. Scroll to reach the complete place card and Add action. The sample state is saved separately in each environment.
 

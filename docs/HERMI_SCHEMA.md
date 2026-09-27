@@ -1,12 +1,12 @@
 # Hermi unified design schema
 
-Revision 1 · 2026-09-26 · Confirmed product decisions consolidated. Visual treatment is ready for incremental user review, not visually accepted yet.
+Revision 2 · 2026-09-26 · Confirmed product decisions consolidated. Initial gallery composition rejected; map-first revision 01b is under review.
 
 ## Authority and mission
 
 Hermi encourages going outside, discovering places with friends, and meeting new friends. The name draws on Hermes and the hermit crab: coming out of your shell. Use `Hermi` in prose and an exploratory lowercase `hermi` wordmark. The existing rock-stack Score remains confirmed; the name change does not replace it with a new reward system.
 
-This schema consolidates the user's decisions, `../../Unified Truth.pdf`, and confirmed Miro details. It is the frontend implementation reference. Explicit user amendments take precedence, followed by the PDF, then consistent Miro detail. `../../map visual/images.jpg` and `pixel-europe-map-stockcake.jpg` supply aesthetic inspiration. Miro's older activity types and star ratings do not override the PDF's seven categories and binary verified reviews. Backend code defines available integration, not desired product behavior. Existing prototype code establishes no requirements.
+This schema consolidates the user's decisions, `../../Unified Truth.pdf`, and confirmed Miro details. It is the frontend implementation reference. Explicit user amendments take precedence, followed by the PDF, then consistent Miro detail. The local `../../My First Board.pdf` is the user's Miro layout export and must be visually inspected when composing screens. `../../map visual/images.jpg` and `pixel-europe-map-stockcake.jpg` supply aesthetic inspiration. Miro's older activity types and star ratings do not override the PDF's seven categories and binary verified reviews. Backend code defines available integration, not desired product behavior. Existing prototype code establishes no requirements.
 
 Each future change must name its requirement below. A conflicting product request becomes a recorded amendment before implementation. Do not add features simply because an API supports them. DeepSpace is excluded by PDF pages 32, 36 and 45.
 
@@ -50,6 +50,12 @@ Every screen defines: user objective, entry, primary action, content order, stat
 Home → discovery → place → Add → explicit plan → edit/schedule/save/share → Start → Directions/Camera → End → synchronization → recap → publish/review/Later. Parallel Home branches are finite Feed and Profile. Head out enters Action without a plan. Shared plans enter through auth-gated links or Social/Feed. NFC/personal tags have late device gates.
 
 ## Visual schema
+
+### Confirmed correction: composition first
+
+The user rejected the gallery-led interface for missing the board's form: “The 3 button pill. Map center visual. ... maximizing the visual not content/info/text.” Home must open as an edge-to-edge map with a floating Feed / Map / Profile pill at the bottom, Map centered and selected. Category discovery and Social controls sit along the right edge. There is no landing-page headline, tagline, horizontal category strip, persistent card or developer toolbar occupying the main map. Details are disclosed in a compact bottom sheet after interaction. My plan appears once planning/discovery begins; its content still contains explicit added places only. Testing controls move to a small preview menu; the old component gallery is a secondary lab, not the product landing screen.
+
+Feed composition is media-first with a compact place/action overlay. Profile retains a large map area with compact identity/Score controls. These review shells do not imply that feed playback, pagination, historical stats or social integration have passed their later gates. Revision01b is corrective work within the first visual review, not acceptance of increments02–07.
 
 Pixel-game treatment applies throughout custom UI: terrain, icons, sprites, large numbers/headings, card edges, controls, progress, charts and empty states. Preserve native gestures, scrolling, text input and system dialogs. Use readable system body text and inputs. Do not rasterize body text or permission dialogs. Use a restrained youthful palette with one dominant accent per component, ample quiet space, and no antique parchment/borders.
 
