@@ -31,7 +31,7 @@ struct LiveFeedPager: View {
     .refreshable { await feed.load(force: true) }
     .overlay(alignment: .topLeading) {
       Text("\(state.feedOptions.audience == .friends ? "Friends" : "General") · \(state.feedOptions.content.label)")
-        .font(.caption.bold()).padding(10).background(HermiPalette.paper, in: PixelPanel(corner: 5))
+        .font(.caption.bold()).padding(10).background(HermiPalette.controlSurface, in: PixelPanel(corner: 5))
         .padding(.top, 105).padding(.leading, 20).allowsHitTesting(false)
     }
     .simultaneousGesture(DragGesture(minimumDistance: 20).onChanged { _ in onMoving() }.onEnded { _ in onStopped() })
@@ -133,7 +133,7 @@ struct LiveFeedPager: View {
         Text(title).font(.title3.bold())
       }
       .foregroundStyle(HermiPalette.ink).frame(maxWidth: .infinity, minHeight: 56)
-      .background(done == nil ? HermiPalette.lime : HermiPalette.paper, in: PixelPanel(corner: 8))
+      .background(done == nil ? HermiPalette.lime : HermiPalette.controlSurface, in: PixelPanel(corner: 8))
     }.disabled(done != nil).accessibilityLabel(title)
   }
 
@@ -161,14 +161,14 @@ struct LiveFeedPager: View {
         Text(place.name); Spacer(minLength: 0)
       }
       .font(.subheadline).foregroundStyle(HermiPalette.ink).padding(.horizontal, 12).frame(minHeight: 44)
-      .background(HermiPalette.paper, in: PixelPanel(corner: 6))
+      .background(HermiPalette.controlSurface, in: PixelPanel(corner: 6))
     }
   }
 
   private func icon(_ name: String, active: Bool = false) -> some View {
     PixelIcon(name: name).frame(width: 22, height: 24).frame(width: 44, height: 44)
       .foregroundStyle(HermiPalette.ink)
-      .background(active ? HermiPalette.lime : HermiPalette.paper, in: PixelPanel(corner: 6))
+      .background(active ? HermiPalette.lime : HermiPalette.controlSurface, in: PixelPanel(corner: 6))
   }
 }
 
@@ -228,7 +228,7 @@ extension FeedContent {
   /// Chevron colour per filter: white = everything, blue = posts only, green = plans only.
   var tint: Color {
     switch self {
-    case .all: return HermiPalette.paper
+    case .all: return HermiPalette.controlSurface
     case .posts: return HermiPalette.lake
     case .plans: return HermiPalette.lime
     }

@@ -223,7 +223,7 @@ public struct HermiGallery: View {
         Eyebrow(text: "Your name")
         TextField("Name", text: $state.name)
           .textFieldStyle(.plain).font(.body).padding(16)
-          .background(PixelPanel(corner: 4).fill(HermiPalette.paper))
+          .background(PixelPanel(corner: 4).fill(HermiPalette.controlSurface))
           .overlay(PixelPanel(corner: 4).stroke(HermiPalette.line, lineWidth: 1))
           .accessibilityLabel("Sample name")
           .onChange(of: state.name) { _, name in

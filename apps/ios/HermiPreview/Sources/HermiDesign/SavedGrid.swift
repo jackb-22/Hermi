@@ -115,7 +115,7 @@ struct SavedGrid: View {
           }.aspectRatio(1, contentMode: .fit).clipped()
         }
       }
-      .padding(4).background(HermiPalette.paper, in: PixelPanel(corner: 8))
+      .padding(4).background(HermiPalette.controlSurface, in: PixelPanel(corner: 8))
       .overlay(PixelPanel(corner: 8).stroke(HermiPalette.ink, lineWidth: 2))
       .overlay(alignment: .topLeading) { badge("FOLDER") }
       Text("\(folder.name) · \(folder.items.count)").font(.caption.weight(.semibold)).lineLimit(1)
@@ -125,7 +125,7 @@ struct SavedGrid: View {
   private func badge(_ text: String) -> some View {
     Text(text).font(.system(size: 9, weight: .bold, design: .monospaced))
       .padding(.horizontal, 5).padding(.vertical, 3)
-      .background(HermiPalette.paper.opacity(0.9), in: PixelPanel(corner: 3)).padding(6)
+      .background(HermiPalette.controlSurface.opacity(0.9), in: PixelPanel(corner: 3)).padding(6)
   }
 
   @ViewBuilder
@@ -167,7 +167,7 @@ struct SavedThumbnail: View {
             .overlay(alignment: .bottomTrailing) {
               if item.isVideo || post.media.count > 1 {
                 Text(item.isVideo ? "▶" : "1/\(post.media.count)").font(.caption2.bold()).foregroundStyle(HermiPalette.ink)
-                  .padding(4).background(HermiPalette.paper, in: PixelPanel(corner: 3)).padding(6)
+                  .padding(4).background(HermiPalette.controlSurface, in: PixelPanel(corner: 3)).padding(6)
               }
             }
         } else if post.isLive {
@@ -263,7 +263,7 @@ struct SavedViewer: View {
               Button { openPlace = SavedReference(kind: .place, refID: place.id) } label: {
                 HStack { BallpointPin(category: place.category).frame(width: 16, height: 22); Text(place.name) }
                   .font(.subheadline).foregroundStyle(HermiPalette.ink).padding(.horizontal, 12).frame(minHeight: 44)
-                  .background(HermiPalette.paper, in: PixelPanel(corner: 6))
+                  .background(HermiPalette.controlSurface, in: PixelPanel(corner: 6))
               }.buttonStyle(.plain)
             }
           }.foregroundStyle(.white).padding(24).padding(.bottom, 20)
@@ -292,7 +292,7 @@ struct SavedViewer: View {
             }.buttonStyle(.plain)
           }
           .foregroundStyle(HermiPalette.ink).padding(20)
-          .background(HermiPalette.paper, in: PixelPanel(corner: 12)).padding(16).padding(.bottom, 12)
+          .background(HermiPalette.controlSurface, in: PixelPanel(corner: 12)).padding(16).padding(.bottom, 12)
         }
       }
     case .place:

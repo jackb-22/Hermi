@@ -26,3 +26,19 @@ Reviewed the complete sprite sheet and the actual map renderer at Midtown and ci
 Added an opaque 1024 × 1024 AppIcon asset rendered directly from HermitBrandMark, including the Liberty torch. Both Debug and Release target settings use AppIcon, and the built Info.plist includes CFBundlePrimaryIcon. Regenerate with `python3 scripts/generate-app-icon.py` from apps/ios/HermiPreview on a Mac with Xcode.
 
 Physical iPhone 17 Pro was paired over USB with Developer Mode enabled. Compilation and asset processing completed; the synced Desktop build folder repeatedly acquired Finder metadata that blocked final signing. Copied the compiled bundle with `ditto --norsrc --noextattr` to a temporary folder, signed with the existing development identity/entitlements, and verified with `codesign --verify --deep --strict`. Device installation and launch both succeeded. No device settings or app data were reset.
+
+## Map zoom controls and collapsed credits
+
+Restored native pixel + / − / home buttons in one vertical right-side stack. Each has a 34-point visual surface inside a 44-point hit target. The stack shares the existing animated panel inset and full-overlay visibility policy; the radius editor's existing 132-point reservation matches its height. The map provider credits start collapsed into the info control at left and remain available on tap. This control now follows the same bottom inset, with reduced-motion support.
+
+Map bridge checks cover zoom-in/out dispatch, initial credit collapse and panel-inset changes. iPhone 16e screenshot with an active pin, radius editor and compact panel verifies clearance (map-controls.png). Simulator and signed physical-device builds succeeded; signature verification, installation and launch on iPhone 17 Pro succeeded.
+
+## Geonode navigation, brighter controls, nine more landmarks
+
+Map navigation now uses an original pixel folded-map icon with a location node and dotted route. Shared controlSurface (#FFFDF8) subtly brightens neutral button, navigation-pill, floating-panel and map-credit backgrounds; paper page backgrounds and category colors remain unchanged.
+
+Added nine original pixel landmarks (23 total): Bronx Zoo tiger, Brooklyn Botanic Garden blossoms/conservatory, Prospect Park boathouse/swan, original Junior's Brooklyn storefront/cheesecake, Arthur Ashe tennis court, Flushing Meadows–Corona Park's World's Fair pavilion towers, Flushing Main Street 7 train, Chinatown lantern gateway and Little Italy awning/pizza. Existing inverse-zoom sizing and overlap suppression apply to all nine. Locations are illustrative map anchors, not entrance/navigation coordinates.
+
+Venue references: [Junior's original Brooklyn restaurant](https://www.juniorscheesecake.com/pages/brooklyn), [Brooklyn Botanic Garden](https://www.bbg.org/about/contact), [Bronx Zoo](https://bronxzoo.com/plan-your-visit/getting-here?print=1), [Prospect Park Boathouse](https://www.prospectpark.org/wp-content/uploads/filer_public/fd/19/fd19d6e0-e1f6-4f97-ab16-15eab88fc135/prospect_park_boathouse_fp_1.pdf), [Flushing Meadows–Corona Park](https://nycgovparks.org/parks/flushing-meadows-corona-park), [Arthur Ashe Stadium](https://www.usopen.org/amp/en_US/news/articles/2026-08-10/arthur_ashe_stadium_transformation_takes_shape_ahead_of_2026_us_open.html).
+
+Verified all sprites in a browser contact sheet (neighborhood-landmarks.png), navigation/controls on iPhone 16e (geonode-map.png), 87 passing Swift tests and map bridge tests including the 23-landmark count. Simulator and physical-device builds succeeded.

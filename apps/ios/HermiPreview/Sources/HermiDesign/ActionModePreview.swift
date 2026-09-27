@@ -23,7 +23,7 @@ struct ActionModePreview: View {
       if session.mode == .camera {
         HermiPalette.ink.ignoresSafeArea()
         VStack(spacing: 20) {
-          PixelIcon(name: "camera").frame(width: 60, height: 48).padding(30).background(HermiPalette.paper, in: PixelPanel(corner: 10))
+          PixelIcon(name: "camera").frame(width: 60, height: 48).padding(30).background(HermiPalette.controlSurface, in: PixelPanel(corner: 10))
             .foregroundStyle(HermiPalette.ink)
           Text("Camera").font(.title2.bold())
           Text("Capture needs a verified check-in. This layout preview cannot check in or record media.")
@@ -39,22 +39,22 @@ struct ActionModePreview: View {
             stops.frame(height: min(240, CGFloat(session.stopIDs.count) * 36))
             Text("No route or location tracking connected.").font(.caption)
           }.padding(18).frame(maxWidth: .infinity, alignment: .leading)
-            .background(HermiPalette.paper, in: PixelPanel(corner: 10)).padding(.horizontal, 18).padding(.bottom, 100)
+            .background(HermiPalette.controlSurface, in: PixelPanel(corner: 10)).padding(.horizontal, 18).padding(.bottom, 100)
         }
       }
       VStack {
         HStack {
-          Text("ACTION PREVIEW").font(.system(.caption, design: .monospaced)).padding(10).background(HermiPalette.paper, in: PixelPanel(corner: 5))
+          Text("ACTION PREVIEW").font(.system(.caption, design: .monospaced)).padding(10).background(HermiPalette.controlSurface, in: PixelPanel(corner: 5))
           Spacer()
           Button("End") { confirmingEnd = true }.frame(minWidth: 44, minHeight: 44)
-            .padding(.horizontal, 8).background(HermiPalette.paper, in: PixelPanel(corner: 5))
+            .padding(.horizontal, 8).background(HermiPalette.controlSurface, in: PixelPanel(corner: 5))
             .accessibilityLabel("End Action preview")
         }.padding(.horizontal, 18).padding(.top, 8)
         Spacer()
         HStack(spacing: 12) {
           modeButton("Directions", icon: "route", mode: .directions)
           modeButton("Camera", icon: "camera", mode: .camera)
-        }.padding(8).background(HermiPalette.paper, in: Capsule()).padding(.bottom, 16)
+        }.padding(8).background(HermiPalette.controlSurface, in: Capsule()).padding(.bottom, 16)
       }
     }
   }

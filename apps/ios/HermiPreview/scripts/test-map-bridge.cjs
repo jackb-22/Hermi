@@ -3,13 +3,14 @@ const fs = require('node:fs'), vm = require('node:vm'), assert = require('node:a
 const html = fs.readFileSync('Sources/HermiDesign/Resources/map.html','utf8');
 const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(x=>x[1]).join('\n');
 const nodes = new Map(), messages=[], markers=[];
-function node(){return {style:{setProperty(){}},value:'0.5',attributes:{},listeners:{},setAttribute(k,v){this.attributes[k]=v},append(){},addEventListener(k,f){this.listeners[k]=f}}}
+function node(){return {style:{setProperty(k,v){this[k]=v}},classList:{remove(k){this.removed=k}},removeAttribute(k){delete this.attributes[k]},value:'0.5',attributes:{},listeners:{},setAttribute(k,v){this.attributes[k]=v},append(){},addEventListener(k,f){this.listeners[k]=f}}}
 const document={documentElement:node(),activeElement:null,getElementById(id){if(!nodes.has(id))nodes.set(id,node());return nodes.get(id)},querySelector(id){return this.getElementById(id)},createElement:node,createElementNS:node};
 let map;
 class MapStub {
  constructor(options){map=this;this.options=options;this.events={};this.sources={};this.layers={};this.images={};this.rendered=[];this.touchZoomRotate={disableRotation(){}};}
  on(k,f){this.events[k]=f;return this} addControl(){} addLayer(layer){this.layers[layer.id]=layer} resize(){} areTilesLoaded(){return true}
  addSource(k,v){this.sources[k]={data:v.data,setData(d){this.data=d}}} getSource(k){return this.sources[k]}
+ zoomIn(){this.lastZoom='in'} zoomOut(){this.lastZoom='out'}
  panBy(offset){this.lastPan=offset} fitBounds(b,o){this.lastFit={b,o}}
  hasImage(id){return !!this.images[id]} addImage(id,image,options){this.images[id]={image,options}} queryRenderedFeatures(){return this.rendered}
  getContainer(){return {clientWidth:400,clientHeight:800}} getCanvas(){return {width:1200,height:2400,clientWidth:400,clientHeight:800}}
@@ -132,7 +133,7 @@ console.log('Live social bridge passed: planned/done lines, recent and quest mar
 
 assert.ok(html.includes(".pin{z-index:20"));
 assert.ok(html.includes("pointer-events:none!important;z-index:1"));
-assert.equal(markers.filter(m=>m.options.element.className==='landmark').length,14);
+assert.equal(markers.filter(m=>m.options.element.className==='landmark').length,23);
 assert.ok(!html.includes("category-indicator"));
 
 // Zoom response is bounded and decluttering keeps overlapping decorative art apart.
@@ -148,4 +149,13 @@ assert.ok(sights.filter(m=>m.options.element.style.display==='block').length>1);
 map.getZoom=()=>9;map.events.zoom();assert.equal(parseInt(sights[0].options.element.style.width),65);
 map.getZoom=()=>19;map.events.zoom();assert.equal(parseInt(sights[0].options.element.style.width),52);
 map.projectOverride=null;
-console.log('Landmark bridge passed: 14 sights, bounded inverse zoom sizing, overlap suppression, pan updates.');
+console.log('Landmark bridge passed: 23 sights, bounded inverse zoom sizing, overlap suppression, pan updates.');
+
+assert.equal(nodes.get('.maplibregl-ctrl-attrib').classList.removed,'maplibregl-compact-show');
+context.commandHermi({action:'in'});assert.equal(map.lastZoom,'in');
+context.commandHermi({action:'out'});assert.equal(map.lastZoom,'out');
+context.renderHermi({...payload,bottomInset:308});
+assert.equal(document.documentElement.style['--controls-bottom'],'308px');
+context.renderHermi({...payload,bottomInset:110});
+assert.equal(document.documentElement.style['--controls-bottom'],'110px');
+console.log('Map chrome passed: zoom commands, initially collapsed credits, overlay-aware credit positioning.');

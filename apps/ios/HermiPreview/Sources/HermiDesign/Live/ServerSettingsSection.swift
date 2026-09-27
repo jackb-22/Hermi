@@ -22,7 +22,7 @@ struct ServerSettingsSection: View {
         Spacer()
         Text(badge).font(.system(size: 10, weight: .bold, design: .monospaced))
           .padding(.horizontal, 8).padding(.vertical, 4)
-          .background(live.isLive ? HermiPalette.lime : HermiPalette.paper, in: PixelPanel(corner: 4))
+          .background(live.isLive ? HermiPalette.lime : HermiPalette.controlSurface, in: PixelPanel(corner: 4))
           .accessibilityLabel(live.isLive ? "Connected" : "Sample mode")
       }
       TextField("https://….trycloudflare.com", text: $baseURL).liveInputStyle()

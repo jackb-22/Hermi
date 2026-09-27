@@ -80,6 +80,33 @@ struct NavigationSprite: View {
     }
   }
   var body: some View {
-    PixelSprite(rows: rows, colors: ["I": selected ? HermiPalette.paper : HermiPalette.ink])
+    if panel == .map {
+      GeoNodeMapIcon(color: selected ? HermiPalette.paper : HermiPalette.ink)
+    } else {
+      PixelSprite(rows: rows, colors: ["I": selected ? HermiPalette.paper : HermiPalette.ink])
+    }
+  }
+}
+
+/// Folded street map with a location node and a short dotted route.
+struct GeoNodeMapIcon: View {
+  var color: Color
+  var body: some View {
+    Canvas { context, size in
+      let unit = min(size.width, size.height) / 24
+      context.scaleBy(x: unit, y: unit)
+      func box(_ x: Double, _ y: Double, _ w: Double, _ h: Double) {
+        context.fill(Path(CGRect(x: x, y: y, width: w, height: h)), with: .color(color), style: FillStyle(antialiased: false))
+      }
+      // Three folded panels; an open top right leaves room for the locator.
+      box(1,9,2,13); box(3,8,4,2); box(7,9,2,13)
+      box(3,20,4,2); box(9,21,5,2); box(14,12,2,11)
+      box(16,20,5,2); box(21,12,2,10); box(9,10,3,2)
+      // Hollow geographic node, tapering to a precise map point.
+      box(15,1,5,2); box(13,3,2,5); box(20,3,2,5)
+      box(15,8,2,2); box(18,8,2,2); box(16,10,3,2)
+      box(16,4,3,3)
+      box(11,14,2,2); box(8,16,2,2); box(4,15,2,2)
+    }.accessibilityHidden(true)
   }
 }

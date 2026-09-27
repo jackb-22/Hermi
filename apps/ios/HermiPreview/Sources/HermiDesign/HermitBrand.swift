@@ -195,7 +195,7 @@ struct CrabLoadingView: View {
         Button(action: cancel) { PixelIcon(name: "close").frame(width: 14, height: 14).frame(width: 44, height: 44) }
           .accessibilityLabel("Dismiss loading indicator")
       }
-    }.padding(8).background(HermiPalette.paper, in: PixelPanel(corner: 5)).buttonStyle(.plain)
+    }.padding(8).background(HermiPalette.controlSurface, in: PixelPanel(corner: 5)).buttonStyle(.plain)
       .accessibilityElement(children: .contain)
   }
 }
