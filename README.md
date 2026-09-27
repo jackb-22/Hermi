@@ -4,6 +4,8 @@
 
 The name is a hermit crab plus Hermes: the messenger who gets you out of your shell.
 
+**For judges:** [Submission responses](docs/submission-responses.md) — our pitch, project story, technology stack, and generative AI implementation.
+
 ## Why (our design thesis)
 
 Social apps reward staying in: posting, scrolling and collecting likes from home. Hermi only rewards things that happen **in the physical world**.
