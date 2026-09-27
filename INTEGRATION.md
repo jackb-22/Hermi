@@ -23,14 +23,24 @@ The quick-tunnel URL changes every time `demo-up.sh` runs. After a restart, upda
 
 ## Mac test loop (every step)
 
+From the repo root:
+
 ```sh
-git pull
-cd apps/ios/HermiPreview
-DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swift test --disable-sandbox
-sh scripts/simulator-preview.sh
+sh apps/ios/HermiPreview/scripts/check.sh
 ```
 
-Paste any compile or test failure back verbatim.
+The script does four things in order and stops at the first failure, printing the relevant log lines:
+1. `git pull`;
+2. `swift test`;
+3. the map bridge check;
+4. build, install and launch in the Simulator.
+
+Options:
+- `--no-pull` skips the pull.
+- `--skip-tests` only pulls and launches.
+- `HERMI_API_BASE=… HERMI_DEV_TOKEN=…` in front prefills Settings → Server.
+
+Paste any failure output back verbatim.
 
 ---
 
