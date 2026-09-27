@@ -20,3 +20,9 @@ Restored the original map land, cover, park, building, path, water and bright st
 Replaced the five small sprites with fourteen detailed 64 × 72 pixel miniatures: Liberty, Empire State, Central Park pigeon, Brooklyn Bridge, Times Square, Columbia crown, Unisphere, Yankee Stadium, Coney Island Wonder Wheel, Washington Square Arch, Flatiron, Chrysler, Grand Central and Hudson sailboat. Short labels reinforce identification. Artwork now occupies 52 × 64 CSS pixels at close zoom, growing smoothly to 65 × 80 at zoom 11 and below. Screen-space overlap suppression prioritizes major sights; panning and zooming recalculate visibility. Landmarks remain below pins and ignore touches.
 
 Reviewed the complete sprite sheet and the actual map renderer at Midtown and city overview scales in the browser, plus the Columbia view on iPhone 16e. Landmark tests verify all 14 sprites, size bounds, overlap suppression and visibility changes on pan. Existing map bridge behavior tests pass. Updated iOS simulator build succeeds. See landmarks.png and landmarks-map.png.
+
+## Home Screen icon and physical iPhone
+
+Added an opaque 1024 × 1024 AppIcon asset rendered directly from HermitBrandMark, including the Liberty torch. Both Debug and Release target settings use AppIcon, and the built Info.plist includes CFBundlePrimaryIcon. Regenerate with `python3 scripts/generate-app-icon.py` from apps/ios/HermiPreview on a Mac with Xcode.
+
+Physical iPhone 17 Pro was paired over USB with Developer Mode enabled. Compilation and asset processing completed; the synced Desktop build folder repeatedly acquired Finder metadata that blocked final signing. Copied the compiled bundle with `ditto --norsrc --noextattr` to a temporary folder, signed with the existing development identity/entitlements, and verified with `codesign --verify --deep --strict`. Device installation and launch both succeeded. No device settings or app data were reset.
