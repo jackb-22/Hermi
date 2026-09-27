@@ -203,6 +203,27 @@ Photos are assigned to seeded check-in places at random, so general NYC or campu
 - [ ] Social **off** removes every marker and line. Leaving the Map (Feed or Profile) stops polling.
 - [ ] Sample mode: the sample Social fixtures appear as before, labelled "SAMPLE SOCIAL · NOT LIVE".
 
+### CP-1: judge accounts, invites, and the full adventure (Steps 10–12)
+**Laptop, once:** seed the judge accounts, ava and ben, plus rehearsal accounts ava2 and ben2. All four are friends with each other.
+```sh
+cd apps/api && pnpm exec tsx --env-file=../../.env.demo scripts/seed.ts --reset --demo ava,ben,ava2,ben2
+```
+**Mac:** run `sh apps/ios/HermiPreview/scripts/check.sh`. Expect 86 tests. The app is now named **Hermi**.
+- [ ] Settings → Server: tap **@ava2** (demo account buttons, or type ava2 and Connect), and you're LIVE as ava2. Use the **rehearsal** accounts today; save ava and ben for the judges.
+- [ ] **Invite:** as ava2, add **Lerner Black Box Theatre** and **Butler Library** to My Plan. Hold the bookmark → Save → Friends → **ben2**.
+- [ ] **Join:** switch to **@ben2**. My Plan shows **FROM FRIENDS · "<plan>" · ava2 invited you** with **Join / Can't**. Tap Join, and the row becomes **Joined · Go!**
+- [ ] **Adventure (ben2):** tap **Go!** on the joined row. You see the Directions map with the route, the NEXT STOP card (distance, Open in Maps) and a stop list with **Tap tag** buttons. The top shows "OUTING · mm:ss".
+  - Location permission prompt: Allow. In the Simulator, Features → Location → Custom → 40.8068, -73.9640 puts you at Lerner.
+- [ ] **Tap tag** at Lerner Black Box Theatre shows "Checked in … +N XP". Do the same at Butler. Both rows show "✓ +N XP".
+- [ ] **Camera** tab: shutter. In the Simulator, a labelled sample photo is used. The thumbnail goes **Uploading… → Verified**. Before any check-in, the shutter is disabled with an explanation.
+- [ ] **End** → confirm → "Building your recap…" → **Recap**: duration, km, new tiles, **+XP** with each item, stops (TAG, FIRST).
+- [ ] **Would you go again?** Yes/No on a stop gives "You'd go again ✓".
+- [ ] **Post:** photos preselected, route card on, optional caption. Post shows "Posted…". Then **Done**, back to the Map.
+- [ ] **Profile** (ben2): the Score increased, and the post appears under Posts, where it opens full screen.
+- [ ] Switch to **@ava2**: ben2's post appears in the **Feed**. On the **Social** map, ben2's check-in marker shows.
+- [ ] Optional: as ava2, **Go!** from My Plan (your own plan) and Tap tag at Lerner within 30 min of ben2. The result shows **"Hangout with ben2"** (IRL streak).
+- [ ] Kill the app mid-outing and relaunch: the outing resumes (Action screen with the same timer).
+
 ---
 
 ## Deferred / deviations log
@@ -245,4 +266,6 @@ Items that are unconnected, need UI or backend work, or depart from `docs/HERMI_
 | D32 | Profile | Adventures shows explored tiles, not recorded routes (no route-history endpoint, D13). The profile photo is still the bundled crab (no upload, D12). Friend rows don't open friend profiles yet. The "least visited" and neighbourhood stats from the design have no API. | Backend gaps; speed. |
 | D33 | Map aesthetic | Explored tiles on Profile Adventures look too large at the default zoom. | User noted for the later aesthetic pass. |
 | D34 | Social | `friendPlans` (upcoming shared plans with Join) aren't drawn separately: their lines already come from `routes`, and Join lives in the Feed. Tapping a route line does nothing, only markers are tappable. Loved places and adventures have no API (D14). `demo-checkin.sh` mints dev venue tags, so never point it at Demo Hall. | Speed; backend gaps. |
+| D35 | Outing | "Tap tag" mints a dev venue tag per stop (the NFC stand-in) and refuses **Demo Hall**, whose real tag must keep working, so demo routes use Lerner Black Box Theatre. Location is foreground only, with no background tracking. Captures are photos through the system camera (sample photo in the Simulator). No ambient audio, video or QR. |
+| D36 | Config | The demo URL is baked into the app. The dev token is **not** in the source (credential policy). Enter it once in Settings → Server, or launch with `HERMI_DEV_TOKEN`; the app then auto-connects on a fresh install. |
 

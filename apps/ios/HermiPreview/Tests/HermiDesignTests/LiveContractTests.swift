@@ -38,7 +38,7 @@ final class LiveContractTests: XCTestCase {
     var config = LiveConfig.load(defaults, environment: env)
     XCTAssertEqual(config.baseURL, "https://env.example")
     XCTAssertEqual(config.devToken, "envtoken")
-    XCTAssertEqual(config.username, "jack")
+    XCTAssertEqual(config.username, "ava")
     XCTAssertNil(config.jwt)
     config.baseURL = "https://saved.example"; config.jwt = "jwt"
     config.save(defaults)
@@ -419,5 +419,36 @@ final class LiveContractTests: XCTestCase {
     XCTAssertTrue(live.detail("friend:01JENNY")?.contains("Book Culture") == true)
     XCTAssertTrue(live.detail("open:01PLAN")?.contains("Bagels then the park") == true)
     XCTAssertTrue(live.label.hasPrefix("SOCIAL · 1 OUT · 3 PLANS"))
+  }
+
+  func testOutingCheckinRecapAndCaptureStamp() throws {
+    let checkin = #"{"checkin":{"id":"01CI","placeId":"01BUTLER","tier":"tag","time":"2026-09-27T12:00:00.000Z","attested":false,"sessionId":"01S","planId":null},"place":{"id":"01BUTLER","name":"Butler Library","category":"culture","tags":[],"loc":{"lat":40.806,"lng":-73.963},"address":null,"been":1,"wouldGoAgainPct":null},"firstVisit":true,"xp":{"total":25,"items":[{"kind":"checkin_tag","xp":15,"label":"Tag check-in"},{"kind":"first_visit","xp":10,"label":"First visit"}]},"planStop":null,"hangouts":[{"friendId":"01BEN","streakWeeks":3}]}"#
+    let result = try HermiAPI.decoder.decode(CheckinResultDTO.self, from: Data(checkin.utf8))
+    XCTAssertEqual(result.xp.total, 25)
+    XCTAssertEqual(result.hangouts?.first?.streakWeeks, 3)
+    let recap = #"{"status":"ready","recap":{"sessionId":"01S","planId":null,"planName":null,"startedAt":"2026-09-27T12:00:00.000Z","endedAt":"2026-09-27T12:20:00.000Z","durationMin":20,"route":[{"lat":40.806,"lng":-73.963}],"segments":[],"newTiles":[{"x":1,"y":2}],"footKm":0.4,"totalKm":0.4,"steps":null,"stops":[{"checkinId":"01CI","placeId":"01BUTLER","placeName":"Butler Library","category":"culture","tier":"tag","time":"2026-09-27T12:05:00.000Z","firstVisit":true,"bestMediaId":"01M","mediaIds":["01M"],"reviewed":false}],"xp":{"total":25,"items":[{"kind":"checkin_tag","xp":15,"label":"Tag check-in"}]},"planCompleted":false,"fullParty":false,"posted":false}}"#
+    let response = try HermiAPI.decoder.decode(RecapResponseDTO.self, from: Data(recap.utf8))
+    XCTAssertEqual(response.status, "ready")
+    XCTAssertEqual(response.recap?.stops.first?.mediaIds, ["01M"])
+    XCTAssertEqual(response.recap?.newTiles.count, 1)
+    // Sample captures get a JPEG comment segment: still a JPEG, a new hash every time.
+    let jpeg = Data([0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46])
+    let a = LiveOuting.stamped(jpeg), b = LiveOuting.stamped(jpeg)
+    XCTAssertEqual(Array(a.prefix(4)), [0xFF, 0xD8, 0xFF, 0xFE])
+    XCTAssertEqual(a.count, jpeg.count + 20)
+    XCTAssertNotEqual(a, b)
+    XCTAssertEqual(LiveOuting.stamped(Data([1, 2, 3])), Data([1, 2, 3]), "non-JPEG bytes are left alone")
+  }
+
+  func testSocialFriendPlansSplitIntoInvitesAndJoined() throws {
+    let json = #"{"friendsOut":[],"routes":[],"friendPlans":[{"plan":\#(Self.planJSON),"action":"invited"},{"plan":\#(Self.planJSON.replacingOccurrences(of: "01PLAN", with: "01JOINED")),"action":"joined"},{"plan":\#(Self.planJSON.replacingOccurrences(of: "01PLAN", with: "01OPEN")),"action":"join"}],"openPlans":[],"refreshAfterS":30}"#
+    let social = try HermiAPI.decoder.decode(SocialDTO.self, from: Data(json.utf8))
+    let live = LiveSocial()
+    live.apply(social)
+    XCTAssertEqual(live.invitations.map(\.plan.id), ["01PLAN"])
+    XCTAssertEqual(live.joined.map(\.plan.id), ["01JOINED"])
+    var state = MapPreviewState()
+    state.startAction(stops: live.joined[0].plan.stops.compactMap { $0.place?.id })
+    XCTAssertEqual(state.actionSession?.stopIDs, ["01BAGEL", "01PARK"], "joined plan stops were added to the catalog")
   }
 }

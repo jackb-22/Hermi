@@ -24,6 +24,11 @@ extension MapPreviewState {
     guard actionSession == nil, canStartPlan else { return }
     actionSession = ActionPreviewSession(stops: planIDs, now: now)
   }
+  /// Starts Action for an explicit stop list (a friend's plan I've joined).
+  mutating func startAction(stops: [String], now: Date = Date()) {
+    guard actionSession == nil else { return }
+    actionSession = ActionPreviewSession(stops: stops, now: now)
+  }
   mutating func finishActionPreview(now: Date = Date()) { actionSession?.finish(now: now) }
   mutating func dismissActionRecap() {
     guard actionSession?.endedAt != nil else { return }

@@ -5,17 +5,23 @@ import Observation
 struct LiveConfig: Equatable {
   var baseURL: String = ""
   var devToken: String = ""
-  var username: String = "jack"
+  var username: String = LiveConfig.demoUsername
   var jwt: String?
+
+  /// Demo backend URL baked in, so a fresh install points at it; the dev token is never in source
+  /// (enter it in Settings → Server, or launch with HERMI_DEV_TOKEN).
+  static let demoBaseURL = "https://applicants-marion-exploration-cabinet.trycloudflare.com"
+  static let demoUsername = "ava"
+  static let demoAccounts = ["ava", "ben"]
 
   private static let keys = (base: "hermi.live.baseURL", dev: "hermi.live.devToken", user: "hermi.live.username", jwt: "hermi.live.jwt")
 
   /// Saved values win; the launch environment (HERMI_API_BASE / HERMI_DEV_TOKEN) only fills blanks.
   static func load(_ defaults: UserDefaults = .standard, environment: [String: String] = ProcessInfo.processInfo.environment) -> LiveConfig {
     var config = LiveConfig()
-    config.baseURL = defaults.string(forKey: keys.base) ?? environment["HERMI_API_BASE"] ?? ""
+    config.baseURL = defaults.string(forKey: keys.base) ?? environment["HERMI_API_BASE"] ?? demoBaseURL
     config.devToken = defaults.string(forKey: keys.dev) ?? environment["HERMI_DEV_TOKEN"] ?? ""
-    config.username = defaults.string(forKey: keys.user) ?? environment["HERMI_USERNAME"] ?? "jack"
+    config.username = defaults.string(forKey: keys.user) ?? environment["HERMI_USERNAME"] ?? demoUsername
     config.jwt = defaults.string(forKey: keys.jwt)
     return config
   }
@@ -64,6 +70,7 @@ final class LiveSession {
     next.devToken = devToken.trimmingCharacters(in: .whitespacesAndNewlines)
     next.username = username.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
     next.jwt = nil
+    UserDefaults.standard.set(false, forKey: LiveSession.optedOutKey)
     guard let url = next.url else {
       config = next; config.save(); status = .failed("Enter the full https:// server URL.")
       return
@@ -85,6 +92,12 @@ final class LiveSession {
   /// A freshly booted Simulator often has no network for the first seconds, so transport errors retry.
   @MainActor
   func restore() async {
+    // Fresh install with a token available: sign in automatically (unless Disconnect was chosen).
+    if config.jwt == nil, config.url != nil, !config.devToken.isEmpty,
+       !UserDefaults.standard.bool(forKey: LiveSession.optedOutKey), status == .sample {
+      await connect(baseURL: config.baseURL, devToken: config.devToken, username: config.username)
+      return
+    }
     guard me == nil, status != .connecting, let url = config.url, let jwt = config.jwt else { return }
     status = .connecting
     let client = HermiAPI(baseURL: url, token: jwt, devToken: config.devToken)
@@ -116,8 +129,11 @@ final class LiveSession {
   @MainActor
   func replaceMe(_ updated: MeDTO) { if me?.id == updated.id { me = updated } }
 
+  static let optedOutKey = "hermi.live.optedOut"
+
   @MainActor
   func disconnect() {
+    UserDefaults.standard.set(true, forKey: LiveSession.optedOutKey)
     config.jwt = nil; config.save()
     me = nil; status = .sample
   }

@@ -133,7 +133,9 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = Y6YL6C7GDZ;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "Hermi Preview";
+				INFOPLIST_KEY_CFBundleDisplayName = Hermi;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Hermi takes verified photos at places you check in to.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Hermi records your route during an outing and checks you in at the places you visit.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				MARKETING_VERSION = 0.1.0;
@@ -153,7 +155,9 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = Y6YL6C7GDZ;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "Hermi Preview";
+				INFOPLIST_KEY_CFBundleDisplayName = Hermi;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Hermi takes verified photos at places you check in to.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Hermi records your route during an outing and checks you in at the places you visit.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				MARKETING_VERSION = 0.1.0;

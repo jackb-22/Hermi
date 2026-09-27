@@ -5,6 +5,8 @@ struct PlanPreviewPage: View {
   var saved: Bool
   var close: () -> Void
   var go: () -> Void
+  /// Start a friend's plan I've joined: (server plan ID, stop place IDs).
+  var goJoined: ((String, [String]) -> Void)? = nil
   private var times: [String: PreviewStopTime] { state.stopTimes ?? [:] }
   @State private var editor: MapSamplePlace?
   @State private var participants: MapSamplePlace?
@@ -68,7 +70,7 @@ struct PlanPreviewPage: View {
         HStack(spacing: 12) {
           VStack(alignment: .leading, spacing: 3) {
             Text(state.editingSavedPlan?.name ?? "Current draft").font(.subheadline.bold()).lineLimit(1)
-            Text(state.editingSavedPlan == nil ? "On this device" : "Autosaves on this device")
+            Text(LiveSession.shared.isLive ? "Synced to your account" : (state.editingSavedPlan == nil ? "On this device" : "Autosaves on this device"))
               .font(.caption2).foregroundStyle(HermiPalette.secondary)
           }
           Spacer()
@@ -81,6 +83,7 @@ struct PlanPreviewPage: View {
             .opacity(state.canUndoPlan ? 1 : 0.35).controlHelp("Undo the last change to stops, times or invite selections")
         }.padding(.horizontal, 20)
         if showDrawer { savedDrawer }
+        if LiveSession.shared.isLive, let goJoined { InvitationsSection(goJoined: goJoined) }
         if let saveFeedback {
           Text(saveFeedback).font(.caption).padding(.horizontal, 18).accessibilityAddTraits(.updatesFrequently)
         }

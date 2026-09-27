@@ -9,6 +9,9 @@ final class LiveSocial {
   private(set) var friendsOut: [SocialDTO.FriendOut] = []
   private(set) var routes: [SocialDTO.Route] = []
   private(set) var openPlans: [SocialDTO.OpenPlan] = []
+  /// Friends' upcoming shared plans with my relation: "invited", "joined" or "join" (open to friends).
+  private(set) var friendPlans: [SocialDTO.FriendPlan] = []
+  private(set) var responding: String?
   private(set) var refreshAfter = 30
   private(set) var error: String?
 
@@ -27,11 +30,32 @@ final class LiveSocial {
     friendsOut = social.friendsOut
     routes = social.routes
     openPlans = social.openPlans
+    friendPlans = social.friendPlans ?? []
+    for item in friendPlans { PlaceCatalog.shared.upsert(item.plan.stops.compactMap { $0.place?.place }) }
     refreshAfter = social.refreshAfterS ?? 30
     error = nil
   }
 
-  func reset() { friendsOut = []; routes = []; openPlans = []; error = nil }
+  func reset() { friendsOut = []; routes = []; openPlans = []; friendPlans = []; error = nil }
+
+  /// Plans I'm invited to, and ones I've joined (hosted by friends).
+  var invitations: [SocialDTO.FriendPlan] { friendPlans.filter { $0.action == "invited" } }
+  var joined: [SocialDTO.FriendPlan] { friendPlans.filter { $0.action == "joined" } }
+
+  /// Join (or decline) a friend's plan, then refresh. Returns an error message, or nil.
+  @MainActor
+  func respond(to planID: String, join: Bool) async -> String? {
+    guard let api = LiveSession.shared.api, responding == nil else { return nil }
+    responding = planID
+    defer { responding = nil }
+    do {
+      let _: PlanDTO = try await api.send("POST", "/plans/\(planID)/\(join ? "join" : "decline")", body: JoinRequestBody())
+      await load()
+      return nil
+    } catch {
+      return error.localizedDescription
+    }
+  }
 
   /// Markers for map.html: "current" blinks (there now, per check-ins), "recent" is steady, "quest" is an open plan.
   var markers: [[String: Any]] {

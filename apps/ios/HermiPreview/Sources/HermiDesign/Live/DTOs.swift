@@ -318,8 +318,135 @@ struct SocialDTO: Decodable, Sendable {
     var startAt: String?
   }
   struct OpenPlan: Decodable, Sendable { var plan: PlanDTO; var action: String }
+  /// Friends' upcoming shared plans; action is "join", "joined" or "invited".
+  struct FriendPlan: Decodable, Sendable { var plan: PlanDTO; var action: String }
   var friendsOut: [FriendOut]
   var routes: [Route]
+  var friendPlans: [FriendPlan]?
   var openPlans: [OpenPlan]
   var refreshAfterS: Int?
+}
+
+// MARK: Outings (Action mode)
+
+struct SessionDTO: Decodable, Sendable {
+  var id: String
+  var planId: String?
+  var status: String
+  var startedAt: String?
+}
+
+struct StartSessionResponseDTO: Decodable, Sendable { var session: SessionDTO }
+struct ActiveSessionDTO: Decodable, Sendable { var session: SessionDTO? }
+struct StartSessionBody: Encodable { var planId: String? }
+
+struct XPItemDTO: Decodable, Equatable, Sendable { var kind: String; var xp: Int; var label: String }
+struct XPDTO: Decodable, Equatable, Sendable { var total: Int; var items: [XPItemDTO] }
+
+struct CheckinResultDTO: Decodable, Sendable {
+  struct Checkin: Decodable, Sendable { var id: String; var placeId: String; var tier: String }
+  struct Hangout: Decodable, Sendable { var friendId: String; var streakWeeks: Int }
+  var checkin: Checkin
+  var firstVisit: Bool?
+  var xp: XPDTO
+  var hangouts: [Hangout]?
+}
+
+struct DevTagBody: Encodable { var kind = "venue"; var placeId: String; var bindToMe = false }
+struct DevTagDTO: Decodable, Sendable { var tagId: String; var url: String }
+
+struct TagCheckinBody: Encodable {
+  var tier = "tag"
+  var tagUrl: String
+  var sessionId: String?
+  var lat: Double
+  var lng: Double
+  var accuracy: Double
+}
+
+struct PointBody: Encodable {
+  var lat: Double
+  var lng: Double
+  var accuracy: Double
+  var speed: Double?
+  var time: Date
+}
+struct PointsBody: Encodable { var points: [PointBody] }
+struct EndSessionBody: Encodable { var steps: Int? }
+
+struct RecapResponseDTO: Decodable, Sendable {
+  var status: String
+  var recap: RecapDTO?
+}
+
+struct RecapDTO: Decodable, Sendable {
+  struct Stop: Decodable, Sendable {
+    var checkinId: String
+    var placeId: String
+    var placeName: String
+    var category: String?
+    var tier: String
+    var firstVisit: Bool?
+    var bestMediaId: String?
+    var mediaIds: [String]
+    var reviewed: Bool?
+  }
+  var sessionId: String
+  var planId: String?
+  var planName: String?
+  var durationMin: Int?
+  var route: [LatLngDTO]
+  var newTiles: [TilesDTO.Tile]
+  var footKm: Double?
+  var totalKm: Double?
+  var steps: Int?
+  var stops: [Stop]
+  var xp: XPDTO
+  var planCompleted: Bool?
+  var fullParty: Bool?
+  var posted: Bool?
+}
+
+// MARK: Captures and posting
+
+struct PresignBody: Encodable {
+  var checkinId: String
+  var kind = "photo"
+  var contentType = "image/jpeg"
+  var sha256: String
+  var bytes: Int
+  var capturedAt: Date
+  var lat: Double
+  var lng: Double
+}
+
+struct MediaDTO: Decodable, Sendable {
+  var id: String
+  var status: String
+  var checkinId: String?
+  var renditionUrl: String?
+  var url: String?
+  var verifyUrl: String?
+  var rejectReason: String?
+}
+
+struct PresignResponseDTO: Decodable, Sendable {
+  struct Upload: Decodable, Sendable { var url: String; var method: String?; var headers: [String: String] }
+  var media: MediaDTO
+  var upload: Upload
+}
+
+struct MediaListDTO: Decodable, Sendable { var items: [MediaDTO] }
+
+struct CreatePostBody: Encodable {
+  var sessionId: String?
+  var mediaIds: [String]
+  var includeRoute: Bool
+  var caption: String?
+}
+
+struct ReviewBody: Encodable {
+  var checkinId: String
+  var again: Bool
+  var text: String?
 }

@@ -40,6 +40,11 @@ final class PlanSync {
 
   func serverID(forKey key: String) -> String? { serverIDs[key] }
 
+  /// The server plan behind whatever My Plan is showing (a saved plan, or the draft).
+  func serverPlanID(for state: MapPreviewState) -> String? {
+    serverIDs[state.activeSavedPlanID?.uuidString ?? PlanSync.draftKey]
+  }
+
   // MARK: Pull
 
   struct Hydration {

@@ -27,7 +27,17 @@ struct ServerSettingsSection: View {
       }
       TextField("https://….trycloudflare.com", text: $baseURL).liveInputStyle()
       TextField("Dev token", text: $devToken).liveInputStyle()
-      TextField("Username (jack or jenny)", text: $username).liveInputStyle()
+      TextField("Username", text: $username).liveInputStyle()
+      HStack(spacing: 8) {
+        Text("Demo accounts:").font(.caption)
+        ForEach(LiveConfig.demoAccounts, id: \.self) { account in
+          Button("@\(account)") {
+            username = account
+            Task { await live.connect(baseURL: baseURL, devToken: devToken, username: account) }
+          }.font(.caption.bold()).padding(.horizontal, 10).frame(minHeight: 32)
+            .background(live.me?.username == account ? HermiPalette.lime : .white, in: PixelPanel(corner: 5))
+        }
+      }
       HStack(spacing: 10) {
         Button(live.status == .connecting ? "Connecting…" : "Connect") {
           Task { await live.connect(baseURL: baseURL, devToken: devToken, username: username) }

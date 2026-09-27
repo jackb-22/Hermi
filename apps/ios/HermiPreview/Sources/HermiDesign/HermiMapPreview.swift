@@ -69,7 +69,16 @@ public struct HermiMapPreview: View {
 
         if let sheet = state.sheet {
           if sheet == .plan || sheet == .saved {
-            PlanPreviewPage(state: $state, saved: sheet == .saved, close: { state.sheet = nil }, go: { state.startActionPreview() })
+            PlanPreviewPage(state: $state, saved: sheet == .saved, close: { state.sheet = nil }, go: {
+              state.startActionPreview()
+              if LiveSession.shared.isLive, state.actionSession != nil {
+                let planID = PlanSync.shared.serverPlanID(for: state)
+                Task { await LiveOuting.shared.start(planID: planID) }
+              }
+            }, goJoined: { planID, stops in
+              state.startAction(stops: stops)
+              if state.actionSession != nil { Task { await LiveOuting.shared.start(planID: planID) } }
+            })
               .padding(.top, safeGeometry.safeAreaInsets.top)
           } else {
             VStack { Spacer(); bottomSheet(sheet, height: geometry.size.height, safeTop: safeGeometry.safeAreaInsets.top) }.transition(.move(edge: .bottom))
@@ -91,7 +100,15 @@ public struct HermiMapPreview: View {
     .allowsHitTesting(state.actionSession == nil)
     .overlay {
       if let session = state.actionSession {
-        ActionModePreview(session: session, selectMode: { state.actionSession?.mode = $0 }, end: { state.finishActionPreview() }, done: { state.dismissActionRecap() })
+        if LiveSession.shared.isLive {
+          LiveActionView(session: session, selectMode: { state.actionSession?.mode = $0 }, done: {
+            state.finishActionPreview(); state.dismissActionRecap()
+            LiveOuting.shared.reset()
+            Task { await LiveProfile.shared.load(force: true); await LiveFeed.shared.load(force: true) }
+          })
+        } else {
+          ActionModePreview(session: session, selectMode: { state.actionSession?.mode = $0 }, end: { state.finishActionPreview() }, done: { state.dismissActionRecap() })
+        }
       }
     }
     .accessibilityHidden(showingIntro)
@@ -196,9 +213,11 @@ public struct HermiMapPreview: View {
           if let plans = await PlanSync.shared.hydrate(), let me = LiveSession.shared.me, LiveSession.shared.isLive {
             PlanSync.shared.apply(plans, account: me.username, to: &state)
           }
+          // An outing left running (app killed mid-adventure) resumes.
+          if state.actionSession != nil { await LiveOuting.shared.restore() }
         }
       } else {
-        SavedSync.shared.reset(); PlanSync.shared.reset(); LiveFeed.shared.reset(); LiveProfile.shared.reset(); LiveSocial.shared.reset()
+        SavedSync.shared.reset(); PlanSync.shared.reset(); LiveFeed.shared.reset(); LiveProfile.shared.reset(); LiveSocial.shared.reset(); LiveOuting.shared.reset()
       }
     }
     .task(id: socialPolling) {
