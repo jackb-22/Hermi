@@ -1,8 +1,18 @@
 # Hermi frontend progress
 
-Updated: 2026-09-27. Branch: codex/cairn-frontend. No pushes authorized.
+Updated: 2026-09-27. Branch: frontend. Earlier 47-commit history pushed with user authorization; subsequent branding work is local for review.
 
 ## Current checkpoint
+
+### Skyscraper-crab branding increment — implemented for review
+
+Read Desktop/Divhacks/App logo.jpg. User confirmed retaining skyscraper shell and simplifying scenery. Implemented a code-native vector pixel mark, using coral/lavender/paper/ink, with separate shell/body/feet for scalable animation. Original reference is preserved in docs/design-reference/2026-09-27-brand/source-logo.jpg; source image was not modified. Updated small profile mark and static Plan/Saved/Feed empty/end motifs.
+
+Intro: peep, cautious first step/pause, crawl across, faint tracks, clear screen, logo fade, Map at ~5.4 seconds. One-time local flag consumed on entry; existing preview users bypass it. Explicit --hermi-demo or Settings replay allows review; active Action recovery overrides the intro. Reduced Motion uses a static ~0.8-second reveal. Skip stays available. Reusable nonmodal loader added to map initialization and component-lab loading state; dismissal leaves loaded UI operable, readiness/error clears it, 15-second watchdog prevents a stuck indicator. No fake network delay or backend progress.
+
+57 tests pass (first-open/demo/existing-user/recovery policy and animation boundary tests). Simulator and unsigned iPhone builds pass. Crawl, logo and empty-plan screenshots inspected; Skip and returning-user launch bypass exercised. Physical-phone pacing, Reduce Motion and fresh-install user review remain pending. Native Home Screen icon packaging is not part of this in-app mark increment. Source files/earlier personal signing work untouched; branding commits local, not pushed.
+
+Next: user reviews replay and mark at small size; adjust artwork/timing before propagating further. Required authenticated onboarding and Action integration remain separate unfinished work.
 
 ### Social marker readability correction
 
@@ -168,3 +178,5 @@ Run the Step 8 local editing checklist in test.md on iPhone and correct feedback
 ## Build notes
 
 The simulator uses iPhone17 Pro Max, UDID 0EA96F52-7FA4-40B1-BEF0-B1CD5B9EBCB9, runtime iOS26.3. App identifier tech.hermi.designpreview. Initial simulator build exposed mismatched architecture selection; the standalone Debug app target now uses ONLY_ACTIVE_ARCH=YES and builds successfully. Its AppIntents metadata warning is non-blocking because this preview has no AppIntents dependency. Build artifacts/logs are ignored under apps/ios/HermiPreview/.build; no build cache was committed. The standalone package tests run with DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swift test --disable-sandbox.
+
+Verification update: Settings → Replay intro demo was invoked in Simulator and returned to Map automatically. Final unsigned iPhone rebuild passed after the returning-user migration adjustment.

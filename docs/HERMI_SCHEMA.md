@@ -191,3 +191,11 @@ User removes press-and-hold textual control explanations everywhere. Accessibili
 SocialResponse currently supplies recent check-ins (three hours), upcoming friend plans and open plans; it lacks confirmed live presence and loved-place/adventure fields. These backend gaps are flagged, not implemented. The preview's active/loved routes are illustrative fixtures, not inferred friend GPS or saved-item access.
 
 Social current-place marker clarification: use a simple two-person silhouette inside a pixel-edged green circle, with a dark perimeter and light foreground for map readability. Avoid detached full-body sprites. Preserve blink–blink–pause and Reduce Motion behavior.
+
+## Branding amendment — confirmed skyscraper shell
+
+Reference: Desktop/Divhacks/App logo.jpg. User confirmed preserving the coral hermit crab with its NYC skyscraper shell while removing lamp/tree/torch/scenery and fine shading. Use flat existing brand colors and scalable pixel geometry. Avoid restoring those details at small sizes.
+
+First-open branding is optional decoration before the preview Map, not identity verification. It runs only once for a new local installation, or explicit Demo mode. Existing preview data counts as returning use. Mark seen on presentation/skip to avoid repeated interruption; active outing recovery always wins. Peep → cautious step/pause → horizontal crawl and faint temporary tracks → complete offscreen exit → logo fade → Map. Current draft timing ~5.4 seconds; Reduce Motion substitutes a static ~0.8-second reveal. Skip remains available. Settings replay returns to Map and never changes plans, privacy or Saved. Required production authentication/onboarding rules remain intact.
+
+Loading uses a compact loop of the same crab with subtle temporary tracks. It must be scoped to actual loading, dismissible without covering surrounding loaded controls, and replaced by errors rather than spinning forever. Current preview integrates map initialization and component-lab loading; no backend fetches are simulated. Static empty-state/profile motifs share the mark. No random movement is added over functional controls.

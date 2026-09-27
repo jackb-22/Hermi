@@ -2,7 +2,21 @@
 
 This is the user-facing test entry point. Product reference: [unified design schema](docs/HERMI_SCHEMA.md). Resume/checkpoint: [progress](PROGRESS.md).
 
-## Current review: Social map clarification and no hold explanations
+## Current review: skyscraper-crab branding
+
+Build/run HermiPreview, then **Profile → Settings → Replay intro demo**. Simulator is ready with this build; the physical iPhone must be rebuilt/installed to get these changes.
+
+1. **Visual sequence:** on a solid brand-paper background, the crab peeks out, makes one cautious step/pause, then crawls left → right with faint temporary tracks. It must fully exit before the larger logo and `hermi` wordmark fade in. Map follows at about 5.4 seconds. Skip always works.
+2. **Launch boundaries:** normal returning-user launch goes straight to Map; users with existing preview data bypass the new intro too. A genuinely new install shows it once. Viewing or skipping consumes that first-open flag, so interruption never forces repeated intros. Active Action preview recovery takes priority. Do not erase your personal app data just to test first open; use a spare simulator. The model tests cover first-open, existing data, explicit demo and recovery rules.
+3. **Demo replay:** from Settings tap Replay intro demo. It should dismiss Settings, return the underlying page to Map, play once and finish on Map. The command-line `--hermi-demo` flag forces playback on launch, independently of the seen flag; remove it to test normal launches.
+4. **Reduce Motion:** enable iOS Reduce Motion, then replay. A static mark replaces the crawl/trails and transitions after about 0.8 seconds. Background/foreground the app: no duplicated intro should appear.
+5. **Loading:** while map initialization is pending, a compact peeking/stepping crab appears with temporary tiny tracks. X dismisses the indicator; loaded navigation remains usable. The indicator clears on ready/error and times out after 15 seconds. It does not cancel network requests or claim backend progress. In the component lab, the loading sample also uses this component and its cancel returns to the ready sample.
+6. **Motif/scaling:** inspect the small profile mark, an empty My Plan, empty Saved and Feed's empty/end screen. The crab stays static and does not occupy controls. Verify the skyscraper remains recognizable at those sizes and larger accessibility text remains usable. No surprise random easter-egg overlay has been introduced.
+7. **Feedback:** send the logo reveal screenshot and a recording of one full replay, especially if pacing, trails or the shell silhouette need adjustment.
+
+57 Swift tests pass; Simulator and unsigned iPhone builds pass. Screenshot frames checked for crawl, reveal and empty-plan layout; normal launch bypass and Skip were exercised. Physical-device motion, Reduce Motion and first-install acceptance remain open. [Evidence and source reference](docs/design-reference/2026-09-27-brand/REVIEW.md). This is branding in the preview, not an implementation or bypass of required sign-in/school verification. Home Screen app-icon packaging remains separate from the in-app mark.
+
+## Previous review: Social map clarification and no hold explanations
 
 Run the updated app with ⌘R in Xcode, with your connected iPhone selected.
 
@@ -335,3 +349,5 @@ The handoff will provide exact device setup steps. A camera specimen is not proo
 ## Handoff record
 
 Each increment records schema revision, frontend commit/build, backend revision or sample-only status, launch/reset path, numbered tests, automated results, blocked checks, user feedback and acceptance. Never mark unrun tests as passed. No advance from silence.
+
+Verification update: Settings → Replay intro demo was invoked in Simulator and returned to Map automatically. Final unsigned iPhone rebuild passed after the returning-user migration adjustment.
