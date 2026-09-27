@@ -7,7 +7,7 @@ for(const [name,color] of Object.entries(palette))document.documentElement.style
 html,body,#map{margin:0;width:100%;height:100%;overflow:hidden;background:var(--water)}canvas{image-rendering:pixelated}.maplibregl-ctrl-attrib{font:8px system-ui;background:color-mix(in srgb,var(--paper) 80%,transparent)!important}.maplibregl-ctrl-bottom-left{bottom:var(--controls-bottom,110px);left:20px;transition:bottom .2s ease-out}
 .maplibregl-ctrl-attrib.maplibregl-compact{margin:0;min-height:44px;padding:0 44px 0 0;border-radius:6px;max-width:calc(100vw - 104px)}
 .maplibregl-ctrl-attrib .maplibregl-ctrl-attrib-button{width:44px;height:44px;background-position:center;background-repeat:no-repeat}
-.maplibregl-ctrl-attrib.maplibregl-compact-show{padding:0 0 0 44px}
+.maplibregl-ctrl-bottom-left>.maplibregl-ctrl-attrib.maplibregl-compact-show{padding:0 0 0 44px}
 .maplibregl-ctrl-attrib-inner{font:10px/1.4 system-ui;padding:8px;min-height:28px}
 .reduce-motion .maplibregl-ctrl-bottom-left{transition:none}
 .pin{z-index:20;filter:drop-shadow(1px 2px 0 #29343f30);border:0;padding:0;background:none;width:44px;height:52px;cursor:pointer;display:flex;align-items:flex-end;justify-content:center}.pin svg{width:33px;height:42px;overflow:visible;image-rendering:pixelated}.notice{position:absolute;bottom:112px;left:10px;font:9px monospace;color:var(--ink);background:color-mix(in srgb,var(--paper) 86%,transparent);padding:3px;pointer-events:none}#error{display:none;position:absolute;top:45%;left:16px;right:85px;padding:16px;background:var(--paper);font:13px system-ui;color:var(--ink);box-shadow:4px 4px var(--ink)}#error button{padding:10px;margin-top:8px;background:var(--lime);border:0;display:block}a{color:var(--ink)}
