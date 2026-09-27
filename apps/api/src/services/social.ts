@@ -169,10 +169,12 @@ export async function venueHangouts(
   if (c.tier !== 'tag' || !c.tagId) return [];
   const friends = await friendIds(ctx.db, c.userId);
   if (!friends.length) return [];
+  // Same venue, not the same tag object: a venue can hold more than one tag (a replaced sticker, or the
+  // app's tag stand-in), and friends tapping in together should always count.
   const { rows } = await ctx.tiger.query<{ user_id: string }>(
-    `select distinct user_id from checkins where tag_id = $1 and user_id = any($2) and time between $3 and $4`,
+    `select distinct user_id from checkins where place_id = $1 and tier = 'tag' and user_id = any($2) and time between $3 and $4`,
     [
-      c.tagId,
+      c.placeId,
       friends,
       new Date(c.time.getTime() - CO_CHECKIN_MS),
       new Date(c.time.getTime() + CO_CHECKIN_MS),

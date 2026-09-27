@@ -146,7 +146,7 @@ describe('POST /taps', () => {
     t.ctx.clock.offsetMs = 0;
   });
 
-  test('next week a tap moves the streak; friends at the same venue tag within 30 min log a hangout', async () => {
+  test('next week a tap moves the streak; friends tagging in at the same venue within 30 min log a hangout', async () => {
     t.ctx.clock.offsetMs = 7 * 86_400_000;
     await tap(maya, samTag.url);
     expect((await tap(sam, mayaTag.url)).json()).toMatchObject({
@@ -159,6 +159,8 @@ describe('POST /taps', () => {
       placeDoc({ name: 'Bar', category: 'drinks', at: ORIGIN }),
     ]);
     const vt = await venueTag(t.ctx.db, bar!._id);
+    // A second tag at the same venue (a replaced sticker, or the app's tag stand-in) still counts together.
+    const vt2 = await venueTag(t.ctx.db, bar!._id);
     const m = await tap(maya, vt.url);
     expect(m.json()).toMatchObject({
       kind: 'venue',
@@ -166,7 +168,7 @@ describe('POST /taps', () => {
       checkin: { hangouts: [] },
     });
     t.ctx.clock.offsetMs += 20 * 60_000;
-    const s = await tap(sam, vt.url);
+    const s = await tap(sam, vt2.url);
     expect(s.json().checkin.hangouts).toEqual([{ friendId: maya.id, streakWeeks: 3 }]);
     t.ctx.clock.offsetMs = 0;
     const { rows } = await t.ctx.tiger.query('select source from hangouts order by time');
