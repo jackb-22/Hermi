@@ -14,3 +14,9 @@ Only the design files were staged. Unrelated untracked duplicate files appeared 
 ## User refinement: vibrant map and Liberty torch
 
 Restored the original map land, cover, park, building, path, water and bright street colors. UI category colors and pin/landmark improvements remain. Added a patinated copper Statue of Liberty torch with a gold flame to the raised crab claw; it travels with the crab during the intro. Updated brand.png from the iPhone 16e simulator. Simulator build and map bridge checks passed.
+
+## Landmark expansion and zoom response
+
+Replaced the five small sprites with fourteen detailed 64 × 72 pixel miniatures: Liberty, Empire State, Central Park pigeon, Brooklyn Bridge, Times Square, Columbia crown, Unisphere, Yankee Stadium, Coney Island Wonder Wheel, Washington Square Arch, Flatiron, Chrysler, Grand Central and Hudson sailboat. Short labels reinforce identification. Artwork now occupies 52 × 64 CSS pixels at close zoom, growing smoothly to 65 × 80 at zoom 11 and below. Screen-space overlap suppression prioritizes major sights; panning and zooming recalculate visibility. Landmarks remain below pins and ignore touches.
+
+Reviewed the complete sprite sheet and the actual map renderer at Midtown and city overview scales in the browser, plus the Columbia view on iPhone 16e. Landmark tests verify all 14 sprites, size bounds, overlap suppression and visibility changes on pan. Existing map bridge behavior tests pass. Updated iOS simulator build succeeds. See landmarks.png and landmarks-map.png.
