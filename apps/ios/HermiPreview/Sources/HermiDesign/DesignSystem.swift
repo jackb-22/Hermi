@@ -160,7 +160,7 @@ struct HermitSprite: View {
 
 struct CategorySprite: View {
   let category: HermiCategory
-  private var rows: [String] {
+  static func rows(for category: HermiCategory) -> [String] {
     switch category {
     case .food: return [" I I   I "," I I  II "," III  II ","  I   II ","  I    I ","  I    I ","  I    I ","  I    I "]
     case .shopping: return ["   III   ","  I   I  ","  I   I  "," IIIIIII "," I I I I "," I     I "," I     I "," IIIIIII "]
@@ -171,7 +171,7 @@ struct CategorySprite: View {
     case .music: return ["   IIIII ","   I   I ","   I   I ","   I   I ","   I III "," III III "," III     ","         "]
     }
   }
-  var body: some View { PixelSprite(rows: rows, colors: ["I": HermiPalette.ink]) }
+  var body: some View { PixelSprite(rows: Self.rows(for: category), colors: ["I": HermiPalette.ink]) }
 }
 
 struct ParkPlacement: View {

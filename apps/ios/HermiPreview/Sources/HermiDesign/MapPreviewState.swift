@@ -54,14 +54,46 @@ struct MapPreviewState: Codable, Equatable {
   var sheet: MapPreviewSheet?
   var returnSheet: MapPreviewSheet?
   var discovery: CGPoint? // Legacy illustration state, retained only for migration/tests.
-  var geographicDiscovery: GeoPoint?
+  var geographicDiscovery: GeoPoint? // Legacy key retained for existing preview snapshots.
+  var discoveryPin: DiscoveryPin?
   var planIDs: [String] = []
   var savedIDs: Set<String> = []
 
   var showsPlan: Bool { true }
   var nearby: [MapSamplePlace] { MapSamplePlace.all.filter { place in
-    (!filterEnabled || place.category == category) && (geographicDiscovery.map { $0.distance(to: place.coordinate) <= 1500 } ?? true)
+    if let pin = discoveryPin {
+      return place.category == pin.category && pin.coordinate.distance(to: place.coordinate) <= pin.radiusMeters
+    }
+    return !filterEnabled || place.category == category
   } }
+
+  mutating func restoreDiscovery() {
+    if discoveryPin == nil, let point = geographicDiscovery, NYCLandMask.shared.allows(point) {
+      discoveryPin = DiscoveryPin(category: category, coordinate: point)
+    }
+    if let pin = discoveryPin,
+       !NYCLandMask.shared.allows(pin.coordinate) || !pin.radiusMiles.isFinite || !(0.25...4).contains(pin.radiusMiles) {
+      discoveryPin = nil
+    }
+    geographicDiscovery = discoveryPin?.coordinate
+  }
+
+  @discardableResult mutating func moveDiscovery(id: UUID, to point: GeoPoint) -> Bool {
+    guard discoveryPin?.id == id, NYCLandMask.shared.allows(point) else { return false }
+    discoveryPin?.coordinate = point
+    geographicDiscovery = point
+    return true
+  }
+  mutating func setDiscoveryRadius(id: UUID, miles: Double) {
+    guard discoveryPin?.id == id, miles.isFinite else { return }
+    discoveryPin?.radiusMiles = min(4, max(0.25, miles))
+  }
+  mutating func removeDiscovery(id: UUID) {
+    guard discoveryPin?.id == id else { return }
+    discoveryPin = nil; geographicDiscovery = nil; discovery = nil
+    if sheet == .nearby { sheet = nil }
+    if returnSheet == .nearby { returnSheet = nil }
+  }
 
   mutating func switchPanel(_ panel: HomePanel) { self.panel = panel; sheet = nil; returnSheet = nil }
   mutating func cycleCategory(_ delta: Int) {
@@ -75,11 +107,12 @@ struct MapPreviewState: Codable, Equatable {
     filterEnabled = true
     sheet = .nearby
   }
-  mutating func dropGeographicPin(at point: GeoPoint) {
-    guard point.isValid else { return }
+  @discardableResult mutating func dropGeographicPin(at point: GeoPoint) -> Bool {
+    guard NYCLandMask.shared.allows(point) else { return false }
+    discoveryPin = DiscoveryPin(category: category, coordinate: point)
     geographicDiscovery = point
-    filterEnabled = true
     sheet = .nearby
+    return true
   }
   mutating func selectPlace(_ id: String) {
     guard MapSamplePlace.find(id) != nil else { return }

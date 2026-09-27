@@ -23,4 +23,4 @@ xcrun simctl bootstatus "$DEVICE_ID" -b
 xcrun simctl terminate "$DEVICE_ID" tech.hermi.designpreview 2>/dev/null || true
 xcrun simctl install "$DEVICE_ID" .build/xcode/Build/Products/Debug-iphonesimulator/HermiPreview.app
 open -a Simulator
-xcrun simctl launch "$DEVICE_ID" tech.hermi.designpreview
+xcrun simctl launch "$DEVICE_ID" tech.hermi.designpreview "$@"

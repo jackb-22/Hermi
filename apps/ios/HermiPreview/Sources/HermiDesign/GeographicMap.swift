@@ -9,21 +9,28 @@ struct MapCommand: Equatable {
 struct GeographicMap: View {
   var state: MapPreviewState
   var command: MapCommand?
+  var editingDiscovery = false
+  var revision = 0
+  var bottomInset: CGFloat = 110
   var adventure = false
   var showsPlaces = true
   var onEvent: ([String: Any]) -> Void = { _ in }
   var body: some View { GeographicWebMap(payload: payload, command: command, onEvent: onEvent) }
   private var payload: [String: Any] {
     var result: [String: Any] = [
-      "pinRows": PinArtwork.rows,
+      "editingDiscovery": editingDiscovery,
+      "revision": revision,
+      "bottomInset": bottomInset,
       "places": adventure || !showsPlaces ? [] : state.nearby.map { place -> [String: Any] in
-        ["id": place.id, "name": "Sample: " + place.name, "color": PinArtwork.hex(place.category), "lng": place.coordinate.longitude, "lat": place.coordinate.latitude]
+        ["rows": PinArtwork.rows(for: place.category), "id": place.id, "name": "Sample: " + place.name, "color": PinArtwork.hex(place.category), "lng": place.coordinate.longitude, "lat": place.coordinate.latitude]
       },
       "social": state.social,
       "adventure": adventure
     ]
-    if let point = state.geographicDiscovery {
-      result["discovery"] = ["lng": point.longitude, "lat": point.latitude, "color": PinArtwork.hex(state.category)]
+    if !adventure, showsPlaces, let pin = state.discoveryPin {
+      result["discovery"] = ["rows": PinArtwork.rows(for: pin.category), "id": pin.id.uuidString, "lng": pin.coordinate.longitude,
+        "lat": pin.coordinate.latitude, "radiusMiles": pin.radiusMiles,
+        "color": PinArtwork.hex(pin.category), "category": pin.category.rawValue]
     }
     return result
   }
@@ -54,6 +61,7 @@ struct GeographicWebMap: UIViewRepresentable {
   private var payload: [String: Any] = [:]
   private var lastData: Data?
   private var lastCommand: UUID?
+  private var pendingCommand: MapCommand?
   private var ready = false
   init(onEvent: @escaping ([String: Any]) -> Void) { self.onEvent = onEvent }
   func makeView() -> WKWebView {
@@ -79,7 +87,7 @@ struct GeographicWebMap: UIViewRepresentable {
     return view
   }
   func update(_ view: WKWebView, payload: [String: Any], command: MapCommand?, onEvent: @escaping ([String: Any]) -> Void) {
-    self.payload = payload; self.onEvent = onEvent
+    self.payload = payload; self.onEvent = onEvent; self.pendingCommand = command
     guard ready else { return }
     if let data = try? JSONSerialization.data(withJSONObject: payload, options: [.sortedKeys]), data != lastData {
       lastData = data
@@ -87,12 +95,12 @@ struct GeographicWebMap: UIViewRepresentable {
     }
     if let command, command.id != lastCommand {
       lastCommand = command.id
-      view.callAsyncJavaScript("window.commandHermi(command)", arguments: ["command": ["action": command.action, "x": command.point.x, "y": command.point.y]], in: nil, in: .page) { _ in }
+      view.callAsyncJavaScript("window.commandHermi(command)", arguments: ["command": ["id": command.id.uuidString, "action": command.action, "x": command.point.x, "y": command.point.y]], in: nil, in: .page) { _ in }
     }
   }
   func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
     ready = true; lastData = nil
-    update(webView, payload: payload, command: nil, onEvent: onEvent)
+    update(webView, payload: payload, command: pendingCommand, onEvent: onEvent)
   }
   func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
     // Basemap requests are subresources. Never navigate the app to an arbitrary document.

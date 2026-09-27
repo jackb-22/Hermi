@@ -2,7 +2,16 @@ import SwiftUI
 
 /// Shared pin geometry is sent to the geographic renderer as well as drawn natively.
 enum PinArtwork {
-  static let rows = ["   IIIII   "," IIFFFFFII "," IFFHHFFFI ","IFFHHFFFFFI","IFFFFFFFFFI","IFFFFFFFFFI"," IFFFFFFFI "," IIFFFFFII ","   IIIII   ","     I     ","     I     ","     I     ","     I     ","     I     "]
+  static func rows(for category: HermiCategory) -> [String] {
+    var pixels = (["    IIIIIII    ", "  IIFFFFFFFII  ", " IFFFFFFFFFFFI "]
+      + Array(repeating: "IFFFFFFFFFFFFFI", count: 8)
+      + [" IFFFFFFFFFFFI ", "  IIFFFFFFFII  ", "    IIIIIII    "]
+      + Array(repeating: "       I       ", count: 5)).map(Array.init)
+    for (y, row) in CategorySprite.rows(for: category).enumerated() {
+      for (x, pixel) in row.enumerated() where pixel == "I" { pixels[y + 3][x + 3] = "I" }
+    }
+    return pixels.map { String($0) }
+  }
   static func hex(_ category: HermiCategory) -> String {
     HermiPalette.hex(HermiPalette.categoryRGB(category))
   }
@@ -10,7 +19,7 @@ enum PinArtwork {
 struct BallpointPin: View {
   let category: HermiCategory
   var body: some View {
-    PixelSprite(rows: PinArtwork.rows, colors: ["I": HermiPalette.ink, "F": HermiPalette.category(category), "H": HermiPalette.paper.opacity(0.8)])
+    PixelSprite(rows: PinArtwork.rows(for: category), colors: ["I": HermiPalette.ink, "F": HermiPalette.category(category), "H": HermiPalette.paper.opacity(0.8)])
   }
 }
 struct PixelIcon: View {
@@ -45,39 +54,60 @@ struct CategoryPinControl: View {
   @Binding var category: HermiCategory
   var onFilter: () -> Void
   var onDrop: (CGPoint) -> Void
+  var onDragBegan: () -> Void = {}
   @State private var showing = false
   @State private var originCategory: HermiCategory = .food
   @State private var dragging = CGSize.zero
   @State private var feedback = 0
+  @State private var dropping = false
+  @GestureState private var touching = false
   private let categories = HermiCategory.allCases
   var body: some View {
-    BallpointPin(category: category).frame(width: 33, height: 42)
-      .frame(width: 52, height: 52).contentShape(Rectangle())
-      .offset(abs(dragging.width) > 55 ? dragging : .zero)
-      .onTapGesture(perform: onFilter)
-      .gesture(LongPressGesture(minimumDuration: 0.3, maximumDistance: 24)
-        .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .named("mapPreview")))
-        .onChanged { value in
-          switch value {
-          case .second(true, let drag):
-            if !showing { originCategory = category; showing = true; feedback += 1 }
-            if let drag {
-              dragging = drag.translation
-              if abs(drag.translation.width) < 55 {
-                let start = categories.firstIndex(of: originCategory) ?? 0
-                let delta = Int((-drag.translation.height / 48).rounded())
-                let index = (start + delta % categories.count + categories.count) % categories.count
-                if category != categories[index] { category = categories[index]; feedback += 1 }
-              }
+    let hold = LongPressGesture(minimumDuration: 0.3, maximumDistance: 24)
+      .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .named("mapPreview")))
+      .onChanged { value in
+        if case .second(true, let drag) = value {
+          if !showing { originCategory = category; showing = true; feedback += 1 }
+          if let drag {
+            dragging = drag.translation
+            if !dropping && abs(drag.translation.width) > 40 {
+              dropping = true; onDragBegan()
             }
+            if !dropping {
+              let start = categories.firstIndex(of: originCategory) ?? 0
+              let delta = Int((-drag.translation.height / 48).rounded())
+              let index = (start + delta % categories.count + categories.count) % categories.count
+              if category != categories[index] { category = categories[index]; feedback += 1 }
+            }
+          }
+        }
+      }
+    BallpointPin(category: category).frame(width: 33, height: 42)
+      .opacity(dropping ? 0.35 : 1)
+      .frame(width: 52, height: 52).contentShape(Rectangle())
+      // Keep the gesture's source stationary; only the noninteractive ghost moves.
+      .overlay {
+        if dropping {
+          BallpointPin(category: category).frame(width: 33, height: 42)
+            .offset(dragging).allowsHitTesting(false)
+        }
+      }
+      .gesture(hold.exclusively(before: TapGesture())
+        .updating($touching) { _, active, _ in active = true }
+        .onEnded { value in
+          switch value {
+          case .second: onFilter()
+          case .first(.second(true, let drag?)):
+            if dropping { onDrop(drag.location) }
           default: break
           }
-        }.onEnded { value in
-          if case .second(true, let drag?) = value, abs(drag.translation.width) > 55 { onDrop(drag.location) }
-          showing = false; dragging = .zero
+          showing = false; dropping = false; dragging = .zero
         })
+      .onChange(of: touching) { _, active in
+        if !active { showing = false; dropping = false; dragging = .zero }
+      }
       .overlay(alignment: .topTrailing) {
-        if showing && abs(dragging.width) < 55 {
+        if showing && !dropping {
           VStack(spacing: 4) {
             ForEach(-1...1, id: \.self) { offset in
               let index = ((categories.firstIndex(of: category) ?? 0) + offset + categories.count) % categories.count

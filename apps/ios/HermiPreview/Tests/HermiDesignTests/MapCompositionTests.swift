@@ -81,8 +81,8 @@ final class MapCompositionTests: XCTestCase {
     XCTAssertTrue(state.planIDs.isEmpty)
     state.selectPlace("cafe"); state.goBack()
     XCTAssertEqual(state.sheet, .nearby)
-    state.dropGeographicPin(at: .init(latitude: 51.5, longitude: -0.1))
-    XCTAssertTrue(state.nearby.isEmpty)
+    XCTAssertFalse(state.dropGeographicPin(at: .init(latitude: 51.5, longitude: -0.1)))
+    XCTAssertEqual(state.nearby.map(\.id), ["cafe"])
     XCTAssertTrue(state.planIDs.isEmpty)
   }
   func testSavedAndPlanRemainIndependentAndBothAvailableFromEmptyState() {

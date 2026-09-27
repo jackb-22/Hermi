@@ -1,0 +1,40 @@
+// Behavioral contract checks against the actual bundled map script, without network/tiles.
+const fs = require('node:fs'), vm = require('node:vm'), assert = require('node:assert/strict');
+const html = fs.readFileSync('Sources/HermiDesign/Resources/map.html','utf8');
+const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(x=>x[1]).join('\n');
+const nodes = new Map(), messages=[], markers=[];
+function node(){return {style:{setProperty(){}},value:'0.5',attributes:{},listeners:{},setAttribute(k,v){this.attributes[k]=v},append(){},addEventListener(k,f){this.listeners[k]=f}}}
+const document={documentElement:node(),activeElement:null,getElementById(id){if(!nodes.has(id))nodes.set(id,node());return nodes.get(id)},querySelector(id){return this.getElementById(id)},createElement:node,createElementNS:node};
+let map;
+class MapStub {
+ constructor(){map=this;this.events={};this.sources={};this.touchZoomRotate={disableRotation(){}};}
+ on(k,f){this.events[k]=f;return this} addControl(){} addLayer(){} resize(){} areTilesLoaded(){return true}
+ addSource(k,v){this.sources[k]={data:v.data,setData(d){this.data=d}}} getSource(k){return this.sources[k]}
+ panBy(offset){this.lastPan=offset}
+ getContainer(){return {clientWidth:400,clientHeight:800}} getCanvas(){return {width:1200,height:2400,clientWidth:400,clientHeight:800}}
+ project(){return {x:200,y:350}} unproject(p){this.lastUnproject=p;return {lng:-73.9654,lat:40.8073}}
+}
+class MarkerStub {
+ constructor(options){this.options=options;this.handlers={};markers.push(this)} setLngLat(c){this.point={lng:c[0],lat:c[1]};return this} getLngLat(){return this.point}
+ addTo(){return this} on(k,f){this.handlers[k]=f;return this} remove(){this.removed=true}
+}
+const context={document,console,setTimeout,clearTimeout,hermiPalette:{ink:'#203D39',paper:'#F8FAF3',green:'#23856B',lime:'#BFDE59',lake:'#69B7CC'},webkit:{messageHandlers:{hermi:{postMessage(m){messages.push(m)}}}},addEventListener(){},maplibregl:{Map:MapStub,Marker:MarkerStub,AttributionControl:class{}}};
+context.window=context;vm.createContext(context);vm.runInContext(scripts,context);
+context.commandHermi({id:'early',action:'drop',x:0.5,y:0.5});assert.equal(messages.at(-1).type,'dropRejected');
+map.events.load();
+context.commandHermi({id:'drop-1',action:'drop',x:0.5,y:0.5});
+assert.deepEqual(Array.from(map.lastUnproject),[200,400]);assert.equal(messages.at(-1).requestID,'drop-1');
+context.commandHermi({id:'outside',action:'drop',x:1.2,y:0.5});assert.equal(messages.at(-1).type,'dropRejected');
+const pin={id:'pin-1',category:'Food',lng:-73.9654,lat:40.8073,radiusMiles:1,color:'#EF8067',rows:[' III ','IFFFI',' III ']};
+const payload={places:[],social:false,discovery:pin,editingDiscovery:true,bottomInset:300};
+context.renderHermi(payload);const marker=markers.at(-1);assert.equal(marker.options.draggable,true);assert.equal(nodes.get('pin-editor').style.display,'block');
+context.renderHermi({...payload,discovery:{...pin,radiusMiles:2}});assert.equal(markers.at(-1),marker);assert.equal(nodes.get('radius-value').textContent,'2 mi');
+marker.handlers.dragstart();marker.setLngLat([-73.96,40.81]);marker.handlers.dragend();assert.equal(messages.at(-1).type,'pinMove');assert.equal(messages.at(-1).id,'pin-1');
+// Native validation rejects the move and returns its previous coordinate, same stable marker.
+context.renderHermi({...payload,revision:1});assert.equal(marker.getLngLat().lng,pin.lng);assert.equal(marker.removed,undefined);
+nodes.get('pin-radius').value='0.5';nodes.get('pin-radius').listeners.input();assert.equal(messages.at(-1).miles,1);
+marker.handlers.dragstart();marker.setLngLat([-73.9,40.9]);marker.options.element.listeners.pointercancel();marker.handlers.dragend();
+assert.equal(messages.at(-1).type,'pinDragCancelled');assert.equal(marker.getLngLat().lng,pin.lng);
+nodes.get('pin-remove').onclick();assert.equal(messages.at(-1).type,'pinRemove');
+context.renderHermi({places:[],social:false});assert.equal(marker.removed,true);assert.equal(nodes.get('pin-editor').style.display,'none');
+console.log('Map bridge passed: readiness, CSS coordinate scaling, bounds, stable drag marker, rejected-move restore, radius and remove.');

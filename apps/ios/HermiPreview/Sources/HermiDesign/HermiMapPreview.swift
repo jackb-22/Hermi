@@ -4,6 +4,10 @@ import SwiftUI
 public struct HermiMapPreview: View {
   @State private var state = MapPreviewState()
   @State private var moving = false
+  @State private var mapFrame = CGRect.zero
+  @State private var editingDiscovery = false
+  @State private var mapRevision = 0
+  @State private var pinNotice: String?
   @State private var friendsFeed = false
   @State private var actionPreview = false
   @State private var restorePill: Task<Void, Never>?
@@ -15,6 +19,13 @@ public struct HermiMapPreview: View {
   @State private var postPlace: String?
   @State private var profileDetail: ProfileDetail?
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  private var pinReviewFixture: Bool {
+    #if DEBUG
+    ProcessInfo.processInfo.arguments.contains("--hermi-pin-review")
+    #else
+    false
+    #endif
+  }
   private var showsPreviewTools: Bool {
     #if DEBUG
     ProcessInfo.processInfo.arguments.contains("--hermi-lab")
@@ -34,6 +45,13 @@ public struct HermiMapPreview: View {
         case .map: map(in: geometry.size).ignoresSafeArea()
         case .feed: FeedPager(state: $state, size: geometry.size, friendsOnly: friendsFeed, onMoving: beginMapGesture, onStopped: endMapGesture).ignoresSafeArea()
         case .profile: profile
+        }
+        if let pinNotice, state.panel == .map {
+          VStack { Text(pinNotice).font(.caption).padding(12)
+              .background(HermiPalette.paper, in: PixelPanel(corner: 6))
+              .padding(.top, safeGeometry.safeAreaInsets.top + 8)
+            Spacer()
+          }.padding(.leading, 16).padding(.trailing, 100).allowsHitTesting(false)
         }
         VStack {
           topBar(in: geometry.size)
@@ -79,16 +97,30 @@ public struct HermiMapPreview: View {
       }.frame(minWidth: 340, minHeight: 600)
     }
     .onAppear {
+      if pinReviewFixture {
+        state = MapPreviewState()
+        state.dropGeographicPin(at: .init(latitude: 40.8073, longitude: -73.9654))
+        editingDiscovery = true
+        return
+      }
       if let data = UserDefaults.standard.data(forKey: storageKey),
         let saved = try? JSONDecoder().decode(MapPreviewState.self, from: data) {
         state = saved
+        state.restoreDiscovery()
         // Map remains the launch panel, as required by the unified truth.
         state.switchPanel(.map)
         state.planIDs = state.planIDs.filter { MapSamplePlace.find($0) != nil }
       }
     }
     .onChange(of: state) { _, value in
+      guard !pinReviewFixture else { return }
       if let data = try? JSONEncoder().encode(value) { UserDefaults.standard.set(data, forKey: storageKey) }
+    }
+    .task { _ = await Task.detached { NYCLandMask.shared.available }.value }
+    .task(id: pinNotice) {
+      guard pinNotice != nil else { return }
+      do { try await Task.sleep(for: .seconds(4)) } catch { return }
+      pinNotice = nil
     }
     .onDisappear { restorePill?.cancel() }
   }
@@ -125,9 +157,14 @@ public struct HermiMapPreview: View {
     VStack(spacing: 12) {
       if state.panel == .map {
         CategoryPinControl(category: $state.category, onFilter: { state.filterEnabled.toggle() }, onDrop: { point in
-          mapCommand = MapCommand(action: "drop", point: point)
+          // The geographic view can have an origin different from the root/safe area.
+          guard point.x < size.width - 84, point.y > 100, point.y < size.height - 110,
+                let normalized = MapDropProjection.normalized(point, in: mapFrame) else {
+            pinNotice = "Drop on the map, away from the controls."; return
+          }
+          mapCommand = MapCommand(action: "drop", point: normalized)
           expanded = false
-        })
+        }, onDragBegan: { state.sheet = nil; editingDiscovery = false; pinNotice = nil })
       }
       Button {
         if state.panel == .feed { friendsFeed.toggle() }
@@ -145,19 +182,51 @@ public struct HermiMapPreview: View {
   }
 
   private func map(in size: CGSize) -> some View {
-    GeographicMap(state: state, command: mapCommand) { event in
+    GeographicMap(state: state, command: mapCommand, editingDiscovery: editingDiscovery,
+      revision: mapRevision, bottomInset: state.sheet == .nearby ? min(300, size.height * 0.39) + 12 : 110) { event in
       switch event["type"] as? String {
       case "moving": beginMapGesture()
       case "stopped", "error": endMapGesture()
-      case "place": if let id = event["id"] as? String { state.selectPlace(id); expanded = false }
-      case "discovery": state.sheet = .nearby; expanded = false
+      case "place": if let id = event["id"] as? String { editingDiscovery = false; state.selectPlace(id); expanded = false }
+      case "discovery":
+        guard event["id"] as? String == state.discoveryPin?.id.uuidString else { return }
+        editingDiscovery = true; state.sheet = .nearby; expanded = false
       case "drop":
-        if let latitude = event["latitude"] as? Double, let longitude = event["longitude"] as? Double {
-          state.dropGeographicPin(at: GeoPoint(latitude: latitude, longitude: longitude))
-        }
+        guard event["requestID"] as? String == mapCommand?.id.uuidString,
+              let latitude = event["latitude"] as? Double, let longitude = event["longitude"] as? Double else { return }
+        let valid = state.dropGeographicPin(at: GeoPoint(latitude: latitude, longitude: longitude))
+        editingDiscovery = valid
+        pinNotice = valid ? nil : "Choose land within NYC. Water and outside areas aren’t available."
+        mapRevision += 1
+      case "pinDragStart":
+        guard event["id"] as? String == state.discoveryPin?.id.uuidString else { return }
+        editingDiscovery = true; state.sheet = nil
+      case "pinDragCancelled":
+        guard event["id"] as? String == state.discoveryPin?.id.uuidString else { return }
+        editingDiscovery = true; state.sheet = .nearby; expanded = false; mapRevision += 1
+      case "pinMove":
+        guard let raw = event["id"] as? String, let id = UUID(uuidString: raw),
+              let latitude = event["latitude"] as? Double, let longitude = event["longitude"] as? Double else { return }
+        guard state.discoveryPin?.id == id else { return }
+        let valid = state.moveDiscovery(id: id, to: GeoPoint(latitude: latitude, longitude: longitude))
+        pinNotice = valid ? nil : "Keep this pin on NYC land. Its previous position is restored."
+        editingDiscovery = true; state.sheet = .nearby; expanded = false; mapRevision += 1
+      case "pinRadius":
+        guard let raw = event["id"] as? String, let id = UUID(uuidString: raw), let miles = event["miles"] as? Double else { return }
+        state.setDiscoveryRadius(id: id, miles: miles)
+      case "pinRemove":
+        guard let raw = event["id"] as? String, let id = UUID(uuidString: raw), state.discoveryPin?.id == id else { return }
+        state.removeDiscovery(id: id); editingDiscovery = false; pinNotice = nil
+      case "dropRejected":
+        guard event["requestID"] as? String == mapCommand?.id.uuidString else { return }
+        pinNotice = "Wait for the map to finish loading, then try again."
       default: break
       }
     }
+    .background(GeometryReader { geometry in
+      Color.clear.onAppear { mapFrame = geometry.frame(in: .named("mapPreview")) }
+        .onChange(of: geometry.frame(in: .named("mapPreview"))) { _, frame in mapFrame = frame }
+    })
     .overlay(alignment: .bottomTrailing) {
       VStack(spacing: 8) {
         mapButton("plus", label: "Zoom in", action: "in")
@@ -221,8 +290,10 @@ public struct HermiMapPreview: View {
 
   private var nearbyContent: some View {
     VStack(alignment: .leading, spacing: 12) {
-      HStack { Text("Nearby").font(.headline); Spacer(); Text(state.category.rawValue).font(.caption).foregroundStyle(HermiPalette.secondary) }
-      if state.nearby.isEmpty { Text("No sample places within 1.5 km here.").font(.subheadline) }
+      HStack { Text("Nearby").font(.headline); Spacer(); Text((state.discoveryPin?.category ?? state.category).rawValue).font(.caption).foregroundStyle(HermiPalette.secondary) }
+      if state.nearby.isEmpty {
+        Text(state.discoveryPin.map { "No sample places within \(String(format: "%.2g", $0.radiusMiles)) mi here." } ?? "No sample places in this category.").font(.subheadline)
+      }
       ScrollView(.horizontal) {
         HStack(spacing: 12) {
           ForEach(state.nearby) { place in
