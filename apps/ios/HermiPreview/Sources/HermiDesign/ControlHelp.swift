@@ -1,21 +1,8 @@
 import SwiftUI
 
-/// A long hold describes a control without invoking its tap action. Desktop uses native hover help.
-private struct ControlHelp: ViewModifier {
-  let text: String
-  @State private var showing = false
-  func body(content: Content) -> some View {
-    content.help(text).accessibilityHint(text)
-      .highPriorityGesture(LongPressGesture(minimumDuration: 0.6).onEnded { _ in showing = true })
-      .popover(isPresented: $showing) {
-        Text(text).font(.subheadline).padding(16).frame(maxWidth: 240)
-          .foregroundStyle(HermiPalette.ink).background(HermiPalette.paper)
-          .presentationCompactAdaptation(.popover)
-      }
-  }
-}
+/// Accessibility descriptions only; no press-and-hold explanation or gesture interception.
 extension View {
-  func controlHelp(_ text: String) -> some View { modifier(ControlHelp(text: text)) }
+  func controlHelp(_ text: String) -> some View { accessibilityHint(text) }
 }
 
 /// Standard buttons: no hold recognizer or cross-tab drag gesture.

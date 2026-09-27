@@ -54,7 +54,7 @@ struct PlanPreviewPage: View {
             .accessibilityAddTraits(.isButton)
             .accessibilityAction { showDrawer.toggle() }
             .accessibilityAction(named: "Bookmark options") { showSaveOptions = true }
-            // This control owns its hold gesture; the generic hold-help recognizer would compete with it.
+            // This hold is the Save Plan action, not a control-description popup.
             .help(state.editingSavedPlan == nil ? "Tap to show Saved here. Hold to save the current plan" : "Tap for Saved. Hold for sharing draft preferences; edits autosave locally")
         }
       }.padding(.horizontal, 16)
