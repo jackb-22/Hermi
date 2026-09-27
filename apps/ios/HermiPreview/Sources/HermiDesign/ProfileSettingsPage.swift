@@ -17,6 +17,13 @@ struct ProfileSettingsPage: View {
       }
       ScrollView {
         VStack(alignment: .leading, spacing: 20) {
+          Button("Replay intro demo") {
+            dismiss()
+            Task { @MainActor in
+              try? await Task.sleep(for: .milliseconds(350))
+              NotificationCenter.default.post(name: .hermiReplayIntro, object: nil)
+            }
+          }.font(.subheadline.bold()).frame(minHeight: 44)
           Text("PRIVACY · LOCAL PREFERENCES").font(.system(size: 10, design: .monospaced))
           Text("Adventure sharing").font(.headline)
           HStack {

@@ -60,8 +60,8 @@ struct CrabIntroFrame: Equatable {
 
 enum BrandIntroPolicy {
   static let key = "hermi.brand.introSeen.v1"
-  static func shouldShow(seen: Bool, demo: Bool, fixture: Bool, recoveringAction: Bool = false) -> Bool {
-    !recoveringAction && (demo || (!seen && !fixture))
+  static func shouldShow(seen: Bool, demo: Bool, fixture: Bool, recoveringAction: Bool = false, existingPreview: Bool = false) -> Bool {
+    !recoveringAction && (demo || (!seen && !fixture && !existingPreview))
   }
 }
 

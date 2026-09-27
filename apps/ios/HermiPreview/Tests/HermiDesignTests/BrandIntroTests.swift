@@ -4,6 +4,7 @@ import XCTest
 final class BrandIntroTests: XCTestCase {
   func testFirstOpenDemoAndRecoveryPolicy() {
     XCTAssertTrue(BrandIntroPolicy.shouldShow(seen: false, demo: false, fixture: false))
+    XCTAssertFalse(BrandIntroPolicy.shouldShow(seen: false, demo: false, fixture: false, existingPreview: true))
     XCTAssertFalse(BrandIntroPolicy.shouldShow(seen: true, demo: false, fixture: false))
     XCTAssertTrue(BrandIntroPolicy.shouldShow(seen: true, demo: true, fixture: false))
     XCTAssertFalse(BrandIntroPolicy.shouldShow(seen: false, demo: false, fixture: true))

@@ -25,7 +25,7 @@ struct FeedPager: View {
           }
         }
         VStack(spacing: 20) {
-          PixelIcon(name: "check").frame(width: 35, height: 35)
+          HermitBrandMark().frame(width: 60, height: 68)
           Text(visibleIDs.isEmpty ? "Nothing here yet" : "You’re caught up").font(.title2.bold())
           Text(visibleIDs.isEmpty ? "No samples match these filters." : "End of sample feed").font(.caption)
           Button("My Plan") { state.sheet = .plan }

@@ -89,6 +89,7 @@ struct PlanPreviewPage: View {
         ScrollView {
           LazyVStack(spacing: 12) {
             if state.planIDs.isEmpty {
+              HermitBrandMark().frame(width: 56, height: 63)
               Text("Add a place from Map, Feed or Saved.").font(.subheadline).padding(24)
             }
             ForEach(state.planIDs, id: \.self) { id in
@@ -294,7 +295,7 @@ struct PlanPreviewPage: View {
     ScrollView {
       LazyVStack(alignment: .leading, spacing: 18) {
         if let saveFeedback { Text(saveFeedback).font(.caption).foregroundStyle(HermiPalette.green) }
-        if state.savedReferences.isEmpty { Text("Nothing saved yet. Bookmark places or save a plan.").padding(20) }
+        if state.savedReferences.isEmpty { VStack(spacing: 12) { HermitBrandMark().frame(width: 56, height: 63); Text("Nothing saved yet. Bookmark places or save a plan.") }.padding(20) }
         ForEach(state.library.folders) { folder in
           DisclosureGroup("\(folder.name) · \(folder.items.count)") {
             ForEach(folder.items) { reference in savedRow(reference) }

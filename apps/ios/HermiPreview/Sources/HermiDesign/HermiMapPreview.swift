@@ -2,6 +2,12 @@ import SwiftUI
 
 /// Product fixtures stay local; the geographic basemap fetches public tiles.
 public struct HermiMapPreview: View {
+  @AppStorage(BrandIntroPolicy.key) private var introSeen = false
+  @State private var showingIntro = BrandIntroPolicy.shouldShow(
+    seen: UserDefaults.standard.bool(forKey: BrandIntroPolicy.key),
+    demo: ProcessInfo.processInfo.arguments.contains("--hermi-demo"),
+    fixture: ProcessInfo.processInfo.arguments.contains { $0.hasPrefix("--hermi-") && $0.hasSuffix("-review") },
+    existingPreview: UserDefaults.standard.data(forKey: "hermi.preview.map-composition.v1") != nil)
   @State private var state = MapPreviewState()
   @State private var moving = false
   @State private var mapFrame = CGRect.zero
@@ -86,6 +92,15 @@ public struct HermiMapPreview: View {
         ActionModePreview(session: session, selectMode: { state.actionSession?.mode = $0 }, end: { state.finishActionPreview() }, done: { state.dismissActionRecap() })
       }
     }
+    .accessibilityHidden(showingIntro)
+    .allowsHitTesting(!showingIntro)
+    .overlay {
+      if showingIntro { CrabIntroView { withAnimation(reduceMotion ? nil : .easeOut(duration: 0.25)) { showingIntro = false } } }
+    }
+    .onReceive(NotificationCenter.default.publisher(for: .hermiReplayIntro)) { _ in
+      guard state.actionSession == nil else { return }
+      state.switchPanel(.map); state.sheet = nil; showingIntro = true
+    }
     .animation(reduceMotion || reduceMotionOverride ? nil : .easeOut(duration: 0.2), value: state.sheet)
     .animation(reduceMotion || reduceMotionOverride ? nil : .easeOut(duration: 0.15), value: moving)
     .sheet(isPresented: $lab) {
@@ -99,6 +114,7 @@ public struct HermiMapPreview: View {
       }.frame(minWidth: 340, minHeight: 600)
     }
     .onAppear {
+      if !pinReviewFixture { introSeen = true }
       if pinReviewFixture {
         state = MapPreviewState()
         if ProcessInfo.processInfo.arguments.contains("--hermi-feed-review") {
@@ -142,6 +158,7 @@ public struct HermiMapPreview: View {
       if let data = UserDefaults.standard.data(forKey: storageKey),
         let saved = try? JSONDecoder().decode(MapPreviewState.self, from: data) {
         state = saved
+        if state.actionSession != nil { showingIntro = false }
         state.restoreDiscovery()
         // Map remains the launch panel, as required by the unified truth.
         state.switchPanel(.map)

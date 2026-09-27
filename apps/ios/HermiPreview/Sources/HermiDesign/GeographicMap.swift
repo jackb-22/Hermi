@@ -8,6 +8,8 @@ struct MapCommand: Equatable {
 }
 struct GeographicMap: View {
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  @State private var loading = true
+  @State private var dismissedLoading = false
   var state: MapPreviewState
   var command: MapCommand?
   var editingPinID: UUID?
@@ -16,7 +18,22 @@ struct GeographicMap: View {
   var adventure = false
   var showsPlaces = true
   var onEvent: ([String: Any]) -> Void = { _ in }
-  var body: some View { GeographicWebMap(payload: payload, command: command, onEvent: onEvent) }
+  var body: some View {
+    GeographicWebMap(payload: payload, command: command) { event in
+      if let type = event["type"] as? String, type == "ready" || type == "error" { loading = false }
+      onEvent(event)
+    }
+    .overlay(alignment: .topLeading) {
+      if loading && !dismissedLoading {
+        CrabLoadingView(label: "Loading map…", cancel: { dismissedLoading = true }).padding(.leading, 14).padding(.top, 100)
+      }
+    }
+    .task {
+      // Never strand the indicator if WebKit fails before sending a bridge event.
+      do { try await Task.sleep(for: .seconds(15)) } catch { return }
+      loading = false
+    }
+  }
   private var payload: [String: Any] {
     var result: [String: Any] = [
       "editingDiscovery": state.pin(id: editingPinID) != nil,

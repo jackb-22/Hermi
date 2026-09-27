@@ -123,6 +123,7 @@ public struct HermiGallery: View {
       switch state.scenario {
       case .ready: placeCard
       case .loading:
+        CrabLoadingView(label: "Finding a little adventure", cancel: { state.scenario = .ready })
         statePanel(title: "Finding a little adventure", message: "Loading nearby places…", action: "Finish sample loading", icon: "hourglass")
       case .empty:
         statePanel(title: "A quiet corner", message: "No places found here. Try a different area.", action: "Try sample area", icon: "map")
