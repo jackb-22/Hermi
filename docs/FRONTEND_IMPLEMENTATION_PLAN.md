@@ -1,6 +1,6 @@
 # Hermi approved frontend revision plan
 
-Approved 2026-09-27. Frontend branch: `codex/cairn-frontend`. No pushes. Current work: **Step 4**, explicitly authorized by the user after Step 3 corrections. Multi-pin implementation is ready for user review; no blanket physical-touch or aesthetic acceptance is inferred. Source: user's approved technical plan and latest schema amendments. Preserve unrelated legacy prototype changes.
+Approved 2026-09-27. Frontend branch: `codex/cairn-frontend`. No pushes. Current work: **Step 5**, authorized after Step 4 acceptance with a category-gesture correction. User confirmed horizontal swipe/hold-to-drag and hidden map controls at full panel height. Source: user's approved technical plan and latest schema amendments. Preserve unrelated legacy prototype changes.
 
 ## Architecture and decisions
 
@@ -55,3 +55,5 @@ Keep implementation commits small and compiling; separate feedback fixes and che
 ## Step 3 feedback amendment — 2026-09-27
 
 User supersedes the prior editor layout: recommendations use small category-colored dots; only discovery uses a pin. Tap empty map deselects without deleting the pin or recommendations. Selected pin exposes a small attached X and a background-free bottom-right radius slider above zoom/home. Those controls track compact/expanded panel height. Visual backgrounds shrink while touch targets remain. Direct vertical swipes on the source pin choose category with no menu; name below, decorative pixel chevrons at either side. User confirmed minimum 0.1 mile and retained maximum 4; default remains 1 mile. Remove sample-place map banner; fixture status remains documented in the test guide. Alignment amendment: all right-side tools share a fixed centerline (42 points from the right edge). No sideways shift. Contextual panel expansion reserves vertical space for the full rail; full-page My Plan is unchanged. Water/NYC validation unchanged. This amendment supersedes conflicting earlier control/radius wording.
+
+Step 5 clarification: horizontal source-pin swipes choose categories; hold ~0.3 seconds then drag places a pin. Handle-only compact/medium/full transitions keep content scrolling separate. Full panel hides map controls; collapse restores their original right-side centerline. Place-scoped posts remain in the current panel. Media/reviews remain integration gates; no fabricated rating values.

@@ -1,6 +1,6 @@
 # Hermi unified design schema
 
-Revision 8 · 2026-09-27 · Step 4 implemented for review after explicit user authorization.
+Revision 9 · 2026-09-27 · Step 4 accepted with horizontal-gesture amendment; Step 5 implemented for review.
 
 ## Authority and mission
 
@@ -150,3 +150,9 @@ User supersedes the prior editor layout: recommendations use small category-colo
 Multiple geographic pins, including repeated categories, now persist as independent ID/category/coordinate/radius records. Legacy single-pin/coordinate snapshots migrate without changing valid IDs/radii or losing Plan/Saved data. Selection is transient; tap-away never deletes pins. Citywide category is independent of the source category being previewed: tap replaces or toggles the citywide choice, while swiping only chooses the next source pin. Matches are the union of citywide category and each pin's category/radius, deduplicated by place ID. No filters means general discovery.
 
 Only one extra category glyph appears above a visible discovery pin in each category; the representative remains stable while visible and transfers when it leaves the unobscured map. Small category-colored dots represent recommendations. Step 3 fixed right-hand alignment and 0.1–4-mile range remain unchanged. Real backend recommendation completeness is not implied by these local fixtures.
+
+## Step 5 confirmed amendments and checkpoint
+
+Horizontal left/right swipes on the source pin choose category, superseding earlier vertical-swipe instructions. User explicitly selected hold (~0.3 seconds) then drag for placement, distinguishing it from a quick category swipe. A quick tap continues toggling the citywide category.
+
+Contextual panels have compact/medium/full heights, independent of their place/nearby route. Handle gestures resize; vertical content and horizontal post media scroll independently. User confirmed map controls hide at full height and return on the same fixed right-hand line when collapsed. Full My Plan remains a separate route. A place popup closes with X; it does not navigate to the main Feed. Place-scoped fixture posts never include another place's IDs. Real media/reviews remain unconnected and no rating scale is invented.

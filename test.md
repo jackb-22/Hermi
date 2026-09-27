@@ -2,7 +2,21 @@
 
 This is the user-facing test entry point. Product reference: [unified design schema](docs/HERMI_SCHEMA.md). Resume/checkpoint: [progress](PROGRESS.md).
 
-## Current review: Step 4 — multiple pins and combined filters
+## Current review: Step 5 — horizontal category selector and contextual Feed
+
+Step 4 accepted apart from category gesture direction. User confirmed **horizontal swipe to choose, hold then drag to place**, and **hide map controls only while the contextual panel is full-height**. Build/run HermiPreview with **⌘R**, or run `sh apps/ios/HermiPreview/scripts/simulator-preview.sh` from the repo root. The current Simulator uses the nonpersistent multi-pin review fixture.
+
+1. **Category gestures:** quickly swipe left/right across the source pin; category changes in the matching direction. Vertical swipes must not cycle categories. A quick tap toggles citywide filtering. Hold about 0.3 seconds, then drag onto land to add a pin; this must not cycle categories. Stationary hold must not add a pin. Check cancellation and water rejection.
+2. **Open a location:** tap a recommendation dot or nearby place card. Its posts appear inside the current map panel. Map stays selected; the main Feed does not open. Place title, bookmark, +/− and X are visible; there is no misleading Back button. Discovery editing controls dismiss while browsing the place.
+3. **Panel levels:** tap the handle to cycle compact → medium → full → compact, or swipe the handle up/down one level. Down from compact dismisses. Small interrupted drags should not change level. Medium retains the fixed right-side rail. Full hides map controls; collapse restores the same alignment. Close X works at each height.
+4. **Two scroll axes:** at full height, scroll vertically through @alex, @sam and @lee at the selected place. Swipe a post's media horizontally to its other photo/video placeholders. Media scroll must not resize the panel, pan the map or change Home tabs. Vertical post scrolling must not collapse the panel; resizing is handle-only.
+5. **Context:** close the panel and verify pins, radii, category filter and map position remain. Open a different place: the title and post IDs/media descriptions refer only to that place. Save/Add toggles remain independent. No camera, real video playback or rating submission is enabled here.
+6. **Main Feed:** open the main Feed, scroll to another card, open its place strip, expand/scroll/close the place panel. You should return to the same global Feed card and audience. Map discovery remains intact when you return.
+7. **Accessibility/smoothness:** test handle Expand/Collapse actions, larger text, Reduce Motion, quick taps and finger scrolling on iPhone. Watch for jumpy transitions or delayed swipes; send a short recording if present. Screenshots cannot certify 60fps.
+
+Share compact/full/collapsed screenshots and any gesture recordings before Step 6. Validation: 34 Swift tests and map bridge checks pass; Simulator and unsigned physical-iPhone builds pass. [Screenshot review](docs/design-reference/2026-09-27-step-5/REVIEW.md). Automated panel expansion/collapse verified control visibility and preserved Map selection; automated scroll attempt was inconclusive. Posts/media remain explicit local placeholders, with no invented ratings or backend implementation.
+
+## Previous review: Step 4 — multiple pins and combined filters
 
 User authorized Step 4. Rebuild/run HermiPreview with **⌘R** on your selected iPhone, or run `sh apps/ios/HermiPreview/scripts/simulator-preview.sh` from the repo root. Normal launches preserve your saved data and migrate the earlier single pin. This is local discovery over a small sample set near Columbia, not complete NYC recommendations.
 

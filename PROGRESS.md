@@ -4,6 +4,13 @@ Updated: 2026-09-27. Branch: codex/cairn-frontend. No pushes authorized.
 
 ## Current checkpoint
 
+### Step 5 — ready for user gesture/visual review
+
+User accepted Step 4 except category swiping direction and authorized Step 5. Confirmed horizontal swipe to select; hold then drag to place. Confirmed full-height panel hides map controls, restoring the same rail after collapse. Implemented exclusive category swipe/tap/hold-drag handling, three panel levels with handle-only resizing, scoped place posts and horizontal media inside vertical panel scrolling, compact Save/Add header and X close. Opening a place clears discovery editing without deleting filters/pins. Main Feed routing is unchanged.
+
+34 Swift tests, map bridge checks, Simulator build/run and unsigned physical-iPhone build pass. Screenshot loop caught overly tall place header and covered map controls remaining in accessibility tree; both corrected. Final compact/medium/full screenshots saved in docs/design-reference/2026-09-27-step-5. Simulator confirmed full controls removed and restored on collapse. Automated scroll attempt inconclusive: finger gestures/scrolling/VoiceOver/frame rate remain test.md checks. Preview is open in nonpersistent --hermi-multipin-review mode. No Step 6, backend changes or pushes; no new phone installation claimed.
+
+
 ### Step 4 — multi-pin discovery ready for user review
 
 User explicitly authorized Step 4. Implemented independent persistent pins, stable renderer markers, selected-pin editing/removal, repeated categories, citywide-category union with geographic matches and deduplication. Source swiping does not change active citywide filter; underline and summary indicate activation. Legacy pin/coordinate snapshots migrate; empty saved arrays cannot resurrect an old pin. Category indicators use one stable representative per visible category, transferring when it leaves the viewport. Step 3 right-side centerline remains fixed.
