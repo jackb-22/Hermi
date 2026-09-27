@@ -4,6 +4,10 @@ Updated: 2026-09-27. Branch: codex/cairn-frontend. No pushes authorized.
 
 ## Current checkpoint
 
+### iPhone pairing update — 2026-09-27
+
+Phone detected after the user accepted Trust This Computer; devicectl pairing succeeded. Personal Team is now selected in the project (user-owned signing settings; preserve). Device-targeted xcodebuild stopped because **Developer Mode is disabled**. User must enable Settings → Privacy & Security → Developer Mode, restart and confirm. No app installed yet. Retry signed build/install once enabled; no evidence yet that a laptop update is required. Do not advance frontend scope while handling this setup.
+
 ### Step 2 — visual review and physical-phone setup
 
 User asked to test on connected iPhone, otherwise authorized Step 2. Device discovery (outside sandbox) returned no devices; no valid signing identity/development team configured. Opened the standalone Xcode project and saved concise setup in docs/IPHONE_TESTING.md. Physical-iPhone unsigned compilation passed; cannot install until user pairs/signs.

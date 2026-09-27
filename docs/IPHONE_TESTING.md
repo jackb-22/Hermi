@@ -21,6 +21,6 @@ The preview uses sample account/content data and public map tiles. Camera/outing
 
 ## Current setup status — 2026-09-27
 
-Xcode device discovery returned **No devices found**. Code-signing lookup returned **0 valid identities**, and the project has no development team selected. The generic physical-iPhone build succeeds with signing disabled, but that unsigned build cannot be installed. User pairing/signing setup is pending.
+The iPhone is now detected over USB and successfully paired. The user selected a Personal Team in Xcode. A device-targeted build reports **Developer Mode disabled** as the current blocker. Enable it under Settings → Privacy & Security, restart the phone, and confirm. No app has been installed yet. The earlier generic unsigned iPhone compilation passed; a signed device build remains pending Developer Mode readiness. The current error does not establish that a laptop OS update is required.
 
 Sources: [Apple: run an app on a device](https://help.apple.com/xcode/mac/current/en.lproj/dev5a825a1ca.html), [Apple: Developer Mode](https://developer.apple.com/documentation/xcode/enabling-developer-mode-on-a-device), [Apple: signing workflow and Personal Team](https://help.apple.com/xcode/mac/current/en.lproj/dev60b6fbbc7.html).
