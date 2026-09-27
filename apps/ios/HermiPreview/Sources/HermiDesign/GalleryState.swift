@@ -4,7 +4,7 @@ enum Specimen: String, Codable, CaseIterable { case places = "Places", controls 
 enum SampleState: String, Codable, CaseIterable { case ready = "Ready", loading = "Loading", empty = "Empty", error = "Error" }
 enum PreviewTextSize: String, Codable, CaseIterable { case standard = "Standard", large = "Large", accessible = "Accessibility" }
 
-enum HermiCategory: String, Codable, CaseIterable {
+enum HermiCategory: String, Codable, CaseIterable, Sendable {
   case food = "Food", shopping = "Shopping", nature = "Nature", culture = "Culture"
   case drinks = "Drinks", sports = "Sports", music = "Music"
 

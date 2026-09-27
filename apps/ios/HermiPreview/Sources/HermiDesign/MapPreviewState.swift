@@ -5,7 +5,7 @@ enum HomePanel: String, CaseIterable, Codable { case map = "Map", feed = "Feed",
 enum MapPreviewSheet: Equatable, Hashable, Codable { case nearby, place(String), plan, saved }
 
 /// A place the map can show: a labeled sample fixture, or a live place from `/v1/places` (see PlaceCatalog).
-struct MapSamplePlace: Identifiable, Codable, Equatable {
+struct MapSamplePlace: Identifiable, Codable, Equatable, Sendable {
   let id: String
   let name: String
   let category: HermiCategory

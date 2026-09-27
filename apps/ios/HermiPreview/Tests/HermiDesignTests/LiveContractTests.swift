@@ -87,4 +87,31 @@ final class LiveContractTests: XCTestCase {
     XCTAssertEqual(PlaceFeedPost.samples(for: "cafe").count, 3)
     XCTAssertTrue(PlaceFeedPost.samples(for: "01M3FJEN9H7Z2V5JB4SNEKDEW3").isEmpty)
   }
+
+  func testPinBoundingBoxEnclosesItsCircle() {
+    let center = GeoPoint(latitude: 40.8075, longitude: -73.965)
+    for miles in [0.1, 1, 4] {
+      let meters = miles * 1609.344
+      let box = PlaceCatalog.bbox(latitude: center.latitude, longitude: center.longitude, radiusMeters: meters)
+      XCTAssertLessThan(box[0], box[2]); XCTAssertLessThan(box[1], box[3])
+      // The four compass points of the circle sit inside (or on) the box.
+      let north = GeoPoint(latitude: box[3], longitude: center.longitude)
+      let east = GeoPoint(latitude: center.latitude, longitude: box[2])
+      XCTAssertGreaterThanOrEqual(center.distance(to: north), meters * 0.99)
+      XCTAssertGreaterThanOrEqual(center.distance(to: east), meters * 0.99)
+    }
+  }
+
+  func testDiscoveryQueryFollowsPinsAndCitywideFilter() {
+    var state = MapPreviewState()
+    XCTAssertEqual(state.discoveryQuery, DiscoveryQuery())
+    state.dropGeographicPin(at: GeoPoint(latitude: 40.8073, longitude: -73.9666))
+    XCTAssertEqual(state.discoveryQuery.pins.count, 1)
+    XCTAssertEqual(state.discoveryQuery.pins[0].category, state.category)
+    let before = state.discoveryQuery
+    if let id = state.discoveryPins.first?.id { state.setDiscoveryRadius(id: id, miles: 2) }
+    XCTAssertNotEqual(state.discoveryQuery, before)
+    state.toggleCategoryFilter()
+    XCTAssertEqual(state.discoveryQuery.citywide, state.category)
+  }
 }

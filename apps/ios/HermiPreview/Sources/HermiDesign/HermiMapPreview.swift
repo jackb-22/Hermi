@@ -178,6 +178,7 @@ public struct HermiMapPreview: View {
     }
     .task { _ = await Task.detached { NYCLandMask.shared.available }.value }
     .task { await LiveSession.shared.restore() }
+    .task(id: state.discoveryQuery) { PlaceCatalog.shared.discoveryChanged(state.discoveryQuery) }
     .onChange(of: LiveSession.shared.isLive) { _, live in
       // Connecting (or restoring) swaps fixtures for the live places in the current map area.
       if live { PlaceCatalog.shared.refresh() }

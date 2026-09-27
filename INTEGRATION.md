@@ -60,6 +60,16 @@ Paste any compile or test failure back verbatim.
 - [ ] Relaunch while connected: My Plan still lists the real venue, because the place cache is persisted.
 - [ ] Discovery pins and the citywide category filter now filter the live dots. Full pin and filter behaviour on real data comes in Step 3.
 
+### Step 3: discovery pins and citywide filter on real data
+- [ ] `swift test` passes: 67 tests, 2 of them new.
+- [ ] Connected: drop a **Food** pin near Columbia. Within about half a second, the dots reduce to real food places inside the circle, and the Nearby sheet lists them.
+- [ ] Widen the pin's radius to 2–4 mi: more food places appear, including ones beyond the visible map, and the Nearby list grows.
+- [ ] Drop a **Nature** pin in Brooklyn: the Food results stay and Nature places around the new pin are added. The two pins keep separate radii.
+- [ ] Turn the **citywide Food** filter on with a tap on the category pin: food places across the visible map are added, up to 100. Turn it off and the view goes back to just the pin results.
+- [ ] Remove every pin and the citywide filter: general discovery comes back, with all categories for the visible area.
+- [ ] Drag a pin to a new spot: the results follow the pin.
+- [ ] Sample mode (Disconnected): pins and the filter behave exactly as before, on the 7 fixtures.
+
 ---
 
 ## Deferred / deviations log
@@ -71,7 +81,7 @@ Items that are unconnected, need UI or backend work, or depart from `docs/HERMI_
 | D1 | Auth | Onboarding (AUTH-01) is not built: explain → taste deck → Apple sign-in → .edu verification → profile setup. The app uses dev login by username. | Speed. The APIs exist (`/auth/apple`, `/auth/edu`, `/onboarding/deck`, `/me/taste`). |
 | D2 | Auth | The JWT is stored in UserDefaults, not Keychain. | Hackathon shortcut. |
 | D3 | Plans | The server caps a plan at 12 stops; the product has no cap. | Backend constraint. The server error is shown as a notice. |
-| D4 | Places | `/places/near` is unused. Discovery uses bbox queries plus a client-side radius cut. | `/near` clamps to 1200 m and 10 results; pins go up to 4 miles. |
+| D4 | Places | `/places/near` is unused. Each pin uses a bbox query around its circle (category, limit 100) plus a client-side radius cut. | `/near` clamps to 1200 m and 10 results; pins go up to 4 miles. |
 | D5 | AI | Schedule, ghost pins (`/ghosts`), `/plans/:id/ask` and the chips are not surfaced in the UI. | No UI exists for them yet. The APIs exist. |
 | D6 | Sharing | Plan share links, and join/request/approve from Feed plan cards, are display-only. | Needs UI decisions. |
 | D7 | Notifications | Reminders are not delivered, and push is not integrated. | The backend push provider expects Expo tokens; this is a native app. |
