@@ -17,6 +17,8 @@ export interface Messenger {
   readonly enabled: boolean;
   /** The agent's iMessage address people add to the group. */
   readonly address: string | null;
+  /** True once this process runs the stream (the worker); only then can it reach threads. */
+  readonly listening: boolean;
   start(onMessage: (m: InboundMessage) => Promise<void>): Promise<void>;
   /** False when the thread is not reachable now (Spectrum has no "get space by id"; it is known once it speaks). */
   send(spaceId: string, text: string): Promise<boolean>;
@@ -27,6 +29,7 @@ export class OffMessenger implements Messenger {
   readonly name = 'off';
   readonly enabled = false;
   readonly address = null;
+  readonly listening = false;
   async start() {}
   async send() {
     return false;
@@ -39,11 +42,13 @@ export class FakeMessenger implements Messenger {
   readonly name = 'fake';
   readonly enabled = true;
   readonly address = '+15550001234';
+  listening = false;
   sent: { spaceId: string; text: string }[] = [];
   private live = new Set<string>();
   private handler?: (m: InboundMessage) => Promise<void>;
   async start(onMessage: (m: InboundMessage) => Promise<void>) {
     this.handler = onMessage;
+    this.listening = true;
   }
   async receive(m: InboundMessage) {
     this.live.add(m.spaceId);
@@ -75,6 +80,7 @@ interface MessageLike {
 export class PhotonMessenger implements Messenger {
   readonly name = 'photon';
   readonly enabled = true;
+  listening = false;
   private spaces = new Map<string, SpaceLike>();
   private app?: { messages: AsyncIterable<[SpaceLike, MessageLike]>; stop(): Promise<void> };
   constructor(
@@ -84,6 +90,7 @@ export class PhotonMessenger implements Messenger {
   ) {}
 
   async start(onMessage: (m: InboundMessage) => Promise<void>) {
+    this.listening = true;
     const { Spectrum } = await import('spectrum-ts');
     const { imessage } = await import('spectrum-ts/providers/imessage');
     this.app = (await Spectrum({

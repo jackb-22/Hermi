@@ -1,5 +1,6 @@
 import { newId } from '@itp/shared';
 import type { AppContext } from '../context.ts';
+import { enqueue } from '../jobs/queue.ts';
 import type { InboundMessage } from '../providers/messenger.ts';
 import type { CheckinHook } from './checkins.ts';
 import { places } from './places.ts';
@@ -23,11 +24,23 @@ const outbox = (ctx: AppContext) =>
 export const shareUrl = (ctx: AppContext, plan: Pick<PlanDoc, 'shareToken'>) =>
   `${ctx.config.PUBLIC_BASE_URL.replace(/\/$/, '')}/p/${plan.shareToken}`;
 
-/** Sends now if the thread is reachable, else queues the line until the thread next speaks. */
-async function say(ctx: AppContext, spaceId: string, text: string) {
+/**
+ * Sends now if the thread is reachable, else queues the line until the thread next speaks. Only the process running
+ * the agent's stream (the worker) can reach threads, so others (the API writes check-ins) hand the line to it
+ * through the job queue.
+ */
+async function say(ctx: AppContext, spaceId: string, text: string, handOff = true) {
+  if (handOff && !ctx.providers.messenger.listening) {
+    await enqueue(ctx, 'group_say', { spaceId, text });
+    return;
+  }
   const sent = await ctx.providers.messenger.send(spaceId, text).catch(() => false);
   if (!sent) await outbox(ctx).insertOne({ _id: newId(), spaceId, text, at: ctx.clock.now() });
 }
+
+/** Job: a line another process wrote for a plan's thread, posted by the worker. */
+export const groupSay = (ctx: AppContext, p: { spaceId: string; text: string }) =>
+  say(ctx, p.spaceId, p.text, false);
 
 async function flush(ctx: AppContext, spaceId: string) {
   const queued = await outbox(ctx).find({ spaceId }).sort({ at: 1 }).toArray();

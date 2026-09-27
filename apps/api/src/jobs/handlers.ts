@@ -1,3 +1,4 @@
+import { groupSay } from '../services/groupChat.ts';
 import { matchNotify } from '../services/matching.ts';
 import { syncMemory } from '../services/memory.ts';
 import { sendPush } from '../services/notify.ts';
@@ -20,4 +21,5 @@ export const handlers: Record<string, JobHandler> = {
   review_report: reviewReport as JobHandler,
   weekly_nudge: weeklyNudge as JobHandler,
   review_reminder: reviewReminder as JobHandler,
+  group_say: groupSay as JobHandler,
 };
