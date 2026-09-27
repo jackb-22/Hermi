@@ -15,7 +15,7 @@ If Xcode says the bundle identifier is unavailable, use an identifier unique to 
 
 ## Each review
 
-Keep the phone selected in Xcode and press **⌘R** to install the latest changes. Test using [test.md](../test.md), including quick taps, stationary holds, hold-and-slide, off-pill cancellation and pan/pinch. Share screenshots for layout or screen recordings for gestures.
+Keep the phone selected in Xcode and press **⌘R** to install the latest changes. Test using [test.md](test.md), including quick taps, stationary holds, hold-and-slide, off-pill cancellation and pan/pinch. Share screenshots for layout or screen recordings for gestures.
 
 The preview uses sample account/content data and public map tiles. Camera/outing tracking/invitations are not connected yet; installing on a phone does not enable them. No camera or location permission is needed for this visual checkpoint.
 

@@ -1,6 +1,6 @@
 # Hermi visual foundation
 
-Revision 01c follows the board's map-first layout and the user's six corrections. HermiDesign is independent of the old prototype/backend. The map now uses real geographic coordinates and public OpenFreeMap tiles via bundled MapLibre 5.6.0, styled with a low-resolution canvas and shared pixel pins. Account content stays labeled sample data. Decisions: ../../../docs/HERMI_SCHEMA.md. Current user tests: ../../../test.md.
+Revision 01c follows the board's map-first layout and the user's six corrections. HermiDesign is independent of the old prototype/backend. The map now uses real geographic coordinates and public OpenFreeMap tiles via bundled MapLibre 5.6.0, styled with a low-resolution canvas and shared pixel pins. Account content stays labeled sample data. Decisions: ../../../docs/frontend/HERMI_SCHEMA.md. Current user tests: ../../../docs/frontend/test.md.
 
 From this directory:
 

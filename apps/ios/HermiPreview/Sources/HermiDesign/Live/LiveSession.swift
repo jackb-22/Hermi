@@ -1,7 +1,7 @@
 import Foundation
 import Observation
 
-/// Connection settings for the live backend. Kept in UserDefaults (hackathon shortcut, see INTEGRATION.md D2).
+/// Connection settings for the live backend. Kept in UserDefaults (hackathon shortcut, see docs/INTEGRATION.md D2).
 struct LiveConfig: Equatable {
   var baseURL: String = ""
   var devToken: String = ""

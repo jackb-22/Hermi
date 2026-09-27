@@ -2,7 +2,7 @@
 
 > Merge handoff, 2026-09-27: development is paused here. Incoming server settings replace the Replay intro demo button referenced in earlier checklists. Committed branding is retained; the unfinished expressive-crab revision is backed up outside the repository. Use `--hermi-demo` for branding playback. Merge validation: 62 frontend tests and unsigned iPhone build pass; backend/runtime integration acceptance remains pending.
 
-This is the user-facing test entry point. Product reference: [unified design schema](docs/HERMI_SCHEMA.md). Resume/checkpoint: [progress](PROGRESS.md).
+This is the user-facing test entry point. Product reference: [unified design schema](HERMI_SCHEMA.md). Resume/checkpoint: [progress](PROGRESS.md).
 
 ## Current review: skyscraper-crab branding
 
@@ -16,7 +16,7 @@ Build/run HermiPreview, then **Profile → Settings → Replay intro demo**. Sim
 6. **Motif/scaling:** inspect the small profile mark, an empty My Plan, empty Saved and Feed's empty/end screen. The crab stays static and does not occupy controls. Verify the skyscraper remains recognizable at those sizes and larger accessibility text remains usable. No surprise random easter-egg overlay has been introduced.
 7. **Feedback:** send the logo reveal screenshot and a recording of one full replay, especially if pacing, trails or the shell silhouette need adjustment.
 
-57 Swift tests pass; Simulator and unsigned iPhone builds pass. Screenshot frames checked for crawl, reveal and empty-plan layout; normal launch bypass and Skip were exercised. Physical-device motion, Reduce Motion and first-install acceptance remain open. [Evidence and source reference](docs/design-reference/2026-09-27-brand/REVIEW.md). This is branding in the preview, not an implementation or bypass of required sign-in/school verification. Home Screen app-icon packaging remains separate from the in-app mark.
+57 Swift tests pass; Simulator and unsigned iPhone builds pass. Screenshot frames checked for crawl, reveal and empty-plan layout; normal launch bypass and Skip were exercised. Physical-device motion, Reduce Motion and first-install acceptance remain open. [Evidence and source reference](design-reference/2026-09-27-brand/REVIEW.md). This is branding in the preview, not an implementation or bypass of required sign-in/school verification. Home Screen app-icon packaging remains separate from the in-app mark.
 
 ## Previous review: Social map clarification and no hold explanations
 
@@ -28,7 +28,7 @@ Run the updated app with ⌘R in Xcode, with your connected iPhone selected.
 4. Hold ordinary buttons, including Social, Plan, add/save, Profile controls and discovery pins: no functionality-description popover appears. Quick taps still work. Intentional actions are retained: hold My Plan bookmark for Save Plan, hold/drag category pin, and hold/reorder plan stops.
 5. Send a Social screenshot and a short recording if the blink timing or button behavior feels wrong.
 
-55 Swift tests and expanded map bridge tests pass; Simulator and unsigned iPhone builds pass (final screenshot-label adjustment is HTML-only and included in refreshed Simulator). Real friends/current presence/loves remain unconnected. The backend currently provides recent check-ins, not proof a friend is there now, and lacks loved-place/loved-adventure fields. Do not treat sample icons as actual people or live tracking. [Screenshots](docs/design-reference/2026-09-27-social/REVIEW.md).
+55 Swift tests and expanded map bridge tests pass; Simulator and unsigned iPhone builds pass (final screenshot-label adjustment is HTML-only and included in refreshed Simulator). Real friends/current presence/loves remain unconnected. The backend currently provides recent check-ins, not proof a friend is there now, and lacks loved-place/loved-adventure fields. Do not treat sample icons as actual people or live tracking. [Screenshots](design-reference/2026-09-27-social/REVIEW.md).
 
 ## Previous review: tap navigation + Step 10a Action lifecycle
 
@@ -41,7 +41,7 @@ Run the updated app with ⌘R in Xcode, with your connected iPhone selected.
 5. **Recovery:** on a normal launch, start Action, choose Camera, quit/reopen. The same preview and mode should return. End it, quit/reopen before Back to Map: recap should return. Back to Map clears only the completed Action preview. Simulator review fixtures intentionally reset; remove `--hermi-plan-review` to test recovery.
 6. **Feedback:** send screenshots of Directions and recap, plus a short recording if quick taps still feel wrong. Check on your phone at larger text size as well.
 
-55 Swift tests pass (two obsolete scrub tests removed, four Action lifecycle tests added); Simulator and unsigned iPhone builds pass. Simulator exercised Go → Camera → End → recap → Map and Home navigation buttons. [Visual evidence](docs/design-reference/2026-09-27-step-10a/REVIEW.md). Physical touch timing and normal-run restart remain for user acceptance. This completes **10a only**: location permission/interruption, real camera/ambient audio/video, authenticated upload and server recap are still pending; NFC remains last.
+55 Swift tests pass (two obsolete scrub tests removed, four Action lifecycle tests added); Simulator and unsigned iPhone builds pass. Simulator exercised Go → Camera → End → recap → Map and Home navigation buttons. [Visual evidence](design-reference/2026-09-27-step-10a/REVIEW.md). Physical touch timing and normal-run restart remain for user acceptance. This completes **10a only**: location permission/interruption, real camera/ambient audio/video, authenticated upload and server recap are still pending; NFC remains last.
 
 ## Previous review: Step 9 — Feed filters and Profile privacy layout
 
@@ -55,7 +55,7 @@ Run HermiPreview in Xcode with **⌘R** on your iPhone. Simulator is running the
 6. **Own post isolation:** Profile → Posts → first tile. Confirm only your media and your review area appear, with X to close. No friends’ posts/reviews/social context appears. Unavailable reviews remain unavailable; sample captions are not fabricated scored reviews.
 7. **Phone/restore:** check quick taps, hold explanations, larger text, VoiceOver names and horizontal chips versus vertical paging. In a normal run, quit/reopen and confirm filter preferences, bookmarks and privacy draft persist. Send screenshots of Feed Plans, Settings and an own-post popup; send a recording for gesture issues before the next increment.
 
-Verification: **53 Swift tests pass**; Simulator build/launch and unsigned iPhone build pass. Simulator inspected all four filter combinations, Settings defaults/Cancel, Profile rail and own-post isolation. [Step 9 screenshots](docs/design-reference/2026-09-27-step-9/REVIEW.md). Physical-phone install/gesture acceptance and normal-run relaunch remain pending. Backend audience/content filtering, granular privacy enforcement and numerical ratings remain integration gates; no backend changes were made.
+Verification: **53 Swift tests pass**; Simulator build/launch and unsigned iPhone build pass. Simulator inspected all four filter combinations, Settings defaults/Cancel, Profile rail and own-post isolation. [Step 9 screenshots](design-reference/2026-09-27-step-9/REVIEW.md). Physical-phone install/gesture acceptance and normal-run relaunch remain pending. Backend audience/content filtering, granular privacy enforcement and numerical ratings remain integration gates; no backend changes were made.
 
 ## Previous review: Step 8 — local saved-plan editing and Undo
 
@@ -69,7 +69,7 @@ Step 7 accepted for progression; the bookmark’s finger-hold timing remains unv
 6. **Sharing intent:** while editing a saved plan, hold the bookmark → Sharing draft. Select Friends and specific sample friends. Keep draft preferences, reopen and check them. Cancel must discard unconfirmed changes. With no selected friend, Keep is disabled. “Save & invite” is unavailable; Public also saves only local preferences. No message, attendance confirmation or publishing occurs. Stop-edit Undo does not change audience preferences.
 7. **Restart/offline:** in a normal run, make a saved-plan edit, quit/reopen, open My Plan and use Undo. Editing identity, stop data, prior draft and Undo history should survive together. Local editing can be tested without internet; map tiles may not load. Real server conflict handling, sync failure/retry and invitation idempotence are blocked and must not be marked passed.
 
-Verification: **48 Swift tests pass**, Simulator and unsigned iPhone builds pass. Simulator exercised opening a saved plan, reordering, Undo, sharing draft selection/save and restoring the original draft. [Step 8 screenshots](docs/design-reference/2026-09-27-step-8/REVIEW.md). Send an edited-plan screenshot and any unexpected Undo/gesture recording before advancing. Phone drag, hold, restart and accessibility acceptance remain open.
+Verification: **48 Swift tests pass**, Simulator and unsigned iPhone builds pass. Simulator exercised opening a saved plan, reordering, Undo, sharing draft selection/save and restoring the original draft. [Step 8 screenshots](design-reference/2026-09-27-step-8/REVIEW.md). Send an edited-plan screenshot and any unexpected Undo/gesture recording before advancing. Phone drag, hold, restart and accessibility acceptance remain open.
 
 ## Previous review: Step 7 — Saved drawer, folders and Save Plan
 
@@ -83,7 +83,7 @@ Build/run HermiPreview with **⌘R** on your iPhone. For a seeded Simulator scre
 6. **Audience draft:** save another plan with Friends and select specific sample friends; an empty friend selection disables Save Draft. Try Public too. Both save **local visibility intent only**; no invite or feed post is sent. Check the confirmation wording.
 7. **Restore and visuals:** on a normal launch, save a plan/folder, force-quit and relaunch. Saved entries, active stop order and time data should return. Check quick taps, horizontal drawer versus vertical timeline, small iPhone layout and VoiceOver button names. Send screenshots of the drawer, expanded folder and modal, plus any gesture recording.
 
-Automated verification: 42 Swift tests pass; iPhone 16e Simulator build/launch and visual inspection passed. Local Solo Save was clicked and confirmed. [Screenshot evidence](docs/design-reference/2026-09-27-step-7/REVIEW.md). The user’s physical-phone gesture/layout and normal-run persistence review remain open. Backend supports place/post/plan folder references, but not standalone image saves; Public feed distribution and invitations are not connected. Server still caps plans at 12 stops, contrary to product truth; this preview never silently truncates.
+Automated verification: 42 Swift tests pass; iPhone 16e Simulator build/launch and visual inspection passed. Local Solo Save was clicked and confirmed. [Screenshot evidence](design-reference/2026-09-27-step-7/REVIEW.md). The user’s physical-phone gesture/layout and normal-run persistence review remain open. Backend supports place/post/plan folder references, but not standalone image saves; Public feed distribution and invitations are not connected. Server still caps plans at 12 stops, contrary to product truth; this preview never silently truncates.
 
 ## Previous review: Step 6 — Plan timeline and Go
 
@@ -98,7 +98,7 @@ Step 5 accepted; Step 6 authorized. Build/run HermiPreview with **⌘R** on your
 7. **Go round trip:** start a nonempty plan, including one with a warning. Action preview shows the stops in their current order and Directions/Camera only. End preview returns to the unchanged Plan. Camera remains a placeholder; no real trip, recording or permission request begins.
 8. **Restore and layout:** in a normal run, relaunch and check order, times and invite drafts persist together. Open/close Plan from Feed and Profile as well; covered underlying controls must not activate. Check compact/full Plan, smaller text/large text and quick taps. Send timeline and Action screenshots plus a recording for drag problems.
 
-Verification: 38 Swift tests pass (reorder metadata, remove/restore, timing boundary, stale editor rejection, snapshots and route return), plus existing map bridge checks. Simulator and unsigned device builds pass. Simulator confirmed place → X → Plan, attendee draft display, Go despite warning, and End preview → unchanged Plan. [Screenshot evidence](docs/design-reference/2026-09-27-step-6/REVIEW.md). Physical drag/reorder, time-editor cancel/save, empty-state UI and device restart still need user review. Backend blockers remain flagged, not fixed.
+Verification: 38 Swift tests pass (reorder metadata, remove/restore, timing boundary, stale editor rejection, snapshots and route return), plus existing map bridge checks. Simulator and unsigned device builds pass. Simulator confirmed place → X → Plan, attendee draft display, Go despite warning, and End preview → unchanged Plan. [Screenshot evidence](design-reference/2026-09-27-step-6/REVIEW.md). Physical drag/reorder, time-editor cancel/save, empty-state UI and device restart still need user review. Backend blockers remain flagged, not fixed.
 
 Fixture command: `sh apps/ios/HermiPreview/scripts/simulator-preview.sh --hermi-plan-review`. Remove the argument for persistence testing. Step 7 (saved drawer/folders/Save Plan) follows your review.
 
@@ -114,7 +114,7 @@ Step 4 accepted apart from category gesture direction. User confirmed **horizont
 6. **Main Feed:** open the main Feed, scroll to another card, open its place strip, expand/scroll/close the place panel. You should return to the same global Feed card and audience. Map discovery remains intact when you return.
 7. **Accessibility/smoothness:** test handle Expand/Collapse actions, larger text, Reduce Motion, quick taps and finger scrolling on iPhone. Watch for jumpy transitions or delayed swipes; send a short recording if present. Screenshots cannot certify 60fps.
 
-Share compact/full/collapsed screenshots and any gesture recordings before Step 6. Validation: 34 Swift tests and map bridge checks pass; Simulator and unsigned physical-iPhone builds pass. [Screenshot review](docs/design-reference/2026-09-27-step-5/REVIEW.md). Automated panel expansion/collapse verified control visibility and preserved Map selection; automated scroll attempt was inconclusive. Posts/media remain explicit local placeholders, with no invented ratings or backend implementation.
+Share compact/full/collapsed screenshots and any gesture recordings before Step 6. Validation: 34 Swift tests and map bridge checks pass; Simulator and unsigned physical-iPhone builds pass. [Screenshot review](design-reference/2026-09-27-step-5/REVIEW.md). Automated panel expansion/collapse verified control visibility and preserved Map selection; automated scroll attempt was inconclusive. Posts/media remain explicit local placeholders, with no invented ratings or backend implementation.
 
 ## Previous review: Step 4 — multiple pins and combined filters
 
@@ -130,7 +130,7 @@ User authorized Step 4. Rebuild/run HermiPreview with **⌘R** on your selected 
 
 Share selected/zoomed-out/expanded screenshots, plus a recording of any selection or drag problem. Step 5 waits for this review.
 
-Validation: 31 Swift tests pass, including unions/deduplication, independent edits, invalid placement, stale deleted IDs and legacy/new snapshot restoration. JS bridge tests verify stable markers, selected radius IDs, tap-away retention and visible-category indicator transfer. Simulator and unsigned physical-iPhone builds pass. [Screenshot review](docs/design-reference/2026-09-27-step-4/REVIEW.md). Full physical touch, accessibility and animation performance remain user checks. No backend changes; real multi-area recommendation completeness remains an integration gate.
+Validation: 31 Swift tests pass, including unions/deduplication, independent edits, invalid placement, stale deleted IDs and legacy/new snapshot restoration. JS bridge tests verify stable markers, selected radius IDs, tap-away retention and visible-category indicator transfer. Simulator and unsigned physical-iPhone builds pass. [Screenshot review](design-reference/2026-09-27-step-4/REVIEW.md). Full physical touch, accessibility and animation performance remain user checks. No backend changes; real multi-area recommendation completeness remains an integration gate.
 
 Optional deterministic screenshot fixture: `sh apps/ios/HermiPreview/scripts/simulator-preview.sh --hermi-multipin-review` seeds two Food pins and one Nature pin. It does not read/write normal saved state; remove the argument for restart/persistence tests.
 
@@ -148,13 +148,13 @@ Build/install with the HermiPreview project, your iPhone selected, **⌘R**. The
 
 Send screenshots of selected/deselected/expanded-panel states; send a short recording for category swipes, drop, move or cancellation problems. This remains single-pin Step 3; no advancement to Step 4 yet.
 
-Validation: 27 Swift tests pass; JavaScript bridge checks cover dots, deselection without deletion, radius endpoints, rejected moves and panel offset. Simulator build passes. Screenshots under [revision evidence](docs/design-reference/2026-09-27-step-3-revision/REVIEW.md). Real touch delivery, haptics, accessibility and frame pacing need your phone test. Content remains local fixtures; land validation is approximate. No backend changes.
+Validation: 27 Swift tests pass; JavaScript bridge checks cover dots, deselection without deletion, radius endpoints, rejected moves and panel offset. Simulator build passes. Screenshots under [revision evidence](design-reference/2026-09-27-step-3-revision/REVIEW.md). Real touch delivery, haptics, accessibility and frame pacing need your phone test. Content remains local fixtures; land validation is approximate. No backend changes.
 
 Debug `--hermi-pin-review` seeds a selected pin without reading/writing normal saved state; remove that argument for persistence testing.
 
 ## Previous review: Step 2 — palette and composition
 
-You authorized Step 2 while Step 1 touch acceptance remains pending. [iPhone setup instructions](docs/IPHONE_TESTING.md) are saved locally; Xcode is open to the correct preview project.
+You authorized Step 2 while Step 1 touch acceptance remains pending. [iPhone setup instructions](IPHONE_TESTING.md) are saved locally; Xcode is open to the correct preview project.
 
 1. Open Map: the top-left wordmark/menu should be gone; geography fills the screen behind the status bar and bottom pill.
 2. Compare brighter teal water, coral/violet markers and lime selection accents. Confirm the effect is fun but still visually calm.
@@ -162,7 +162,7 @@ You authorized Step 2 while Step 1 touch acceptance remains pending. [iPhone set
 4. Open Profile: check the same paper/ink/lime palette, crisp icons, and readable header/navigation. Profile content structure is intentionally unchanged until its later checkpoint.
 5. On your phone, also run the Step 1 quick-tap/hold/scrub/cancel checklist below. Report layout with screenshots and gesture issues with a brief screen recording.
 
-Checks so far: 20 package tests pass; Mac and iPhone 17 Pro Max/16e simulator builds pass; physical-iPhone compilation passes with signing disabled. Map JavaScript syntax passes. Main text contrast against paper is 11.16:1; ink on lime 7.72:1; white on green 4.53:1. These are static token checks, not a full accessibility audit. The user subsequently confirmed the Steps 1–2 build runs on their iPhone. Screenshot review is in [Step 2 evidence](docs/design-reference/2026-09-27-step-2/REVIEW.md).
+Checks so far: 20 package tests pass; Mac and iPhone 17 Pro Max/16e simulator builds pass; physical-iPhone compilation passes with signing disabled. Map JavaScript syntax passes. Main text contrast against paper is 11.16:1; ink on lime 7.72:1; white on green 4.53:1. These are static token checks, not a full accessibility audit. The user subsequently confirmed the Steps 1–2 build runs on their iPhone. Screenshot review is in [Step 2 evidence](design-reference/2026-09-27-step-2/REVIEW.md).
 
 To access developer-only preview tools, add `--hermi-lab` under Xcode's scheme Run → Arguments Passed On Launch. Default launches show no developer menu. This does not change app data.
 
@@ -183,7 +183,7 @@ sh apps/ios/HermiPreview/scripts/simulator-preview.sh
 
 Pass/fail and screenshot feedback: reply with the test number and what happened. For gesture bugs, a short recording is more useful than a still image. Step 2 was subsequently authorized by the user; Step 1 physical-touch acceptance remains pending.
 
-Verification: 20 package state tests passed; iPhone build/install/launch and Mac build passed. Simulator accessibility click activation opened Feed and Profile. Unit tests cover segment ordering and off-pill/nonfinite cancellation boundaries. They do not validate physical gesture timing. Coordinate-only click attempts did not establish reliable physical tap behavior; quick finger taps, hold/scrub, VoiceOver, larger text and pan/pinch remain user acceptance tests. Screenshots: [Step 1 evidence](docs/design-reference/2026-09-27-step-1/REVIEW.md). No backend integration changes.
+Verification: 20 package state tests passed; iPhone build/install/launch and Mac build passed. Simulator accessibility click activation opened Feed and Profile. Unit tests cover segment ordering and off-pill/nonfinite cancellation boundaries. They do not validate physical gesture timing. Coordinate-only click attempts did not establish reliable physical tap behavior; quick finger taps, hold/scrub, VoiceOver, larger text and pan/pinch remain user acceptance tests. Screenshots: [Step 1 evidence](design-reference/2026-09-27-step-1/REVIEW.md). No backend integration changes.
 
 ## Previous review: 01e — test these small groups in order
 
@@ -220,7 +220,7 @@ Clarification confirmed: “feedback” meant feedback to the agent. Feed has bo
 4. Unsave from Feed: the bookmark outline returns; this must not remove an existing plan stop.
 5. Check the media fills the screen and both buttons/place strip stay above the bottom pill. No Feed Camera/Create control.
 
-The full drawing comparison is in [board review](docs/design-reference/2026-09-26-board/REVIEW.md). Feed-specific Social filtering and later Plan/place-detail composition remain known gaps, not completed features. Visual acceptance remains pending.
+The full drawing comparison is in [board review](design-reference/2026-09-26-board/REVIEW.md). Feed-specific Social filtering and later Plan/place-detail composition remain known gaps, not completed features. Visual acceptance remains pending.
 
 ## Previous review: 01c — geography, pin gesture and Profile
 

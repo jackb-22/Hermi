@@ -8,4 +8,4 @@ Fixture: `--hermi-feed-review`, iPhone 16e Simulator, iOS 26.3. All images were 
 - [Settings](settings.png): private/off defaults, disabled live visibility while off, clear local-only status. Cancel was exercised.
 - [Own post](own-post.png): only own media placeholders and review no-data state; no friends’ section, X close.
 
-53 Swift tests passed, Simulator build/launch and unsigned iPhone build passed. Models cover filter independence, discovery scope, bookmark/plan independence, plan-copy append/Undo and preference migration/roundtrip. These images do not prove 60fps, real media playback, backend privacy, physical touch behavior or restart persistence. User screenshot/gesture review remains pending in [test.md](../../../test.md).
+53 Swift tests passed, Simulator build/launch and unsigned iPhone build passed. Models cover filter independence, discovery scope, bookmark/plan independence, plan-copy append/Undo and preference migration/roundtrip. These images do not prove 60fps, real media playback, backend privacy, physical touch behavior or restart persistence. User screenshot/gesture review remains pending in [test.md](../../test.md).

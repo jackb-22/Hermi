@@ -48,4 +48,4 @@ echo "▶ Simulator build + launch"
 if [ -n "${HERMI_API_BASE:-}" ]; then export SIMCTL_CHILD_HERMI_API_BASE="$HERMI_API_BASE"; fi
 if [ -n "${HERMI_DEV_TOKEN:-}" ]; then export SIMCTL_CHILD_HERMI_DEV_TOKEN="$HERMI_DEV_TOKEN"; fi
 sh scripts/simulator-preview.sh
-echo "✔ launched. Run the current step's checklist in INTEGRATION.md."
+echo "✔ launched. Run the current step's checklist in docs/INTEGRATION.md."

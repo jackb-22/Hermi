@@ -40,7 +40,7 @@ User removed pill hold/scrub navigation and authorized the next step. Replaced c
 
 Implemented local Action lifecycle: immutable explicit-stop snapshot, one active preview, persisted Directions/Camera mode, guarded/idempotent end timestamp, confirmation, local recap and return to Map preserving plan. Underlying Home controls are hidden from accessibility and hit testing while Action is present. Normal state decoding restores active preview/recap; review fixtures intentionally reset. Commit `a775558`.
 
-55 tests pass; Simulator and unsigned iPhone builds pass. Simulator exercised Go, mode switch, end confirmation, recap and Map return, plus Home button navigation. Screenshots: [10a evidence](docs/design-reference/2026-09-27-step-10a/REVIEW.md). Physical phone install/touch and normal restart remain pending.
+55 tests pass; Simulator and unsigned iPhone builds pass. Simulator exercised Go, mode switch, end confirmation, recap and Map return, plus Home button navigation. Screenshots: [10a evidence](design-reference/2026-09-27-step-10a/REVIEW.md). Physical phone install/touch and normal restart remain pending.
 
 Read-only remote check: Hermi HEAD `4694b46685cccc1660ea4c14f4131806b297b44f` (2026-09-27). Session/media contracts still require server session/verified check-in integration; end request has steps but no client end timestamp. Preview has no authenticated session/check-in adapter and uses sample place IDs, so real start/capture/upload cannot safely be connected to these fixtures. No backend changes, merges or pushes. No sensors are active; no real privacy, upload or XP claims.
 
@@ -50,7 +50,7 @@ Next: collect tap-navigation and Step 10a feedback. Then 10b authenticated sessi
 
 User authorized the next increment. Implemented independent Friends/Public and Posts/Plans filters, full-screen sample plan cards, per-post bookmarks, private local copies of bookmarked plans, duplicate-safe explicit append and one-action Undo. Filter changes preserve active plan and do not navigate to My Plan. Profile rail now has Settings/Saved; sharing controls moved out of Adventures. Own post detail excludes friends’ media/reviews. Optional Codable preferences preserve older snapshots; legacy route audience migrates without enabling location sharing.
 
-53 Swift tests pass. Simulator build/launch and unsigned iPhone build pass. Visually inspected all four Feed filter combinations, Profile rail, local Settings defaults and own-post detail; Settings Cancel exercised. Evidence: [Step 9 review](docs/design-reference/2026-09-27-step-9/REVIEW.md). Physical phone and normal-run restart tests remain open. Simulator fixture does not overwrite normal preview data.
+53 Swift tests pass. Simulator build/launch and unsigned iPhone build pass. Visually inspected all four Feed filter combinations, Profile rail, local Settings defaults and own-post detail; Settings Cancel exercised. Evidence: [Step 9 review](design-reference/2026-09-27-step-9/REVIEW.md). Physical phone and normal-run restart tests remain open. Simulator fixture does not overwrite normal preview data.
 
 Backend gates: Feed query has lat/lng but no requested audience/content filtering contract; PatchMe lacks route audience/location/live-visibility preferences; scalar review rating remains absent. Local fixture filtering/preferences do not prove server privacy enforcement or feed distribution. No backend edits or push. Frontend commits: `9094550` (state/tests), `0e9b6fd` (UI).
 
@@ -62,7 +62,7 @@ User accepted Step 7 for progression, leaving physical bookmark-hold timing pend
 
 Added explicit local sharing-intent editor, selected sample friends, Cancel/Keep semantics, and unavailable Save & invite control. Removed competing generic hold-help recognizer from the bookmark; its own hold recognizer remains, with stable accessibility “Bookmark options.” No real invitation, cloud save or public post is sent. Backend read-only inspection found `/plans/:id/save` notifies the supplied invitee list on each call; `/plans/:id/invite` filters existing members but provides no explicit retry transaction contract. Stop replacement lacks a conditional revision check. These are integration gates, not backend fixes. Remote offline/retry/conflict and real invitation tests are blocked; local persistence/recovery can be reviewed now.
 
-48 Swift tests pass, including six Step 8 boundary tests. Simulator and unsigned iPhone builds pass. Screenshots and interactions reviewed: opening saved plan, reorder/Undo, selected-friend draft and restored original draft. [Step 8 evidence](docs/design-reference/2026-09-27-step-8/REVIEW.md). Simulator remains in a nonpersistent fixture; normal phone relaunch testing is pending. Next: user Step 8 review from test.md, then corrections; do not claim backend integration is complete.
+48 Swift tests pass, including six Step 8 boundary tests. Simulator and unsigned iPhone builds pass. Screenshots and interactions reviewed: opening saved plan, reorder/Undo, selected-friend draft and restored original draft. [Step 8 evidence](design-reference/2026-09-27-step-8/REVIEW.md). Simulator remains in a nonpersistent fixture; normal phone relaunch testing is pending. Next: user Step 8 review from test.md, then corrections; do not claim backend integration is complete.
 
 ### Step 7 — Saved drawer and Save Plan ready for user review
 
@@ -70,7 +70,7 @@ Feedback correction: the user clarified one bookmark in My Plan. Quick tap toggl
 
 User authorized the next increment. Built the horizontal Saved drawer in My Plan, separate full Saved page with mixed Place/Post/Plan folder references, post bookmarks in contextual place content, duplicate-safe explicit append, and pixel-style Save Plan modal with name, existing/new folder and Solo/Friends/Public intent. Existing preview snapshots still decode; normal local state serializes saved plans, folder membership and stop time snapshots. Friends and Public are **local drafts** only; there are no invites or public posts. No standalone image saving is represented. No backend files were changed.
 
-All 42 Swift tests pass, including four Step 7 state/migration cases. iPhone 16e Simulator builds and launches. Screenshots and visual notes: [Step 7 review](docs/design-reference/2026-09-27-step-7/REVIEW.md). Simulator Solo Save was exercised. Physical touch, folder/gesture feedback and normal-launch persistence remain for user acceptance in [test.md](test.md). The preview should not be mistaken for authenticated backend persistence; server stop cap (12), image save, sharing/invitation delivery and public taste feed are unresolved backend gates. Preserve user-owned signing/project changes and unrelated Cairn prototype work; no push.
+All 42 Swift tests pass, including four Step 7 state/migration cases. iPhone 16e Simulator builds and launches. Screenshots and visual notes: [Step 7 review](design-reference/2026-09-27-step-7/REVIEW.md). Simulator Solo Save was exercised. Physical touch, folder/gesture feedback and normal-launch persistence remain for user acceptance in [test.md](test.md). The preview should not be mistaken for authenticated backend persistence; server stop cap (12), image save, sharing/invitation delivery and public taste feed are unresolved backend gates. Preserve user-owned signing/project changes and unrelated Cairn prototype work; no push.
 
 Next: collect user Step 7 screenshots/feedback and correct this increment before Step 8 autosave/Undo/share.
 
@@ -153,7 +153,7 @@ Revision 01b is ready for user review. 14 local state tests passed; Mac and iPho
 
 ### Previous handoff
 
-- Increment 00: user reviewed the plan and supplied corrections. Consolidated into [unified schema](docs/HERMI_SCHEMA.md). Do not request the same review again.
+- Increment 00: user reviewed the plan and supplied corrections. Consolidated into [unified schema](HERMI_SCHEMA.md). Do not request the same review again.
 - Increment 01: **ready for user test**. No visual acceptance yet; do not begin 02 without user acceptance.
 - Delivered: isolated SwiftUI gallery with Places, Controls and Score specimens, photo/video placements, sample states, accessibility preview options, durable sample state and Reset.
 - Commits: 65ba236 consolidates the schema/tests; 77ad3ef implements the foundation. Nothing pushed.
