@@ -21,7 +21,7 @@ public struct HermiMapPreview: View {
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   private var pinReviewFixture: Bool {
     #if DEBUG
-    ProcessInfo.processInfo.arguments.contains("--hermi-pin-review") || ProcessInfo.processInfo.arguments.contains("--hermi-multipin-review")
+    ProcessInfo.processInfo.arguments.contains("--hermi-pin-review") || ProcessInfo.processInfo.arguments.contains("--hermi-multipin-review") || ProcessInfo.processInfo.arguments.contains("--hermi-plan-review")
     #else
     false
     #endif
@@ -41,11 +41,13 @@ public struct HermiMapPreview: View {
     GeometryReader { safeGeometry in
       GeometryReader { geometry in
       ZStack {
+        Group {
         switch state.panel {
         case .map: map(in: geometry.size).ignoresSafeArea()
         case .feed: FeedPager(state: $state, size: geometry.size, friendsOnly: friendsFeed, onMoving: beginMapGesture, onStopped: endMapGesture).ignoresSafeArea()
         case .profile: profile
         }
+        }.accessibilityHidden(mapCovered).allowsHitTesting(!mapCovered)
         if let pinNotice, state.panel == .map {
           VStack { Text(pinNotice).font(.caption).padding(12)
               .background(HermiPalette.paper, in: PixelPanel(corner: 6))
@@ -54,13 +56,13 @@ public struct HermiMapPreview: View {
           }.padding(.leading, 16).padding(.trailing, 100).allowsHitTesting(false)
         }
         VStack {
-          if !contextPanelFull { topBar(in: geometry.size) }
+          if !mapCovered { topBar(in: geometry.size) }
           Spacer()
         }.padding(.horizontal, 20).padding(.top, safeGeometry.safeAreaInsets.top + 8)
 
         if let sheet = state.sheet {
           if sheet == .plan || sheet == .saved {
-            PlanPreviewPage(state: $state, saved: sheet == .saved, close: { state.sheet = nil }, go: { actionPreview = true })
+            PlanPreviewPage(state: $state, saved: sheet == .saved, close: { state.sheet = nil }, go: { if state.canStartPlan { actionPreview = true } })
               .padding(.top, safeGeometry.safeAreaInsets.top)
           } else {
             VStack { Spacer(); bottomSheet(sheet, height: geometry.size.height, safeTop: safeGeometry.safeAreaInsets.top) }.transition(.move(edge: .bottom))
@@ -107,6 +109,15 @@ public struct HermiMapPreview: View {
           state.category = .food
         }
         editingPinID = state.discoveryPins.first?.id
+        if ProcessInfo.processInfo.arguments.contains("--hermi-plan-review") {
+          state.planIDs = ["cafe", "gallery", "garden"]
+          state.stopTimes = [:]; state.stopInviteDrafts = [:]
+          let start = Calendar.current.startOfDay(for: Date()).addingTimeInterval(12 * 3600)
+          state.setStopTime(.init(arrival: start, reminderMinutes: 15), for: "cafe")
+          state.setStopTime(.init(arrival: start.addingTimeInterval(1800)), for: "gallery")
+          state.setStopTime(.init(arrival: start.addingTimeInterval(7200), durationMinutes: 30), for: "garden")
+          state.sheet = .plan
+        }
         return
       }
       if let data = UserDefaults.standard.data(forKey: storageKey),
@@ -195,7 +206,7 @@ public struct HermiMapPreview: View {
   }
 
   private func map(in size: CGSize) -> some View {
-    GeographicMap(state: state, command: mapCommand, editingPinID: contextPanelFull ? nil : editingPinID,
+    GeographicMap(state: state, command: mapCommand, editingPinID: mapCovered ? nil : editingPinID,
       revision: mapRevision, bottomInset: mapControlsBottom(in: size)) { event in
       switch event["type"] as? String {
       case "mapTap": editingPinID = nil
@@ -237,20 +248,20 @@ public struct HermiMapPreview: View {
       default: break
       }
     }
-    .accessibilityHidden(contextPanelFull)
+    .accessibilityHidden(mapCovered)
     .background(GeometryReader { geometry in
       Color.clear.onAppear { mapFrame = geometry.frame(in: .named("mapPreview")) }
         .onChange(of: geometry.frame(in: .named("mapPreview"))) { _, frame in mapFrame = frame }
     })
     .overlay(alignment: .bottomTrailing) {
       VStack(spacing: 0) {
-        if !contextPanelFull {
+        if !mapCovered {
         mapButton("plus", label: "Zoom in", action: "in")
         mapButton("minus", label: "Zoom out", action: "out")
         mapButton("locate", label: "Recenter on Columbia", action: "recenter")
         }
       }.padding(.trailing, 20).padding(.bottom, mapControlsBottom(in: size))
-        .opacity(contextPanelFull ? 0 : 1).allowsHitTesting(!contextPanelFull).accessibilityHidden(contextPanelFull)
+        .opacity(mapCovered ? 0 : 1).allowsHitTesting(!mapCovered).accessibilityHidden(mapCovered)
         .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: mapControlsBottom(in: size))
     }
   }
@@ -288,6 +299,8 @@ public struct HermiMapPreview: View {
       state.switchPanel(panel); panelLevel = .compact; moving = false
     }
   }
+
+  private var mapCovered: Bool { contextPanelFull || state.sheet == .plan || state.sheet == .saved }
 
   private var contextPanelFull: Bool {
     guard let sheet = state.sheet, sheet != .plan, sheet != .saved else { return false }
@@ -328,7 +341,11 @@ public struct HermiMapPreview: View {
     .frame(maxWidth: .infinity)
     .background(HermiPalette.paper, in: UnevenRoundedRectangle(topLeadingRadius: 24, topTrailingRadius: 24))
     .overlay(alignment: .topTrailing) {
-      Button { state.sheet = nil; panelLevel = .compact } label: {
+      Button {
+        if state.returnSheet == .plan || state.returnSheet == .saved { state.goBack() }
+        else { state.sheet = nil; state.returnSheet = nil }
+        panelLevel = .compact
+      } label: {
         PixelIcon(name: "close").frame(width: 14, height: 14).frame(width: 44, height: 36)
       }.buttonStyle(.plain).accessibilityLabel("Close details").controlHelp("Close this place or discovery panel").padding(.trailing, 8)
     }

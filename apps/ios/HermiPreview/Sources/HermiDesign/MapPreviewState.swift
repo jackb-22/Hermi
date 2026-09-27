@@ -69,6 +69,8 @@ struct MapPreviewState: Codable, Equatable {
     filterEnabled = false
   }
   var planIDs: [String] = []
+  var stopTimes: [String: PreviewStopTime]?
+  var stopInviteDrafts: [String: Set<String>]?
   var savedIDs: Set<String> = []
 
   var showsPlan: Bool { true }
@@ -148,12 +150,17 @@ struct MapPreviewState: Codable, Equatable {
     guard MapSamplePlace.find(id) != nil else { return }
     if planIDs.contains(id) { removePlace(id) } else { addPlace(id) }
   }
-  mutating func movePlace(_ id: String, before target: String) {
+  mutating func movePlace(_ id: String, before target: String) { movePlace(id, relativeTo: target, after: false) }
+  mutating func movePlace(_ id: String, relativeTo target: String, after: Bool) {
     guard id != target, planIDs.contains(id), planIDs.contains(target) else { return }
     planIDs.removeAll { $0 == id }
-    if let index = planIDs.firstIndex(of: target) { planIDs.insert(id, at: index) }
+    if let index = planIDs.firstIndex(of: target) { planIDs.insert(id, at: index + (after ? 1 : 0)) }
   }
-  mutating func removePlace(_ id: String) { planIDs.removeAll { $0 == id } }
+  mutating func removePlace(_ id: String) {
+    planIDs.removeAll { $0 == id }
+    stopTimes?[id] = nil
+    stopInviteDrafts?[id] = nil
+  }
   mutating func toggleSave(_ id: String) {
     guard MapSamplePlace.find(id) != nil else { return }
     if savedIDs.contains(id) { savedIDs.remove(id) } else { savedIDs.insert(id) }

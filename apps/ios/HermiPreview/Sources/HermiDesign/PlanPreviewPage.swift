@@ -1,36 +1,33 @@
 import SwiftUI
 
-struct PreviewStopTime: Codable, Equatable {
-  var arrival: Date
-  var durationMinutes: Int = 60
-  var reminderMinutes: Int = 0
-}
 struct PlanPreviewPage: View {
   @Binding var state: MapPreviewState
   var saved: Bool
   var close: () -> Void
   var go: () -> Void
-  @State private var times: [String: PreviewStopTime] = [:]
+  private var times: [String: PreviewStopTime] { state.stopTimes ?? [:] }
   @State private var editor: MapSamplePlace?
   @State private var participants: MapSamplePlace?
   @State private var help = false
   @State private var compact = false
-  private var warning: Bool {
-    let timed = state.planIDs.compactMap { times[$0] }
-    return zip(timed, timed.dropFirst()).contains { a,b in b.arrival < a.arrival.addingTimeInterval(Double(a.durationMinutes)*60) }
-  }
+  private var warning: Bool { !state.timingConflicts.isEmpty }
   var body: some View {
     VStack(spacing: 16) {
       Capsule().fill(HermiPalette.secondary.opacity(0.5)).frame(width: 36, height: 4).padding(.top, 10)
         .frame(height: 24).frame(maxWidth: .infinity).contentShape(Rectangle())
-        .onTapGesture { compact.toggle() }
-        .gesture(DragGesture(minimumDistance: 10).onEnded { compact = $0.translation.height > 0 })
+        .gesture(DragGesture(minimumDistance: 10).exclusively(before: TapGesture()).onEnded { gesture in
+          switch gesture {
+          case .first(let drag):
+            if abs(drag.translation.height) > 30 && abs(drag.translation.height) > abs(drag.translation.width) { compact = drag.translation.height > 0 }
+          case .second: compact.toggle()
+          }
+        })
         .accessibilityLabel(compact ? "Expand My Plan to full page" : "Collapse My Plan")
         .accessibilityAddTraits(.isButton)
         .accessibilityAction { compact.toggle() }
       HStack {
-        Button { close() } label: { PixelIcon(name: "back").frame(width: 20, height: 20).frame(width: 44, height: 44) }
-          .controlHelp("Close planning and return to your previous page")
+        Button { close() } label: { PixelIcon(name: "close").frame(width: 20, height: 20).frame(width: 44, height: 44) }
+          .accessibilityLabel("Close planning").controlHelp("Close planning and return to your previous page")
         Text(saved ? "Saved" : "My Plan").font(.title2.bold())
         Spacer()
         Button { state.sheet = saved ? .plan : .saved } label: {
@@ -58,16 +55,16 @@ struct PlanPreviewPage: View {
           }.padding(.horizontal, 18).padding(.vertical, 8)
         }
         if warning {
-          Text("These times overlap. You can edit them or continue with this preview.")
+          Text("Some stops overlap or run backwards. Edit their times or continue with Go!")
             .font(.caption).foregroundStyle(HermiPalette.ink).padding(12)
             .background(HermiPalette.coral.opacity(0.25), in: PixelPanel(corner: 6)).padding(.horizontal, 18)
         }
-        Button { go() } label: {
+        Button { if state.canStartPlan { go() } } label: {
           Text("Go!").font(.title2.bold()).frame(width: 130, height: 62)
             .background(HermiPalette.lime, in: PixelPanel(corner: 18))
-        }.disabled(state.planIDs.isEmpty)
+        }.disabled(!state.canStartPlan).opacity(state.canStartPlan ? 1 : 0.45)
           .accessibilityHint("Opens Action preview. No real trip, tracking or notifications begin")
-          .controlHelp(state.planIDs.isEmpty ? "Add at least one place before Go" : "Enter Action preview: Directions and Camera")
+          .controlHelp(!state.canStartPlan ? "Add at least one place before Go" : "Enter Action preview: Directions and Camera")
         Text("Local plan preview · reminders and invitations are not sent")
           .font(.caption2).foregroundStyle(HermiPalette.secondary).padding(.horizontal, 18)
       }
@@ -75,27 +72,40 @@ struct PlanPreviewPage: View {
     .buttonStyle(.plain)
     .padding(.bottom, 115)
     .frame(maxWidth: .infinity)
-    .frame(maxHeight: compact ? 450 : .infinity)
+    .frame(maxHeight: compact ? 560 : .infinity)
     .background(HermiPalette.paper, in: UnevenRoundedRectangle(topLeadingRadius: 20, topTrailingRadius: 20))
     .frame(maxHeight: .infinity, alignment: .bottom)
     .onAppear {
-      if let data = UserDefaults.standard.data(forKey: "hermi.preview.stopTimes"), let stored = try? JSONDecoder().decode([String: PreviewStopTime].self, from: data) { times = stored }
-    }
-    .onChange(of: times) { _, value in
-      if let data = try? JSONEncoder().encode(value) { UserDefaults.standard.set(data, forKey: "hermi.preview.stopTimes") }
+      // Migrate old preview drafts once into the durable plan snapshot.
+      if state.stopTimes == nil {
+        let data = UserDefaults.standard.data(forKey: "hermi.preview.stopTimes")
+        let old = data.flatMap { try? JSONDecoder().decode([String: PreviewStopTime].self, from: $0) } ?? [:]
+        state.stopTimes = old.filter { state.planIDs.contains($0.key) && $0.value.isValid }
+      }
+      if state.stopInviteDrafts == nil {
+        state.stopInviteDrafts = Dictionary(uniqueKeysWithValues: state.planIDs.map {
+          ($0, Set(UserDefaults.standard.stringArray(forKey: "hermi.preview.invites.\($0)") ?? []))
+        })
+      }
     }
     .sheet(item: $editor) { place in
-      StopTimeEditor(place: place, value: times[place.id]) { times[place.id] = $0 }
+      StopTimeEditor(place: place, value: times[place.id]) { state.setStopTime($0, for: place.id) }
     }
-    .sheet(item: $participants) { place in ParticipantPreview(place: place) }
+    .sheet(item: $participants) { place in
+      ParticipantPreview(place: place, initialSelection: state.stopInviteDrafts?[place.id] ?? [], save: {
+        state.setInviteDraft($0, for: place.id)
+      }, remove: { state.removePlace(place.id) })
+    }
   }
+
   private func stopRow(_ place: MapSamplePlace) -> some View {
     HStack(spacing: 10) {
       Button { editor = place } label: {
         VStack(spacing: 5) {
           if let time = times[place.id] {
+            Text(time.arrival, format: .dateTime.month(.abbreviated).day()).font(.system(size: 9))
             Text(time.arrival, style: .time).font(.caption.bold())
-            Text("\(time.durationMinutes)m").font(.caption2)
+            Text("\(time.durationMinutes)m" + (time.reminderMinutes > 0 ? " · \(time.reminderMinutes)m before" : "")).font(.system(size: 9)).lineLimit(2)
           } else { Text("Set time").font(.caption) }
         }.frame(width: 64, height: 58)
       }.accessibilityLabel("Edit time for \(place.name)")
@@ -110,9 +120,9 @@ struct PlanPreviewPage: View {
           .controlHelp("View attendees and choose existing friends to invite")
       }.padding(.leading, 12).background(HermiPalette.lime.opacity(0.35), in: Capsule())
         .draggable(place.id) { Text("Move \(place.name)").padding(12).background(HermiPalette.lime) }
-        .dropDestination(for: String.self) { ids, _ in
+        .dropDestination(for: String.self) { ids, point in
           guard let id = ids.first, state.planIDs.contains(id) else { return false }
-          state.movePlace(id, before: place.id); return true
+          state.movePlace(id, relativeTo: place.id, after: point.y > 27); return true
         }
         .accessibilityAction(named: "Move earlier") {
           if let index = state.planIDs.firstIndex(of: place.id), index > 0 { state.movePlace(place.id, before: state.planIDs[index-1]) }
@@ -148,10 +158,10 @@ struct PlanPreviewPage: View {
 
 private struct StopTimeEditor: View {
   let place: MapSamplePlace
-  var save: (PreviewStopTime) -> Void
+  var save: (PreviewStopTime?) -> Void
   @State private var draft: PreviewStopTime
   @Environment(\.dismiss) private var dismiss
-  init(place: MapSamplePlace, value: PreviewStopTime?, save: @escaping (PreviewStopTime) -> Void) {
+  init(place: MapSamplePlace, value: PreviewStopTime?, save: @escaping (PreviewStopTime?) -> Void) {
     self.place = place; self.save = save
     _draft = State(initialValue: value ?? PreviewStopTime(arrival: Date().addingTimeInterval(3600)))
   }
@@ -164,7 +174,8 @@ private struct StopTimeEditor: View {
           Text("Off").tag(0); Text("5 minutes before").tag(5); Text("15 minutes before").tag(15); Text("30 minutes before").tag(30)
         }
         Text("Preview preference only. Notifications are not scheduled.").font(.caption)
-      }.navigationTitle(place.name)
+        Button("Clear time", role: .destructive) { save(nil); dismiss() }
+      }.scrollContentBackground(.hidden).background(HermiPalette.paper).navigationTitle(place.name)
         .toolbar {
           ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() }.controlHelp("Discard time edits") }
           ToolbarItem(placement: .confirmationAction) { Button("Save") { save(draft); dismiss() }.controlHelp("Save this stop's local time and reminder preference") }
@@ -174,6 +185,9 @@ private struct StopTimeEditor: View {
 }
 private struct ParticipantPreview: View {
   let place: MapSamplePlace
+  let initialSelection: Set<String>
+  var save: (Set<String>) -> Void
+  var remove: () -> Void
   @State private var selected: Set<String> = []
   @Environment(\.dismiss) private var dismiss
   var body: some View {
@@ -186,13 +200,16 @@ private struct ParticipantPreview: View {
           }
         }
         Text("Draft only. Saving this preview list sends no invitations and does not confirm attendance.").font(.caption)
-      }.navigationTitle(place.name)
+        Section {
+          Button("Remove stop from plan", role: .destructive) { remove(); dismiss() }
+        }
+      }.scrollContentBackground(.hidden).background(HermiPalette.paper).navigationTitle(place.name)
         .toolbar {
           ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
           ToolbarItem(placement: .confirmationAction) { Button("Save draft") {
-            UserDefaults.standard.set(Array(selected).sorted(), forKey: "hermi.preview.invites.\(place.id)"); dismiss()
+            save(selected); dismiss()
           } }
         }
-    }.onAppear { selected = Set(UserDefaults.standard.stringArray(forKey: "hermi.preview.invites.\(place.id)") ?? []) }
+    }.tint(HermiPalette.green).onAppear { selected = initialSelection }
   }
 }

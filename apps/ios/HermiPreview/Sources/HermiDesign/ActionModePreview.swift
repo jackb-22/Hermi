@@ -21,9 +21,14 @@ struct ActionModePreview: View {
           Spacer()
           VStack(alignment: .leading, spacing: 8) {
             Text("Directions").font(.headline)
-            ForEach(Array(plan.enumerated()), id: \.element) { index,id in
-              if let place = MapSamplePlace.find(id) { Text("\(index+1). \(place.name)").font(.subheadline) }
-            }
+            ScrollView {
+              LazyVStack(alignment: .leading, spacing: 10) {
+                ForEach(Array(plan.enumerated()), id: \.element) { index,id in
+                  if let place = MapSamplePlace.find(id) { Text("\(index+1). \(place.name)").font(.subheadline) }
+                }
+              }.frame(maxWidth: .infinity, alignment: .leading)
+            }.frame(height: min(240, CGFloat(plan.count) * 32))
+
             Text("No turn-by-turn route loaded.").font(.caption)
           }.padding(18).frame(maxWidth: .infinity, alignment: .leading)
             .background(HermiPalette.paper, in: PixelPanel(corner: 10)).padding(.horizontal, 18).padding(.bottom, 100)
