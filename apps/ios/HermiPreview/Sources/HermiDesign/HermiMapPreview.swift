@@ -8,7 +8,7 @@ public struct HermiMapPreview: View {
   @State private var editingPinID: UUID?
   @State private var mapRevision = 0
   @State private var pinNotice: String?
-  @State private var friendsFeed = false
+  @State private var settings = false
   @State private var actionPreview = false
   @State private var restorePill: Task<Void, Never>?
   @State private var lab = false
@@ -21,7 +21,7 @@ public struct HermiMapPreview: View {
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   private var pinReviewFixture: Bool {
     #if DEBUG
-    ProcessInfo.processInfo.arguments.contains("--hermi-pin-review") || ProcessInfo.processInfo.arguments.contains("--hermi-multipin-review") || ProcessInfo.processInfo.arguments.contains("--hermi-plan-review") || ProcessInfo.processInfo.arguments.contains("--hermi-saved-review")
+    ProcessInfo.processInfo.arguments.contains("--hermi-pin-review") || ProcessInfo.processInfo.arguments.contains("--hermi-multipin-review") || ProcessInfo.processInfo.arguments.contains("--hermi-plan-review") || ProcessInfo.processInfo.arguments.contains("--hermi-saved-review") || ProcessInfo.processInfo.arguments.contains("--hermi-feed-review")
     #else
     false
     #endif
@@ -44,7 +44,7 @@ public struct HermiMapPreview: View {
         Group {
         switch state.panel {
         case .map: map(in: geometry.size).ignoresSafeArea()
-        case .feed: FeedPager(state: $state, size: geometry.size, friendsOnly: friendsFeed, onMoving: beginMapGesture, onStopped: endMapGesture).ignoresSafeArea()
+        case .feed: FeedPager(state: $state, size: geometry.size, onMoving: beginMapGesture, onStopped: endMapGesture).ignoresSafeArea()
         case .profile: profile
         }
         }.accessibilityHidden(mapCovered).allowsHitTesting(!mapCovered)
@@ -101,6 +101,12 @@ public struct HermiMapPreview: View {
     .onAppear {
       if pinReviewFixture {
         state = MapPreviewState()
+        if ProcessInfo.processInfo.arguments.contains("--hermi-feed-review") {
+          state.switchPanel(.feed)
+          state.addPlace("cafe")
+          state.planUndoHistory = []
+          return
+        }
         state.dropGeographicPin(at: .init(latitude: 40.8073, longitude: -73.9666))
         if ProcessInfo.processInfo.arguments.contains("--hermi-multipin-review") {
           state.dropGeographicPin(at: .init(latitude: 40.808, longitude: -73.963))
@@ -141,6 +147,9 @@ public struct HermiMapPreview: View {
         state.switchPanel(.map)
         state.planIDs = state.planIDs.filter { MapSamplePlace.find($0) != nil }
       }
+      if state.storedPrivacyPreferences == nil {
+        state.storedPrivacyPreferences = .migrated(routeAudience: UserDefaults.standard.string(forKey: "hermi.preview.routeAudience"))
+      }
     }
     .onChange(of: state.sheet) { _, sheet in
       if case .place = sheet { editingPinID = nil }
@@ -171,7 +180,6 @@ public struct HermiMapPreview: View {
           UserDefaults.standard.removeObject(forKey: "hermi.preview.routeAudience")
           UserDefaults.standard.removeObject(forKey: "hermi.preview.stopTimes")
           for place in MapSamplePlace.all { UserDefaults.standard.removeObject(forKey: "hermi.preview.invites.\(place.id)") }
-          friendsFeed = false
           state.reset(); mapCommand = MapCommand(action: "recenter"); panelLevel = .compact
           reduceMotionOverride = false; profileTab = "Adventures"
           restorePill?.cancel(); moving = false
@@ -201,20 +209,35 @@ public struct HermiMapPreview: View {
           panelLevel = .compact
         }, onDragBegan: { state.sheet = nil; editingPinID = nil; pinNotice = nil })
       }
+      if state.panel == .profile {
+        Button { settings = true } label: {
+          PixelIcon(name: "settings").frame(width: 26, height: 26).frame(width: 34, height: 34)
+            .background(HermiPalette.paper, in: PixelPanel(corner: 8)).frame(width: 44, height: 44)
+        }.accessibilityLabel("Settings").controlHelp("Open privacy and adventure sharing preferences")
+        Button { state.sheet = .saved } label: {
+          PixelIcon(name: "save").frame(width: 26, height: 26).frame(width: 34, height: 34)
+            .background(HermiPalette.paper, in: PixelPanel(corner: 8)).frame(width: 44, height: 44)
+        }.accessibilityLabel("Open Saved folders").controlHelp("Browse saved places, posts and plans")
+      } else {
       Button {
-        if state.panel == .feed { friendsFeed.toggle() }
-        else { state.social.toggle(); state.switchPanel(.map) }
+        if state.panel == .feed { state.toggleFeedAudience() }
+        else { state.social.toggle() }
       } label: {
         PixelIcon(name: "social").frame(width: 26, height: 26).frame(width: 34, height: 34)
-          .background((state.panel == .feed ? friendsFeed : state.social) ? HermiPalette.lime : HermiPalette.paper, in: PixelPanel(corner: 8))
+          .background((state.panel == .feed ? state.feedOptions.audience == .friends : state.social) ? HermiPalette.lime : HermiPalette.paper, in: PixelPanel(corner: 8))
         .frame(width: 44, height: 44).contentShape(Rectangle())
-      }.accessibilityLabel(state.panel == .feed ? (friendsFeed ? "Friends feed. Show public" : "Public feed. Show friends") : (state.social ? "Social map. Switch to Solo" : "Solo map. Switch to Social"))
+      }.accessibilityLabel(state.panel == .feed ? (state.feedOptions.audience == .friends ? "Friends feed. Show public" : "Public feed. Show friends") : (state.social ? "Social map. Switch to Solo" : "Solo map. Switch to Social"))
         .controlHelp(state.panel == .feed ? "Toggle sample Feed between friends and public" : "Toggle Solo and Social map")
-      Button { state.sheet = .plan; panelLevel = .full } label: {
+      Button {
+        if state.panel == .feed { state.toggleFeedContent() }
+        else { state.sheet = .plan; panelLevel = .full }
+      } label: {
         PixelIcon(name: "plan").frame(width: 26, height: 26).frame(width: 34, height: 34)
-          .background(HermiPalette.paper, in: PixelPanel(corner: 8))
+          .background(state.panel == .feed && state.feedOptions.content == .plans ? HermiPalette.lime : HermiPalette.paper, in: PixelPanel(corner: 8))
         .frame(width: 44, height: 44).contentShape(Rectangle())
-      }.accessibilityLabel("My Plan, \(state.planIDs.count) places").controlHelp("Open My Plan. Saved is inside its bookmark button")
+      }.accessibilityLabel(state.panel == .feed ? (state.feedOptions.content == .plans ? "Show posts" : "Show plans and adventures") : "My Plan, \(state.planIDs.count) places")
+        .controlHelp(state.panel == .feed ? "Filter this audience’s feed between posts and sample plans" : "Open My Plan. Saved is inside its bookmark button")
+      }
     }.buttonStyle(.plain)
   }
 
@@ -408,14 +431,7 @@ public struct HermiMapPreview: View {
           .accessibilityLabel(state.planIDs.contains(place.id) ? "Remove from plan" : "Add to plan")
           .controlHelp("Toggle this place in My Plan without changing Saved")
       }
-      PlaceFeedContent(place: place, savedPostIDs: Set(state.library.posts.map(\.refID))) { id in
-        var library = state.library
-        if library.posts.contains(where: { $0.refID == id }) {
-          library.posts.removeAll { $0.refID == id }
-          for index in library.folders.indices { library.folders[index].items.removeAll { $0.kind == .post && $0.refID == id } }
-        } else { _ = library.savePost(id) }
-        state.library = library
-      }
+      PlaceFeedContent(place: place, savedPostIDs: Set(state.library.posts.map(\.refID))) { state.togglePostBookmark($0) }
         .id(place.id)
 
     }
@@ -462,12 +478,6 @@ public struct HermiMapPreview: View {
         }
         if profileTab == "Adventures" {
           GeographicMap(state: MapPreviewState(), adventure: true).frame(height: 520)
-            .overlay(alignment: .topLeading) {
-              Button { profileDetail = .sharing } label: {
-                PixelIcon(name: "social").frame(width: 23, height: 23).frame(width: 44, height: 44)
-                  .background(HermiPalette.paper, in: PixelPanel(corner: 6))
-              }.buttonStyle(.plain).accessibilityLabel("Adventure sharing settings").controlHelp("Choose Private, Friends or Everyone for your adventures").padding(12)
-            }
             .overlay(alignment: .topTrailing) {
               Button { profileDetail = .stats } label: {
                 PixelIcon(name: "info").frame(width: 23, height: 23).frame(width: 44, height: 44)
@@ -488,6 +498,9 @@ public struct HermiMapPreview: View {
       }.padding(.top, 135).padding(.bottom, 130)
     }.background(HermiPalette.paper).ignoresSafeArea()
       .sheet(item: $profileDetail) { detail in ProfileDetailSheet(detail: detail) }
+      .sheet(isPresented: $settings) {
+        ProfileSettingsPage(preferences: state.privacyOptions) { state.privacyOptions = $0 }
+      }
       .sheet(item: Binding(get: { postPlace.flatMap(MapSamplePlace.find) }, set: { postPlace = $0?.id })) { place in
         ScrollView {
           VStack(alignment: .leading, spacing: 20) {
@@ -496,8 +509,6 @@ public struct HermiMapPreview: View {
             HStack(spacing: 6) { ForEach(0..<3) { mediaTile(place.category, variant: $0).frame(height: 150) } }
             Text("Your review").font(.headline)
             Text("No verified review loaded.").font(.subheadline)
-            Text("Friends’ posts & reviews").font(.headline)
-            Text("No shared friend posts loaded for this place.").font(.subheadline)
             Text("Sample place · media and reviews await backend integration").font(.caption).foregroundStyle(HermiPalette.secondary)
           }.padding(20)
         }.background(HermiPalette.paper).presentationDetents([.medium, .large])

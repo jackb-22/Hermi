@@ -1,34 +1,17 @@
 import SwiftUI
 
 enum ProfileDetail: String, Identifiable {
-  case friends = "Friends", score = "Score", rank = "Rank", stats = "Stats", sharing = "Route sharing"
+  case friends = "Friends", score = "Score", rank = "Rank", stats = "Stats"
   var id: String { rawValue }
 }
 struct ProfileDetailSheet: View {
   let detail: ProfileDetail
-  @AppStorage("hermi.preview.routeAudience") private var savedAudience = "Private"
-  @State private var draftAudience = "Private"
   @Environment(\.dismiss) private var dismiss
   var body: some View {
     NavigationStack {
       ScrollView {
         VStack(alignment: .leading, spacing: 20) {
           switch detail {
-          case .sharing:
-            Text("Choose who can see your adventures.").font(.headline)
-            ForEach(["Private", "Friends", "Everyone"], id: \.self) { audience in
-              Button { draftAudience = audience } label: {
-                HStack {
-                  Text(audience == "Everyone" ? "Everyone · public" : audience)
-                  Spacer()
-                  if draftAudience == audience { PixelIcon(name: "check").frame(width: 20, height: 20) }
-                }.padding(14).frame(minHeight: 48)
-                  .background(draftAudience == audience ? HermiPalette.lime : HermiPalette.paper, in: PixelPanel(corner: 6))
-              }.buttonStyle(.plain).controlHelp("Select \(audience) as the draft visibility. Save to apply the preview setting").accessibilityAddTraits(draftAudience == audience ? .isSelected : [])
-            }
-            Button("Save preview setting") { savedAudience = draftAudience; dismiss() }
-              .buttonStyle(.borderedProminent).tint(HermiPalette.green).controlHelp("Save only this local preview preference; no route will be published")
-            Text("This saves only the preview choice. No routes will be published.").font(.caption)
           case .stats:
             Text("Most visited places · ascending by visit count").font(.headline)
             Text("No visit history loaded.").font(.subheadline)
@@ -63,6 +46,5 @@ struct ProfileDetailSheet: View {
         .navigationTitle(detail.rawValue)
         .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() }.controlHelp("Close this account panel") } }
     }.presentationDetents([.medium, .large])
-      .onAppear { draftAudience = ["Private", "Friends", "Everyone"].contains(savedAudience) ? savedAudience : "Private" }
   }
 }
