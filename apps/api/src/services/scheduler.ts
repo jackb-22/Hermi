@@ -3,7 +3,7 @@ import type { StopInput } from '@itp/shared/api';
 import type { z } from 'zod';
 import type { AppContext } from '../context.ts';
 import { moveItem, proposeFix } from '../domain/fixes.ts';
-import { assemble, clampStay, type Issue } from '../domain/schedule.ts';
+import { assemble, clampStay, type Issue, type Mode } from '../domain/schedule.ts';
 import { places } from './places.ts';
 import {
   type GhostChangeDoc,
@@ -27,6 +27,8 @@ const localArrival = (d: Date) => NY_ARRIVAL.format(d);
 /**
  * The AI button, tap: code does the arithmetic and checks; the model only estimates stay lengths (5–240 min).
  * 1 legs (Apple Maps ETAs, Google fallback) · 2 opening hours · 3 stays (Gemini) · 4 assemble · 5 validate + one ghost fix · 6 refine transit legs.
+ * Hours, stays and walking/cycling legs do not depend on each other (walking and cycling ETAs do not change with the
+ * departure time), so they run at once; driving and transit legs then use the departure times the stays produce.
  */
 export async function schedulePlan(
   ctx: AppContext,
@@ -39,30 +41,27 @@ export async function schedulePlan(
   );
 
   // 2. Hours: fetched when a place enters a plan, cached on the place.
-  await Promise.all(
-    plan.stops.map(async (s) => {
-      const p = s.placeId ? byId.get(s.placeId) : undefined;
-      if (!p || p.hours) return;
-      try {
-        const h = await providers.hours.hours({
-          name: p.name,
-          loc: { lat: p.loc.coordinates[1], lng: p.loc.coordinates[0] },
-          googlePlaceId: p.googlePlaceId,
-        });
-        if (h)
-          await places(db).updateOne(
-            { _id: p._id },
-            { $set: { hours: h.hours, googlePlaceId: h.googlePlaceId } },
-          );
-      } catch (e) {
-        console.warn(`[schedule] hours for ${p.name} failed: ${(e as Error).message}`);
-      }
-    }),
-  );
-  byId = await loadPlaces(
-    db,
-    plan.stops.map((s) => s.placeId),
-  );
+  const hours = () =>
+    Promise.all(
+      plan.stops.map(async (s) => {
+        const p = s.placeId ? byId.get(s.placeId) : undefined;
+        if (!p || p.hours) return;
+        try {
+          const h = await providers.hours.hours({
+            name: p.name,
+            loc: { lat: p.loc.coordinates[1], lng: p.loc.coordinates[0] },
+            googlePlaceId: p.googlePlaceId,
+          });
+          if (h)
+            await places(db).updateOne(
+              { _id: p._id },
+              { $set: { hours: h.hours, googlePlaceId: h.googlePlaceId } },
+            );
+        } catch (e) {
+          console.warn(`[schedule] hours for ${p.name} failed: ${(e as Error).message}`);
+        }
+      }),
+    );
 
   // 3. Stay lengths for every stop the user has not set by hand.
   recompute(plan, byId);
@@ -76,7 +75,8 @@ export async function schedulePlan(
       category: sched[i]!.category,
       arrival: localArrival(s.arriveAt),
     }));
-  if (want.length) {
+  const stays = async () => {
+    if (!want.length) return;
     const est = new Map((await providers.llm.stayLengths(want, {})).map((e) => [e.id, e]));
     for (const s of plan.stops) {
       const e = est.get(s.id);
@@ -85,15 +85,15 @@ export async function schedulePlan(
       s.stayReason = e.reason;
       s.staySource = providers.llm.name === 'fake' ? 'default' : 'ai';
     }
-  }
+  };
 
   // 1. Legs: one ETA per leg with that leg's mode and projected departure time.
-  const legs = async (onlyTransit: boolean) => {
+  const legs = async (modes: readonly Mode[]) => {
     const cur = toSchedStops(plan.stops, byId);
     const times = assemble(plan.startAt, cur);
     await Promise.all(
       plan.stops.map(async (s, i) => {
-        if (i === 0 || (onlyTransit && s.legMode !== 'transit')) return;
+        if (i === 0 || !modes.includes(s.legMode)) return;
         const eta = await providers.eta.eta(
           cur[i - 1]!.loc,
           cur[i]!.loc,
@@ -106,10 +106,15 @@ export async function schedulePlan(
       }),
     );
   };
-  await legs(false);
+  await Promise.all([hours(), stays(), legs(['walk', 'bike'])]);
+  byId = await loadPlaces(
+    db,
+    plan.stops.map((s) => s.placeId),
+  );
+  await legs(['car', 'transit']);
   // 4. Assemble. 6. Transit ETAs depend on departure time, so recompute them once with the new times.
   recompute(plan, byId);
-  await legs(true);
+  await legs(['transit']);
   const { issues } = recompute(plan, byId);
 
   // 5. Validate: failing rows turn red with one proposed fix as a ghost change.
