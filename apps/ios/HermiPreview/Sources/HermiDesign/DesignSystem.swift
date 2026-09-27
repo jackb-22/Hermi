@@ -36,10 +36,10 @@ enum HermiPalette {
   }
   static func category(_ category: HermiCategory) -> Color { color(categoryRGB(category)) }
   static var mapColors: [String: String] {
-    ["ink": hex(inkRGB), "paper": hex(paperRGB), "green": hex(greenRGB),
+    ["ink": hex(inkRGB), "paper": "#F8FAF3", "green": hex(greenRGB),
      "lime": hex(limeRGB), "lake": hex(lakeRGB), "coral": hex(coralRGB),
-     "land": "#EDE7DC", "cover": "#E0E1D6", "parks": "#CBD5BA",
-     "buildings": "#D4CABB", "paths": "#A7A391", "water": "#A8C3D1", "shadow": "#B9AE9F"]
+     "land": "#ECEDD9", "cover": "#9DBF84", "parks": "#5B8C4A",
+     "buildings": "#D2D9BE", "paths": "#739D69", "water": hex(lakeRGB), "shadow": "#8FA580"]
   }
 }
 
