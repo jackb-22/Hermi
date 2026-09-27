@@ -121,6 +121,18 @@ export const PlanSchema = z
       .nullable()
       .describe('Find someone: verified students matched so far (host only; null otherwise)'),
     shareUrl: z.string(),
+    textGroup: z
+      .object({
+        recipients: z
+          .array(z.string())
+          .describe("Our iMessage agent's number; add your friends in Messages"),
+        body: z
+          .string()
+          .describe('Prefilled text carrying the plan link the agent binds the thread from'),
+        bound: z.boolean().describe('The agent is already in a group thread for this plan'),
+      })
+      .nullable()
+      .describe('Text the group (expo-sms): host only, when the Photon agent is configured'),
     createdAt: z.string(),
     updatedAt: z.string(),
   })

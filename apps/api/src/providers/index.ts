@@ -8,6 +8,7 @@ import { createEmail, type EmailProvider } from './email.ts';
 import { createEta, type EtaProvider } from './eta.ts';
 import { createHours, type HoursProvider } from './hours.ts';
 import { createLlm, type Llm } from './llm.ts';
+import { createMessenger, type Messenger } from './messenger.ts';
 import { createPush, type PushProvider } from './push.ts';
 import { createStorage, type Storage } from './storage.ts';
 import { createWeather, type WeatherProvider } from './weather.ts';
@@ -26,6 +27,7 @@ export interface Providers {
   push: PushProvider;
   c2pa: Credentials;
   detector: Detector;
+  messenger: Messenger;
 }
 
 export function createProviders(c: Config): Providers {
@@ -42,6 +44,7 @@ export function createProviders(c: Config): Providers {
     push: createPush(c),
     c2pa: createCredentials(c),
     detector: createDetector(c),
+    messenger: createMessenger(c),
   };
 }
 

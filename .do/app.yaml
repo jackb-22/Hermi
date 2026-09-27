@@ -38,7 +38,9 @@ services:
       - { key: GEMINI_API_KEY, type: SECRET }
       - { key: GOOGLE_MAPS_KEY, type: SECRET }
       - { key: BACKBOARD_API_KEY, type: SECRET }
-      - { key: PHOTON_API_KEY, type: SECRET }
+      - { key: SPECTRUM_PROJECT_ID, type: SECRET }
+      - { key: SPECTRUM_PROJECT_SECRET, type: SECRET }
+      - { key: PHOTON_AGENT_ADDRESS, type: SECRET }
       - { key: REALITY_DEFENDER_KEY, type: SECRET }
       - { key: C2PA_CERT_PEM, type: SECRET }
       - { key: C2PA_KEY_PEM, type: SECRET }

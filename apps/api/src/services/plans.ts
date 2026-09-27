@@ -75,6 +75,8 @@ export interface PlanDoc {
   imessageThreadId?: string;
   /** Backboard thread of the AI planner for this plan, so follow-up asks keep context. */
   aiThreadId?: string;
+  /** iMessage senders who replied "in" in the plan's group thread. */
+  imessageRsvps?: string[];
   /** Find someone: students matched by the last match run, and everyone already pushed about it. */
   matchCount?: number;
   matchedAt?: Date;
@@ -309,6 +311,14 @@ export async function toPlanView(
     matchCount:
       plan.visibility === 'find' && plan.hostId === viewerId ? (plan.matchCount ?? 0) : null,
     shareUrl: `${config.PUBLIC_BASE_URL.replace(/\/$/, '')}/p/${plan.shareToken}`,
+    textGroup:
+      plan.hostId === viewerId && config.SPECTRUM_PROJECT_ID && config.PHOTON_AGENT_ADDRESS
+        ? {
+            recipients: [config.PHOTON_AGENT_ADDRESS],
+            body: `${plan.name}: ${config.PUBLIC_BASE_URL.replace(/\/$/, '')}/p/${plan.shareToken}`,
+            bound: !!plan.imessageThreadId,
+          }
+        : null,
     createdAt: plan.createdAt.toISOString(),
     updatedAt: plan.updatedAt.toISOString(),
   };

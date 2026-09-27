@@ -12,6 +12,7 @@ import {
   tilesFromSegments,
 } from '../domain/movement.ts';
 import { createCheckin } from '../services/checkins.ts';
+import { groupChatRecap } from '../services/groupChat.ts';
 import { media } from '../services/media.ts';
 import { places } from '../services/places.ts';
 import { type PlanDoc, plans } from '../services/plans.ts';
@@ -228,11 +229,14 @@ export async function finalizeSession(ctx: AppContext, payload: { sessionId: str
           });
       }
     }
-    if (plan.hostId === s.userId)
-      await plans(db).updateOne(
+    if (plan.hostId === s.userId) {
+      const done = await plans(db).findOneAndUpdate(
         { _id: plan._id },
         { $set: { status: 'completed', completedAt: endedAt, updatedAt: endedAt } },
+        { returnDocument: 'after' },
       );
+      if (done && plan.status !== 'completed') await groupChatRecap(ctx, done);
+    }
   }
   await awardXp(tiger, s.userId, user.campus, endedAt, rows);
 

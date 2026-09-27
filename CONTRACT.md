@@ -62,6 +62,10 @@ Open when running locally. On a deployment every dev affordance needs the header
   - **`PATCH /me`:** `photoKey` is now ignored. Before this change a client could point it at any stored file.
   - **Reports:** a reported post is reviewed by Reality Defender (its first photo, or a clip's poster frame) when that is configured, and otherwise by Gemini again. The post is removed if the media is flagged as manipulated, if it fails the Gemini check, or once 3 different people have reported it.
   - **`/health`** lists `detector`.
+- **v0.23.0** — The plan's iMessage group (Photon).
+  - **`Plan.textGroup`:** `{recipients, body, bound}` for the host when the agent is configured, otherwise null. Open Messages with expo-sms using these recipients and body, then add friends.
+  - **The agent:** it reads the link token in the body, binds that thread to the plan and posts the plan card. After that it counts "in" replies, posts one line per check-in on the plan, and ends with the recap link when the host's session finishes.
+  - **`/health`** lists `messenger`.
 
 ## Additions beyond the plan's data model
 

@@ -38,7 +38,7 @@ export interface CheckinInput {
 
 export type CheckinResult = z.infer<typeof CheckinResponse>;
 
-/** Called after the check-in row is written, e.g. co-check-in hangouts. Registered by the social feature. */
+/** Called after the check-in row is written (co-check-in hangouts, the plan's group chat). Registered in hooks.ts. */
 export type CheckinHook = (
   ctx: AppContext,
   c: {
@@ -48,6 +48,7 @@ export type CheckinHook = (
     tier: 'gps' | 'tag';
     time: Date;
     tagId?: string;
+    planId?: string;
   },
 ) => Promise<CheckinResult['hangouts']>;
 export const checkinHooks: CheckinHook[] = [];
@@ -175,6 +176,7 @@ export async function createCheckin(ctx: AppContext, input: CheckinInput): Promi
         tier: input.tier,
         time: input.time,
         tagId: input.tagId,
+        planId: planId ?? undefined,
       })),
     );
 

@@ -52,7 +52,10 @@ const Env = z.object({
   GOOGLE_MAPS_KEY: optStr,
   BACKBOARD_API_KEY: optStr,
   BACKBOARD_BASE_URL: z.string().default('https://app.backboard.io/api'),
-  PHOTON_API_KEY: optStr,
+  /** Photon Spectrum project (dashboard Settings) and the agent's iMessage number people add to the plan's group. */
+  SPECTRUM_PROJECT_ID: optStr,
+  SPECTRUM_PROJECT_SECRET: optStr,
+  PHOTON_AGENT_ADDRESS: optStr,
   /** ES256 signer certificate chain (leaf first) and PKCS#8 key, PEM; literal \n allowed. scripts/make-c2pa-cert.sh */
   C2PA_CERT_PEM: optStr,
   C2PA_KEY_PEM: optStr,

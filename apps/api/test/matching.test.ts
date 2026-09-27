@@ -1,5 +1,6 @@
 import { TAG_DIMS, type Tag, tagIndex } from '@itp/shared';
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
+import { PREF_VECTOR_INDEX } from '../src/db/indexes.ts';
 import { createCheckin } from '../src/services/checkins.ts';
 import { findMatches, matchNotify } from '../src/services/matching.ts';
 import { plans } from '../src/services/plans.ts';
@@ -93,7 +94,41 @@ beforeAll(async () => {
     await call(who.busy!, 'POST', '/v1/plans', { startAt: tomorrow(), stops: [{ placeId: park }] })
   ).json();
   await t.ctx.db.collection('plans').updateOne({ _id: own.id }, { $set: { status: 'planned' } });
+  await vectorIndexCaughtUp();
 });
+
+/**
+ * Atlas Search indexes are eventually consistent: users written a moment ago can be missing from $vectorSearch.
+ * Production tolerates that (the match job re-runs; reads don't use the index); the tests wait for it.
+ */
+async function vectorIndexCaughtUp() {
+  const want = await t.ctx.db
+    .collection('users')
+    .countDocuments({ openToPlans: true, campus: 'Columbia' });
+  for (let i = 0; i < 60; i++) {
+    try {
+      const got = await t.ctx.db
+        .collection('users')
+        .aggregate([
+          {
+            $vectorSearch: {
+              index: PREF_VECTOR_INDEX,
+              path: 'prefVector',
+              queryVector: vec(['pizza']),
+              numCandidates: 200,
+              limit: 100,
+              filter: { openToPlans: true, campus: 'Columbia' },
+            },
+          },
+        ])
+        .toArray();
+      if (got.length >= want) return;
+    } catch {
+      return; // no Atlas Search here: matching scans instead
+    }
+    await new Promise((r) => setTimeout(r, 250));
+  }
+}
 afterAll(() => t.teardown());
 
 const openPlan = async (stops: string[], startAt = tomorrow()) => {
