@@ -77,6 +77,12 @@ Open when running locally. On a deployment every dev affordance needs the header
   - **`friendsOut[].active`:** blink that place. True when they checked in within the hour, or it is the latest stop of an outing they are still on. Still check-ins only, never live location.
   - **`routes[]`:** friends' plans as lines: `{planId, name, host, status: planned|active|completed, style: dotted|solid|mixed, line: [{lat,lng}], doneThrough, startAt, completedAt}`. Planned → dotted; completed in the last 7 days → solid, through the stops they checked in at; under way → solid through `doneThrough`, dotted after. Lines join stops, never GPS traces. Completed routes hide while the friend is in ghost mode.
   - **`spriteUrl`** (UserCard, Me, plan members) is deprecated and always null: everyone is the same hermit crab, bundled in the app. The field stays so nothing breaks.
+- **v0.27.0** — Media without a CDN. On deployments without one (the laptop demo), media URLs point at the API: `GET /media/<key>`.
+  - Renditions, posters, profile photos and credential files are public.
+  - Your own originals come as signed links valid for an hour.
+  - Byte ranges are supported, so video plays as usual.
+  - `upload.url` from `/media/presign` may also be the API (`PUT /v1/media/:id/upload`). The app already uses whatever `presign` returns, so nothing changes client-side.
+  - `/health` lists `mediaDelivery: cdn|api`.
 
 ## Additions beyond the plan's data model
 
