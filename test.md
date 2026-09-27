@@ -2,7 +2,30 @@
 
 This is the user-facing test entry point. Product reference: [unified design schema](docs/HERMI_SCHEMA.md). Resume/checkpoint: [progress](PROGRESS.md).
 
-## Current correction: 01d — Feed and board comparison
+## Current review: 01e — test these small groups in order
+
+**A. Feed and explanations**
+1. Tap Feed. Swipe upward over media: a new full-height sample post and place name appear. Swipe down to return. Four posts end at “You’re caught up”; Friends filter has two samples. This is layout/paging, not video playback.
+2. Tap + twice: add, then remove. The bookmark must remain unchanged. Hold + or bookmark ~0.6 seconds and release: an explanation appears, with no change to membership.
+3. Tap the top-right Social button while in Feed: remain in Feed and toggle its sample audience. Desktop hover also shows control descriptions.
+
+**B. Navigation versus map gestures**
+4. Hold the bottom pill ~0.35 seconds, slide left/right, release over a destination. Preview/highlight precedes switching. A tap still works.
+5. Pan/pinch the map and scroll Feed outside the pill: Home panels must not switch. Hold the category pin: readable category choices appear without a competing tooltip.
+
+**C. Plan and Saved**
+6. Add at least three different Feed places. Tap the notched Plan icon: My Plan opens full page. Drag its handle down/up to collapse/expand; bottom pill remains available.
+7. Tap a stop's time. Set arrival, duration and reminder preference; Save. Reopen and verify. Cancel an edit and check it was not applied. Reminders are not delivered by this preview.
+8. Hold a place row and drag onto another row to insert before it. Names, times and reminder preferences must stay associated. Overlapping times warn without blocking Go. VoiceOver offers Move earlier/later.
+9. Tap a place row: media/detail panel opens. Back returns to My Plan. Tap its …: see no-data confirmed attendees and a separate sample invite list. Save a draft, reopen; no invitation is sent or person marked attending.
+10. Plan bookmark opens a separate Saved page. Tap it again to return. Open a Saved place and Back returns to Saved. Plan-membership toggling here does not unsave it.
+
+**D. Go!/Action boundary**
+11. With a nonempty plan, tap Go!: Action preview has Directions/Camera only, no Feed. Camera shows an explicit not-connected preview; no permission request or recording. End preview returns to Plan. Empty plans cannot Go.
+
+Verification: initial Mac/iPhone builds passed; 19 state tests passed, covering toggle independence, reordering, Saved back navigation and pill selection boundaries. Gesture/render checks are pending user review: agent UI control stopped when Simulator reported user activity. Final Mac/iPhone build-only checks passed. The running session has the main 01e features; latest small help/pin-label refinements install on the next `sh scripts/simulator-preview.sh` launch, so your active session was not interrupted. No live trip, notification, camera or invite tests claimed.
+
+## Previous correction: 01d — Feed and board comparison
 
 Feed media crop corrected: the 4:3 source now fills the entire portrait viewport before clipping, eliminating solid-color bands. iPhone build passed and the crop was inspected in Simulator. Check Feed reaches all four screen edges, including behind the status area and pill, without shifting controls offscreen.
 

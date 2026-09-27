@@ -1,10 +1,16 @@
 # Hermi frontend progress
 
-Updated: 2026-09-26. Branch: codex/cairn-frontend. No pushes authorized.
+Updated: 2026-09-27. Branch: codex/cairn-frontend. No pushes authorized.
 
 ## Current checkpoint
 
-### Active correction: 01d — supplied board comparison
+### Active correction: 01e — Feed gestures, full Plan and Action entry
+
+User requests Add/remove toggle, long-hold explanations, notched Plan icon, vertical Feed, hold/slide Home navigation without intercepting map pan, full Plan timeline with reorder/time/reminders/attendees, separate Saved, and Go!/Action. Implemented local preview: 4 finite Feed cards plus end, two-card Friends filter; Save/Add independent toggles; hold helpers; pill-only long-hold selection; full/compact Plan, separate grouped Saved; time/duration/reminder draft persistence; stop drag/drop plus accessibility reorder; participant draft with explicit no-send semantics; Go enters Directions/Camera-only Action preview, no sensors/capture/tracking. Camera/invites/reminders/live directions remain integration gates.
+
+Mac/iPhone initial builds and 19 state tests passed. Simulator reported user interaction during agent inspection, so clicks stopped. Read-only screenshot exposed cramped held-category labels; fixed width/alignment in source. Final Mac/iPhone build-only checks passed without restarting user's Simulator. Latest help/pin-label refinements are compiled and will install on the next simulator-preview.sh launch. Next: user exercises the four checklist groups in test.md; record results before advancing. No acceptance or pushes.
+
+### Previous correction: 01d — supplied board comparison
 
 User reports Feed/full-screen and missing Camera/Create/two controls. Three supplied screenshots reviewed in the conversation; comparison saved in docs/design-reference/2026-09-26-board/REVIEW.md with outstanding ambiguities. Temporary attachment copying was blocked by macOS; the existing board PDF remains local. Simulator inspection confirmed Feed media bands, Save-only control and wrong Feed Social navigation. Media crop corrected and inspected in Simulator; iPhone build passed. User clarified “feedback” means feedback to the agent; Feed has Save-for-later and Add-to-plan, Camera/Create only in Go!/Action. Implemented separate stacked pixel Save/Add controls and full-width place strip; actions reuse tested independent saved/plan state with duplicate prevention. Mac and iPhone builds passed. Simulator confirmed two controls, full-width strip, Add producing one stop and becoming disabled; the existing Saved state remained intact. Next: user checklist in test.md. Feed Social audience filtering and later Plan/place-detail layouts remain known gaps; no visual acceptance.
 
