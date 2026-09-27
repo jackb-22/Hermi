@@ -1,4 +1,8 @@
+> ARCHIVED PROTOTYPE RECORD — superseded on 2026-09-26. Use [Hermi schema](HERMI_SCHEMA.md), [user tests](../test.md), and [progress](../PROGRESS.md). Statements below about branding, commit restrictions, backend availability and Xcode describe an earlier checkpoint, not current instructions.
+
 # Cairn frontend integration
+
+This is the initial API inventory. The current behavior, user decisions, and test process are defined in [FRONTEND_TRUTH.md](FRONTEND_TRUTH.md). Treat this file as a dated integration snapshot.
 
 Reviewed against backend commit `3f546af` and the 46-page **Unified Truth.pdf** in the parent Divhacks folder. This is a frontend integration review, not a claim that deployed providers have been tested. Backend development is concurrent; recheck these findings before enabling blocked features.
 
@@ -7,10 +11,10 @@ Reviewed against backend commit `3f546af` and the 46-page **Unified Truth.pdf** 
 - Home pill: Feed / Map / Profile; Map selected initially. Action mode replaces it with Directions / Camera; feed is unavailable until the session ends.
 - One reusable sheet with peek, half, and full heights and a small navigation stack. Bookmark means Save, never Like.
 - Pixel map, sprites, and large numbers; legible native-style body text, lists, and controls. NYC bounds, borough-to-block zoom limits, sparse labels.
-- Pins create category slots; nearby venue selection fills them. Ordered stops form a dotted route. The server owns schedule arithmetic, XP, verification, and social matching.
+- Pins open nearby discovery; selecting an explicit venue and adding it creates a plan stop. User clarification supersedes the earlier placeholder interpretation; frontend plans contain no unresolved slots. Ordered stops form a dotted route. The server owns schedule arithmetic, XP, verification, and social matching.
 - AI changes remain suggestions until accepted. Scheduling is supported; free-text planning is blocked below.
 - Score is XP earned in the last 30 days and may decrease. Exploration tiles are lifetime progress. Posting, saving, and reviewing earn no XP.
-- The requested cairn stack accompanies Score. Its scale and treatment of expiring XP need user confirmation; do not introduce levels or a second reward system.
+- The requested cairn stack accompanies Score. The user confirmed that it shrinks with rolling Score and delegated the initial scale. See the framework for the proposed thresholds; do not introduce levels or a second reward system.
 - Onboarding: explain, taste, Apple identity/student verification, profile. Collect taste locally before authentication, then submit it after sign-in. Request device permissions only when needed.
 - Friends are added only through reciprocal in-person tag taps. No remote friend search, likes, DMs, or live friend locations.
 
@@ -54,10 +58,10 @@ Use `/v1`, bearer authentication, and the schemas in `packages/shared/src/api`. 
 - Full Xcode is not installed in `/Applications` on the current Mac; `xcodebuild -version` fails because command-line tools are selected. Native simulator/device build verification is currently unavailable.
 - The PDF specifies Expo SDK 57. Verify actual registry availability and compatible versions before installation; do not install a guessed SDK.
 
-## Decisions awaiting the user
+## Decisions and development process
 
-1. Expo/TypeScript as in Unified Truth, or an intentional SwiftUI stack revision.
-2. Muted green/blue/cream/tan map with minimal warm sheets and an accent, or a different creative direction.
-3. Cairn rock scale and whether the stack falls with the rolling Score.
+The user selected SwiftUI with a viewable native preview, a youthful restrained palette, a cairn that shrinks as Score expires, and PDF behavior over outdated Miro details. The full framework and incremental acceptance process supersede the earlier open-decision list.
 
-Only frontend files and this integration documentation belong to this branch. Missing backend features remain flagged for the backend owner.
+Full iPhone validation remains blocked by the native toolchain/configuration. A Mac SwiftUI preview can be compiled with the installed tools. This does not validate iPhone behavior.
+
+Only frontend files and this integration documentation belong to this branch. Missing backend features remain flagged for the backend owner. No further commits or pushes are authorized.
