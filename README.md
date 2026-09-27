@@ -18,7 +18,14 @@ Social apps reward staying in: posting, scrolling and collecting likes from home
 
 ## Try Hermi
 
-Our demo backend runs live, with real NYC places, AI, media storage and verification. It's reachable over HTTPS, and the app is pre-configured to use it. You need the **demo token** from our submission's testing instructions.
+> **You don't need to run any backend.** Ours is live, with real NYC places, AI, media storage and verification, at an HTTPS address the app is already configured for. All you need is the app and the **demo token** from our submission's testing instructions. The "Run the backend yourself" section at the bottom is only for developers.
+
+> **Strongly recommended: use a real iPhone** (Option B or C). Hermi is built for touch: swiping the category pin, holding and dragging it onto the map, and pinch-zooming all feel natural on a phone and clumsy with a mouse.
+>
+> Using the Simulator? These are the mouse equivalents:
+> - **zoom:** hold **⌥ Option** and drag, or scroll with two fingers on a trackpad;
+> - **change the pin's category:** click and drag the pin sideways;
+> - **drop the pin:** press and hold it for half a second, then drag it onto the map.
 
 ### Option A: iOS Simulator (any Mac with Xcode, no Apple account)
 ```sh
@@ -56,10 +63,10 @@ We can install it on your iPhone by cable, or hand you our two phones, already s
 > - **On a phone:** you would **actually walk** from Movement Harlem to Lerner Hall.
 > - **In the Simulator,** which can't walk, you **move it** by setting its location (**Features → Location → Custom Location…**). **That is the only thing simulated.** Everything else (check-ins, verification, XP, recap) is the real system.
 >
-> | Stop | Latitude | Longitude |
-> |---|---|---|
-> | Movement Harlem | 40.80965 | -73.95021 |
-> | Alfred Lerner Hall | 40.80675 | -73.96398 |
+> | Stop | Address | Latitude | Longitude |
+> |---|---|---|---|
+> | Movement Harlem | 256 W 125th St (between 7th and 8th Ave) | 40.80965 | -73.95021 |
+> | Alfred Lerner Hall | 2920 Broadway at W 115th St (Columbia) | 40.80675 | -73.96398 |
 
 ### 1. Discover with pins (Map, as ava)
 - **Pan and pinch-zoom.** Thousands of real venues load in tile by tile, and the map stays bounded to the five boroughs.
@@ -68,13 +75,15 @@ We can install it on your iPhone by cable, or hand you our two phones, already s
   - **tap** it to show that category **citywide**, and tap again for everything;
   - **hold and drag** it onto the map to drop a discovery pin.
 - **Find Lerner Hall with a pin.** It won't appear as a dot on its own; that's intentional, since pins are how you discover.
-  1. Swipe the pin to **Culture** and drop it on Columbia's campus, near Broadway and 115th.
+  1. Alfred Lerner Hall is at **2920 Broadway at W 115th St**, on the west edge of Columbia's campus. Swipe the pin to **Culture** and drop it on campus there.
   2. The **Nearby** row lists culture places inside the circle, nearest first. Drag the radius slider to widen or narrow it.
   3. Open **Alfred Lerner Hall**: real photos, the would-go-again percentage and a review summary. Tap **+** to add it.
 - **Find Movement Harlem's video.**
-  1. Swipe the pin to **Sports** and drop it on 125th St near Frederick Douglass Blvd.
-  2. Open **Movement Harlem** and **tap the first post**. It opens full screen with the **climbing video playing first**; swipe sideways for the photos.
-  3. Close it with the **X** (top-left, like every sheet), then tap **+**.
+  1. Movement Harlem is a bouldering gym at **256 W 125th St**, between Frederick Douglass Blvd (8th Ave) and Adam Clayton Powell Jr Blvd (7th Ave). From Columbia, pan **east along 125th St**, about 1.2 km.
+  2. Zoom in there and tap its **Sports** dot.
+     - **Can't spot it within a few seconds? Don't search.** Swipe the pin to **Sports** and drop it on 125th St between 7th and 8th Ave. Movement Harlem appears in the **Nearby** row; widen the radius if it's empty.
+  3. Open **Movement Harlem** and **tap the first post**. It opens full screen with the **climbing video playing first**; swipe sideways for the photos.
+  4. Close it with the **X** (top-left, like every sheet), then tap **+**.
 - Tapping empty map closes a sheet.
 
 ### 2. Plan and invite
@@ -179,6 +188,8 @@ archive/                 retired prototype and hosting config
 ---
 
 ## Run the backend yourself
+
+> **Optional, for developers only.** To try Hermi you don't need any of this; the app uses our live demo backend. This section is for rebuilding that backend from scratch.
 
 ### Dev loop (Linux or macOS)
 ```bash
