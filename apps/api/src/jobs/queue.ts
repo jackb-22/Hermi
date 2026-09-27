@@ -99,9 +99,15 @@ async function finish(ctx: AppContext, job: JobDoc, err?: unknown) {
   );
 }
 
+/**
+ * Jobs one worker runs at a time. Most jobs wait on the network (Gemini, Reality Defender polls, Expo, S3), so one
+ * slow job must not hold up a recap behind it; claims are atomic, so loops never share a job.
+ */
+export const WORKER_CONCURRENCY = 4;
+
 export class Worker {
   private stopped = false;
-  private idle?: Promise<void>;
+  private idle?: Promise<unknown>;
   constructor(
     private ctx: AppContext,
     private handlers: Record<string, JobHandler>,
@@ -132,7 +138,7 @@ export class Worker {
     return n;
   }
 
-  start(pollMs = 500) {
+  start(pollMs = 500, concurrency = WORKER_CONCURRENCY) {
     const loop = async () => {
       while (!this.stopped) {
         const did = await this.runOnce().catch((err) => {
@@ -142,7 +148,7 @@ export class Worker {
         if (!did) await new Promise((r) => setTimeout(r, pollMs));
       }
     };
-    this.idle = loop();
+    this.idle = Promise.all(Array.from({ length: concurrency }, loop));
     this.log.info(`[worker] running ${Object.keys(this.handlers).join(', ') || '(no handlers)'}`);
   }
 

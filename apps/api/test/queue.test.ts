@@ -65,3 +65,39 @@ test('dedupe key keeps one live job per key', async () => {
   expect(a).toBe(b);
   expect(await t.ctx.db.collection('jobs').countDocuments({ dedupeKey: 'session:1' })).toBe(1);
 });
+
+test('a slow job does not hold up the jobs behind it (a recap behind a clip transcode or a detector poll)', async () => {
+  const done: Record<string, number> = {};
+  const handlers = {
+    slow: async () => {
+      await new Promise((r) => setTimeout(r, 1500));
+      done.slow = performance.now();
+    },
+    recap: async () => {
+      done.recap = performance.now();
+    },
+  };
+  const waitFor = async (id: string) => {
+    const jobs = t.ctx.db.collection('jobs');
+    while ((await jobs.findOne({ _id: id } as never))?.status !== 'done')
+      await new Promise((r) => setTimeout(r, 20));
+  };
+  const timeToRecap = async (concurrency: number) => {
+    const w = new Worker(t.ctx, handlers, quiet);
+    await enqueue(t.ctx, 'slow', {});
+    const start = performance.now();
+    const recap = await enqueue(t.ctx, 'recap', {});
+    w.start(50, concurrency);
+    await waitFor(recap);
+    const ms = done.recap! - start;
+    await w.stop();
+    return ms;
+  };
+  const serial = await timeToRecap(1);
+  const parallel = await timeToRecap(4);
+  console.log(
+    `recap behind a 1.5 s job: ${Math.round(serial)} ms serial, ${Math.round(parallel)} ms with 4 loops`,
+  );
+  expect(serial).toBeGreaterThan(1500);
+  expect(parallel).toBeLessThan(500);
+});
