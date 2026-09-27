@@ -133,7 +133,7 @@ console.log('Live social bridge passed: planned/done lines, recent and quest mar
 
 assert.ok(html.includes(".pin{z-index:20"));
 assert.ok(html.includes("pointer-events:none!important;z-index:1"));
-assert.equal(markers.filter(m=>m.options.element.className==='landmark').length,14);
+assert.equal(markers.filter(m=>m.options.element.className==='landmark').length,23);
 assert.ok(!html.includes("category-indicator"));
 
 // Zoom response is bounded and decluttering keeps overlapping decorative art apart.
@@ -149,7 +149,7 @@ assert.ok(sights.filter(m=>m.options.element.style.display==='block').length>1);
 map.getZoom=()=>9;map.events.zoom();assert.equal(parseInt(sights[0].options.element.style.width),65);
 map.getZoom=()=>19;map.events.zoom();assert.equal(parseInt(sights[0].options.element.style.width),52);
 map.projectOverride=null;
-console.log('Landmark bridge passed: 14 sights, bounded inverse zoom sizing, overlap suppression, pan updates.');
+console.log('Landmark bridge passed: 23 sights, bounded inverse zoom sizing, overlap suppression, pan updates.');
 
 assert.equal(nodes.get('.maplibregl-ctrl-attrib').classList.removed,'maplibregl-compact-show');
 context.commandHermi({action:'in'});assert.equal(map.lastZoom,'in');
