@@ -8,7 +8,7 @@ import { createProviders } from './providers/index.ts';
 
 export async function createContext(config: Config = loadConfig()): Promise<AppContext> {
   const { client, db } = await connectMongo(config.MONGO_URI, config.MONGO_DB);
-  const tiger = createTigerPool(config.TIGER_URL, config.TIGER_SCHEMA);
+  const tiger = createTigerPool(config.TIGER_URL, config.TIGER_SCHEMA, config.TIGER_CA_PEM);
   return {
     config,
     mongo: client,

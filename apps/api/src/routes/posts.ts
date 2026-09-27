@@ -16,8 +16,9 @@ import { z } from 'zod';
 import { enqueue } from '../jobs/queue.ts';
 import { authed, bearer } from '../plugins/auth.ts';
 import { getCheckin, media } from '../services/media.ts';
+import { remember } from '../services/memory.ts';
 import { places } from '../services/places.ts';
-import { hydratePosts, type PostDoc, posts } from '../services/posts.ts';
+import { enqueueReviewSummary, hydratePosts, type PostDoc, posts } from '../services/posts.ts';
 import { sessions } from '../services/sessions.ts';
 import { blockedIds } from '../services/social.ts';
 import { errs } from './_util.ts';
@@ -32,11 +33,12 @@ export const postRoutes: FastifyPluginAsyncZod = async (app) => {
   const publish = async (doc: PostDoc) => {
     await posts(db).insertOne(doc);
     await media(db).updateMany({ _id: { $in: doc.mediaIds } }, { $set: { posted: true } });
+    // Clips wait for their rendition; 8 attempts of exponential backoff give the worker several minutes.
     await enqueue(
       app.ctx,
       'moderate_post',
       { postId: doc._id },
-      { dedupeKey: `moderate:${doc._id}` },
+      { dedupeKey: `moderate:${doc._id}`, maxAttempts: 8 },
     );
     return one(doc);
   };
@@ -75,7 +77,14 @@ export const postRoutes: FastifyPluginAsyncZod = async (app) => {
           'BAD_REQUEST',
           'Ambient clips ride along with their photo; do not select them',
         );
-      if (picked.some((m) => m.posted)) throw new ApiError(409, 'CONFLICT', 'Already posted');
+      // A capture appears in at most one Clip/Photos/Recap post. Review posts only reference the visit's photo,
+      // so reviewing first (on the recap screen) never blocks posting that capture.
+      const usedIn = await posts(db).findOne({
+        mediaIds: { $in: b.mediaIds },
+        type: { $ne: 'review' },
+        status: { $in: ['pending', 'live'] },
+      });
+      if (usedIn) throw new ApiError(409, 'CONFLICT', 'Already posted');
       const ordered = b.mediaIds.map((id) => picked.find((m) => m._id === id)!);
       const now = clock.now();
 
@@ -201,6 +210,14 @@ export const postRoutes: FastifyPluginAsyncZod = async (app) => {
         { $inc: { 'wouldGoAgain.total': 1, 'wouldGoAgain.yes': req.body.again ? 1 : 0 } },
         { returnDocument: 'after' },
       );
+      // "Would go again: No" is something the planner should remember.
+      if (!req.body.again && place)
+        await remember(
+          app.ctx,
+          req.userId,
+          `Would not go again to ${place.name} (${place.category})${req.body.text?.trim() ? `: "${req.body.text.trim().slice(0, 200)}"` : ''}`,
+          'review',
+        );
       await sessions(db).updateOne(
         { userId: req.userId, 'recap.stops.checkinId': c.id },
         { $set: { 'recap.stops.$.reviewed': true } },
@@ -275,14 +292,18 @@ export const postRoutes: FastifyPluginAsyncZod = async (app) => {
       ...authed,
       schema: {
         tags: ['posts'],
-        summary: "A user's posts, newest first (profile Posts grid). Defaults to yours.",
+        summary:
+          "A user's posts (profile Posts grid) or a place's (place sheet grid), newest first. Defaults to yours.",
         security: bearer,
         querystring: PostsListQuery,
         response: { 200: Paged(PostSchema), ...errs(401) },
       },
     },
     async (req) => {
-      const mine: Filter<PostDoc> = { authorId: req.query.authorId ?? req.userId };
+      const { authorId, placeId } = req.query;
+      const mine: Filter<PostDoc> = placeId
+        ? { placeId, ...(authorId ? { authorId } : {}) }
+        : { authorId: authorId ?? req.userId };
       if (req.query.cursor) mine.createdAt = { $lt: new Date(req.query.cursor) };
       const q: Filter<PostDoc> = { $and: [mine, await visible(req.userId)] };
       const docs = await posts(db).find(q).sort({ createdAt: -1 }).limit(PAGE).toArray();
@@ -305,11 +326,12 @@ export const postRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (req) => {
-      const r = await posts(db).updateOne(
+      const r = await posts(db).findOneAndUpdate(
         { _id: req.params.id, authorId: req.userId },
         { $set: { status: 'removed' } },
       );
-      if (!r.matchedCount) throw new ApiError(404, 'NOT_FOUND', 'No such post');
+      if (!r) throw new ApiError(404, 'NOT_FOUND', 'No such post');
+      if (r.type === 'review') await enqueueReviewSummary(app.ctx, r.placeId);
       return { ok: true as const };
     },
   );

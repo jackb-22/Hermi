@@ -5,13 +5,14 @@ import { buildApp } from '../src/app.ts';
 import { closeContext, createContext, ensureSchema } from '../src/boot.ts';
 import { loadConfig } from '../src/config.ts';
 import type { AppContext } from '../src/context.ts';
+import { testSuffix } from './globalSetup.ts';
 
 /** Isolated Mongo database + Postgres schema per test file, against the docker compose infra. */
 export async function setupTestApp(
   overrides: Record<string, string> = {},
   extend?: (app: FastifyInstance) => void,
 ) {
-  const suffix = randomBytes(4).toString('hex');
+  const suffix = testSuffix(randomBytes(3).toString('hex'));
   const schema = `t_${suffix}`;
   const config = loadConfig({
     ...process.env,

@@ -8,6 +8,7 @@
  *
  * Needs a deployment with DEV_ROUTES=1 and a worker running (RUN_WORKER=inline locally).
  */
+import { execFileSync } from 'node:child_process';
 import { createHash, randomBytes } from 'node:crypto';
 import { parseArgs } from 'node:util';
 import { haversineM, type LatLng } from '@itp/shared';
@@ -151,7 +152,25 @@ for (let i = 0; i < stops.length; i++) {
   );
 
   if (i === 1) {
-    const bytes = randomBytes(40_000);
+    // A real JPEG (so the media worker renders and signs it) when ffmpeg is installed; random bytes otherwise.
+    let bytes: Buffer;
+    try {
+      bytes = execFileSync('ffmpeg', [
+        '-loglevel',
+        'error',
+        '-f',
+        'lavfi',
+        '-i',
+        `testsrc=size=1280x960`,
+        '-frames:v',
+        '1',
+        '-f',
+        'mjpeg',
+        'pipe:1',
+      ]);
+    } catch {
+      bytes = randomBytes(40_000);
+    }
     const sha = createHash('sha256').update(bytes).digest('hex');
     const p = await api('POST', '/media/presign', {
       checkinId: res.checkin.id,

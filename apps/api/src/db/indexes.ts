@@ -20,6 +20,8 @@ const INDEXES: Record<string, IndexDescription[]> = {
   places: [
     { key: { loc: '2dsphere' } },
     { key: { category: 1, loc: '2dsphere' } },
+    // Map pins zoomed out: a category in rank order, filtered by the bbox on the index keys (see GET /places).
+    { key: { category: 1, been: -1, confidence: -1, loc: '2dsphere' } },
     { key: { overtureId: 1 }, unique: true, sparse: true },
   ],
   plans: [
@@ -27,7 +29,9 @@ const INDEXES: Record<string, IndexDescription[]> = {
     { key: { 'members.userId': 1 } },
     { key: { visibility: 1, startAt: 1 } },
     { key: { shareToken: 1 }, sparse: true },
+    { key: { status: 1, completedAt: -1 } },
   ],
+  behavior_events: [{ key: { userId: 1, at: -1 } }],
   posts: [
     { key: { authorId: 1, createdAt: -1 } },
     { key: { loc: '2dsphere' } },
@@ -64,6 +68,7 @@ const INDEXES: Record<string, IndexDescription[]> = {
   attest_keys: [{ key: { userId: 1 } }],
   attest_challenges: [{ key: { expiresAt: 1 }, expireAfterSeconds: 0 }],
   rate_limits: [{ key: { expiresAt: 1 }, expireAfterSeconds: 0 }],
+  checkin_cooldowns: [{ key: { until: 1 }, expireAfterSeconds: 0 }],
   reports: [{ key: { postId: 1 } }, { key: { reporterId: 1 } }],
 };
 
@@ -74,7 +79,11 @@ export async function ensureMongoIndexes(db: Db, log: (m: string) => void = () =
     (await db.listCollections({}, { nameOnly: true }).toArray()).map((c) => c.name),
   );
   for (const [coll, specs] of Object.entries(INDEXES)) {
-    if (!existing.has(coll)) await db.createCollection(coll);
+    // The API and the worker both run this on boot: the other one may create it first (NamespaceExists).
+    if (!existing.has(coll))
+      await db.createCollection(coll).catch((e) => {
+        if ((e as { code?: number }).code !== 48) throw e;
+      });
     await db.collection(coll).createIndexes(specs);
   }
   // Vector index for Find-someone matching: one dimension per tag, pre-filtered on campus and openToPlans.

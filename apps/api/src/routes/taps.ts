@@ -4,7 +4,7 @@ import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { attestGuard } from '../plugins/attest.ts';
 import { authed, bearer, requireAuth } from '../plugins/auth.ts';
-import { checkinHooks, createCheckin } from '../services/checkins.ts';
+import { createCheckin } from '../services/checkins.ts';
 import {
   findReciprocal,
   friendships,
@@ -14,13 +14,10 @@ import {
   TAP_WINDOW_MS,
   toStreak,
   toUserCard,
-  venueHangouts,
 } from '../services/social.ts';
 import { tags, verifyTag } from '../services/tags.ts';
 import { getUser, toMe, users } from '../services/users.ts';
 import { errs } from './_util.ts';
-
-checkinHooks.push(venueHangouts);
 
 export const tapRoutes: FastifyPluginAsyncZod = async (app) => {
   const { db, tiger, config, clock } = app.ctx;

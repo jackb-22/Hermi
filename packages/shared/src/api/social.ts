@@ -7,7 +7,10 @@ export const UserCardSchema = z
     id: IdSchema,
     name: z.string().nullable(),
     username: z.string().nullable(),
-    spriteUrl: z.string().nullable(),
+    spriteUrl: z
+      .string()
+      .nullable()
+      .describe('Deprecated, always null: everyone is the same hermit crab, bundled in the app'),
     photoUrl: z.string().nullable(),
     verified: z.boolean(),
     campus: z.string().nullable(),

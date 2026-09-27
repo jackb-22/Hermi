@@ -1,5 +1,7 @@
 # Hermi user testing
 
+> Merge handoff, 2026-09-27: development is paused here. Incoming server settings replace the Replay intro demo button referenced in earlier checklists. Committed branding is retained; the unfinished expressive-crab revision is backed up outside the repository. Use `--hermi-demo` for branding playback. Merge validation: 62 frontend tests and unsigned iPhone build pass; backend/runtime integration acceptance remains pending.
+
 This is the user-facing test entry point. Product reference: [unified design schema](docs/HERMI_SCHEMA.md). Resume/checkpoint: [progress](PROGRESS.md).
 
 ## Current review: skyscraper-crab branding

@@ -5,6 +5,7 @@ import type { z } from 'zod';
 import type { AppContext } from '../context.ts';
 import type { PlaceDoc } from '../db/placeTypes.ts';
 import type { GeoPoint, UserDoc } from '../db/types.ts';
+import { enqueue, type JobDoc } from '../jobs/queue.ts';
 import { videoFrames } from '../media/ffmpeg.ts';
 import { type MediaDoc, media } from './media.ts';
 import { places } from './places.ts';
@@ -101,13 +102,15 @@ export async function hydratePosts(
       .find({ _id: { $in: docs.flatMap((p) => p.mediaIds) } })
       .toArray(),
   ]);
-  const ambient = await media(db)
-    .find({ _id: { $in: mediaDocs.flatMap((m) => (m.ambientId ? [m.ambientId] : [])) } })
-    .toArray();
-  const byUser = new Map(authors.map((u) => [u._id, u as UserDoc]));
   const byPlace = new Map(placeDocs.map((p) => [p._id, p as PlaceDoc]));
+  const [ambient, going] = await Promise.all([
+    media(db)
+      .find({ _id: { $in: mediaDocs.flatMap((m) => (m.ambientId ? [m.ambientId] : [])) } })
+      .toArray(),
+    goingCounts(db, [...byPlace.keys()], clock.now()),
+  ]);
+  const byUser = new Map(authors.map((u) => [u._id, u as UserDoc]));
   const byMedia = new Map([...mediaDocs, ...ambient].map((m) => [m._id, m as MediaDoc]));
-  const going = await goingCounts(db, [...byPlace.keys()], clock.now());
   const base = config.PUBLIC_BASE_URL.replace(/\/$/, '');
   const url = async (m: MediaDoc) =>
     m.rendition ? storage.publicUrl(m.rendition.key) : await storage.presignGet(m.key);
@@ -173,8 +176,40 @@ export async function hydratePosts(
   );
 }
 
+const SUMMARY_REVIEWS = 20;
+
+/** Re-summarize a place's reviews once the set of live Review posts there changed. */
+export const enqueueReviewSummary = (ctx: AppContext, placeId?: string) =>
+  placeId
+    ? enqueue(ctx, 'summarize_reviews', { placeId }, { dedupeKey: `summary:${placeId}` })
+    : Promise.resolve('');
+
+/** Job: the place sheet's two-line summary, from the newest live (moderated) Review posts only. */
+export async function summarizeReviews(ctx: AppContext, payload: { placeId: string }) {
+  const { db, providers, clock } = ctx;
+  const place = await places(db).findOne({ _id: payload.placeId });
+  if (!place) return;
+  const reviews = await posts(db)
+    .find({ placeId: place._id, type: 'review', status: 'live', text: { $exists: true } })
+    .sort({ createdAt: -1 })
+    .limit(SUMMARY_REVIEWS)
+    .toArray();
+  if (!reviews.length) {
+    await places(db).updateOne({ _id: place._id }, { $unset: { reviewSummary: '' } });
+    return;
+  }
+  const text = await providers.llm.summarizeReviews(
+    place.name,
+    reviews.map((r) => ({ again: r.again ?? true, text: r.text ?? '' })),
+  );
+  await places(db).updateOne(
+    { _id: place._id },
+    { $set: { reviewSummary: { text, count: reviews.length, at: clock.now() } } },
+  );
+}
+
 /** Captions, review text and images pass a Gemini safety check before a post goes live. */
-export async function moderatePost(ctx: AppContext, payload: { postId: string }) {
+export async function moderatePost(ctx: AppContext, payload: { postId: string }, job?: JobDoc) {
   const { db, providers, clock } = ctx;
   const p = await posts(db).findOne({ _id: payload.postId });
   if (p?.status !== 'pending') return;
@@ -182,8 +217,17 @@ export async function moderatePost(ctx: AppContext, payload: { postId: string })
     .find({ _id: { $in: p.mediaIds } })
     .toArray();
   // Clips are checked on three frames of the rendition; wait (job retry) until the worker has made it.
-  if (docs.some((m) => m.kind === 'video' && !m.rendition))
+  if (docs.some((m) => m.kind === 'video' && !m.rendition)) {
+    // Never leave a post pending forever: if the clip could not be processed by the last attempt, reject it.
+    if (job && job.attempts >= job.maxAttempts) {
+      await posts(db).updateOne(
+        { _id: p._id, status: 'pending' },
+        { $set: { status: 'rejected', moderationReason: 'clip could not be processed' } },
+      );
+      return;
+    }
     throw new Error('video rendition not ready yet');
+  }
   const images: { mimeType: string; data: Buffer }[] = [];
   for (const m of docs) {
     if (images.length >= 3) break;
@@ -206,4 +250,5 @@ export async function moderatePost(ctx: AppContext, payload: { postId: string })
         : { status: 'rejected', moderationReason: verdict.reason },
     },
   );
+  if (verdict.allowed && p.type === 'review') await enqueueReviewSummary(ctx, p.placeId);
 }

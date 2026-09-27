@@ -153,6 +153,45 @@ describe('POST /plans/:id/schedule', () => {
     expect(applied.issues).toEqual([]);
   });
 
+  test('hours, AI stays and walking legs are fetched at once, not one after another', async () => {
+    /** Resolves to `f()` after `ms`. */
+    const slow =
+      <A extends unknown[], R>(ms: number, f: (...a: A) => Promise<R>) =>
+      async (...a: A) => {
+        await new Promise((r) => setTimeout(r, ms));
+        return f(...a);
+      };
+    const saved = { ...t.ctx.providers };
+    const { hours, eta, llm } = saved;
+    Object.assign(t.ctx.providers, {
+      hours: { name: 'slow', hours: slow(150, hours.hours.bind(hours)) },
+      eta: { name: 'slow', eta: slow(100, eta.eta.bind(eta)) },
+      llm: Object.assign(Object.create(llm), { stayLengths: slow(400, llm.stayLengths.bind(llm)) }),
+    });
+    const [far] = await insertPlaces(t.ctx.db, [
+      placeDoc({ name: 'Unscheduled Gallery', category: 'culture', at: offset(ORIGIN, 0, 600) }),
+    ]);
+    const p = (
+      await t.app.inject({
+        method: 'POST',
+        url: '/v1/plans',
+        headers: u.headers,
+        payload: { stops: [{ placeId: cafe }, { placeId: far!._id }, { placeId: museum }] },
+      })
+    ).json();
+    const t0 = performance.now();
+    const r = await t.app.inject({
+      method: 'POST',
+      url: `/v1/plans/${p.id}/schedule`,
+      headers: u.headers,
+    });
+    const ms = performance.now() - t0;
+    Object.assign(t.ctx.providers, saved);
+    console.log(`schedule with 150 ms hours, 400 ms stays, 100 ms ETAs: ${Math.round(ms)} ms`);
+    expect(r.json().stops[2]).toMatchObject({ legSource: 'apple', staySource: 'ai' });
+    expect(ms).toBeLessThan(150 + 400 + 100);
+  });
+
   test('dismiss clears ghosts without changing the plan', async () => {
     const p = (
       await t.app.inject({

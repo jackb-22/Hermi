@@ -176,6 +176,7 @@ public struct HermiMapPreview: View {
       if let data = try? JSONEncoder().encode(value) { UserDefaults.standard.set(data, forKey: storageKey) }
     }
     .task { _ = await Task.detached { NYCLandMask.shared.available }.value }
+    .task { await LiveSession.shared.restore() }
     .task(id: pinNotice) {
       guard pinNotice != nil else { return }
       do { try await Task.sleep(for: .seconds(4)) } catch { return }
@@ -469,8 +470,8 @@ public struct HermiMapPreview: View {
         HStack(spacing: 12) {
           HermitSprite().frame(width: 48, height: 42)
           VStack(alignment: .leading, spacing: 4) {
-            Text("Alex").font(.title2.bold())
-            Text("@alex · Sample profile").font(.caption)
+            Text(LiveSession.shared.me?.name ?? "Alex").font(.title2.bold())
+            Text(LiveSession.shared.me.map { "@\($0.username)" } ?? "@alex · Sample profile").font(.caption)
           }
           Spacer()
 

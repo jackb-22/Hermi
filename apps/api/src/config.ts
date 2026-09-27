@@ -29,6 +29,8 @@ const Env = z.object({
   TIGER_URL: z.string().default('postgres://postgres:postgres@localhost:5432/itp'),
   /** Postgres schema to use; tests set a unique one per file. */
   TIGER_SCHEMA: z.string().default('public'),
+  /** Root CA to verify Tiger against; defaults to Tiger Cloud's bundled root (src/db/tiger-ca.pem). */
+  TIGER_CA_PEM: optStr,
 
   S3_ENDPOINT: optStr,
   S3_REGION: z.string().default('us-east-1'),
@@ -39,6 +41,8 @@ const Env = z.object({
   CDN_BASE_URL: optStr,
   /** direct: app PUTs to a presigned S3 URL. api: app PUTs to the API, which stores it (use when S3 is not reachable from the phone, e.g. local dev over a tunnel). */
   MEDIA_UPLOAD_MODE: z.enum(['direct', 'api']).default('direct'),
+  /** cdn: media URLs point at CDN_BASE_URL (Spaces CDN) or S3 presigned GETs. api: the API serves them at /media/<key> (no CDN, or storage the phone cannot reach). */
+  MEDIA_DELIVERY: z.enum(['cdn', 'api']).default('cdn'),
 
   APPLE_TEAM_ID: optStr,
   APPLE_BUNDLE_ID: optStr,
@@ -49,9 +53,18 @@ const Env = z.object({
 
   GEMINI_API_KEY: optStr,
   GEMINI_MODEL: z.string().default('gemini-3.8-flash'),
+  /** Retried once when GEMINI_MODEL is overloaded or out of quota; empty to disable. */
+  GEMINI_BACKUP_MODEL: z.string().default('gemini-3.7-flash'),
   GOOGLE_MAPS_KEY: optStr,
   BACKBOARD_API_KEY: optStr,
-  PHOTON_API_KEY: optStr,
+  BACKBOARD_BASE_URL: z.string().default('https://app.backboard.io/api'),
+  /** Photon Spectrum project (dashboard Settings) and the agent's iMessage number people add to the plan's group. */
+  SPECTRUM_PROJECT_ID: optStr,
+  SPECTRUM_PROJECT_SECRET: optStr,
+  PHOTON_AGENT_ADDRESS: optStr,
+  /** ES256 signer certificate chain (leaf first) and PKCS#8 key, PEM; literal \n allowed. scripts/make-c2pa-cert.sh */
+  C2PA_CERT_PEM: optStr,
+  C2PA_KEY_PEM: optStr,
   REALITY_DEFENDER_KEY: optStr,
   RESEND_API_KEY: optStr,
   EMAIL_FROM: optStr,
@@ -61,5 +74,7 @@ export type Config = z.infer<typeof Env> & { devRoutes: boolean };
 
 export function loadConfig(env: Record<string, string | undefined> = process.env): Config {
   const c = Env.parse(env);
+  // Served by the API: every public media URL (renditions, profile photos) is /media/<key> on this server.
+  if (c.MEDIA_DELIVERY === 'api') c.CDN_BASE_URL = `${c.PUBLIC_BASE_URL.replace(/\/$/, '')}/media`;
   return { ...c, devRoutes: c.DEV_ROUTES || c.NODE_ENV !== 'production' };
 }

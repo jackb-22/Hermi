@@ -3,6 +3,7 @@ import type { PlanSchema, StopInput } from '@itp/shared/api';
 import type { Db } from 'mongodb';
 import type { z } from 'zod';
 import type { Config } from '../config.ts';
+import type { AppContext } from '../context.ts';
 import type { PlaceDoc } from '../db/placeTypes.ts';
 import type { GeoPoint, UserDoc } from '../db/types.ts';
 import {
@@ -16,8 +17,9 @@ import {
   totals,
   validate,
 } from '../domain/schedule.ts';
+import { enqueue } from '../jobs/queue.ts';
 import { places, toPlace } from './places.ts';
-import { publicUrl, users } from './users.ts';
+import { getUser, publicUrl, users } from './users.ts';
 
 export type Visibility = 'just_me' | 'invite' | 'friends' | 'find';
 export type PlanStatus = 'draft' | 'planned' | 'active' | 'completed' | 'cancelled';
@@ -71,6 +73,14 @@ export interface PlanDoc {
   shareToken: string;
   sourcePlanId?: string;
   imessageThreadId?: string;
+  /** Backboard thread of the AI planner for this plan, so follow-up asks keep context. */
+  aiThreadId?: string;
+  /** iMessage senders who replied "in" in the plan's group thread. */
+  imessageRsvps?: string[];
+  /** Find someone: students matched by the last match run, and everyone already pushed about it. */
+  matchCount?: number;
+  matchedAt?: Date;
+  notifiedMatchIds?: string[];
   createdAt: Date;
   updatedAt: Date;
   completedAt?: Date;
@@ -229,25 +239,26 @@ export async function toPlanView(
   viewerId: string,
   opts: { byId?: PlacesById; issues?: Issue[]; pref?: number[] } = {},
 ): Promise<z.infer<typeof PlanSchema>> {
-  const byId =
+  const [byId, memberDocs] = await Promise.all([
     opts.byId ??
-    (await loadPlaces(
-      db,
-      plan.stops.map((s) => s.placeId),
-    ));
+      loadPlaces(
+        db,
+        plan.stops.map((s) => s.placeId),
+      ),
+    plan.members.length
+      ? users(db)
+          .find({ _id: { $in: plan.members.map((m) => m.userId) } })
+          .project<Pick<UserDoc, '_id' | 'name' | 'username' | 'spriteKey'>>({
+            name: 1,
+            username: 1,
+            spriteKey: 1,
+          })
+          .toArray()
+      : [],
+  ]);
   const issues = opts.issues ?? recompute(structuredClone(plan), byId).issues;
   const sched = toSchedStops(plan.stops, byId);
   const t = totals(sched, plan.stops);
-  const memberDocs = plan.members.length
-    ? await users(db)
-        .find({ _id: { $in: plan.members.map((m) => m.userId) } })
-        .project<Pick<UserDoc, '_id' | 'name' | 'username' | 'spriteKey'>>({
-          name: 1,
-          username: 1,
-          spriteKey: 1,
-        })
-        .toArray()
-    : [];
   const byUser = new Map(memberDocs.map((u) => [u._id, u]));
   return {
     id: plan._id,
@@ -298,8 +309,39 @@ export async function toPlanView(
     },
     issues,
     ghostChanges: plan.ghostChanges,
+    matchCount:
+      plan.visibility === 'find' && plan.hostId === viewerId ? (plan.matchCount ?? 0) : null,
     shareUrl: `${config.PUBLIC_BASE_URL.replace(/\/$/, '')}/p/${plan.shareToken}`,
+    textGroup:
+      plan.hostId === viewerId && config.SPECTRUM_PROJECT_ID && config.PHOTON_AGENT_ADDRESS
+        ? {
+            recipients: [config.PHOTON_AGENT_ADDRESS],
+            body: `${plan.name}: ${config.PUBLIC_BASE_URL.replace(/\/$/, '')}/p/${plan.shareToken}`,
+            bound: !!plan.imessageThreadId,
+          }
+        : null,
     createdAt: plan.createdAt.toISOString(),
     updatedAt: plan.updatedAt.toISOString(),
   };
 }
+
+/** Recompute, persist and return the hydrated view in one go (every manual edit ends here). */
+export async function saveAndView(ctx: AppContext, plan: PlanDoc, userId: string) {
+  const { db, config, clock } = ctx;
+  const byId = await loadPlaces(
+    db,
+    plan.stops.map((s) => s.placeId),
+  );
+  const { issues } = recompute(plan, byId);
+  if (plan.nameIsDefault) plan.name = defaultName(plan.stops, byId);
+  plan.updatedAt = clock.now();
+  await plans(db).replaceOne({ _id: plan._id }, plan, { upsert: true });
+  // An open plan's stops or time changed: match again (new matches get a push).
+  if (plan.visibility === 'find' && ['planned', 'active'].includes(plan.status))
+    await enqueueMatch(ctx, plan._id);
+  const me = await getUser(db, userId);
+  return toPlanView(db, config, plan, userId, { byId, issues, pref: me.prefVector });
+}
+
+export const enqueueMatch = (ctx: AppContext, planId: string) =>
+  enqueue(ctx, 'match_notify', { planId }, { dedupeKey: `match:${planId}` });

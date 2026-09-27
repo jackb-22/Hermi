@@ -1,25 +1,205 @@
 // !$*UTF8*$!
 {
- archiveVersion = 1; classes = {}; objectVersion = 56;
- objects = {
-  A00000000000000000000001 = {isa = PBXProject; buildConfigurationList = A00000000000000000000002; compatibilityVersion = "Xcode 14.0"; developmentRegion = en; hasScannedForEncodings = 0; knownRegions = (en, Base); mainGroup = A00000000000000000000003; productRefGroup = A00000000000000000000004; projectDirPath = ""; projectRoot = ""; targets = (A00000000000000000000005); packageReferences = (A00000000000000000000010); };
-  A00000000000000000000002 = {isa = XCConfigurationList; buildConfigurations = (A00000000000000000000006, A00000000000000000000007); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
-  A00000000000000000000003 = {isa = PBXGroup; children = (A00000000000000000000008, A00000000000000000000004); sourceTree = "<group>"; };
-  A00000000000000000000004 = {isa = PBXGroup; children = (A00000000000000000000009); name = Products; sourceTree = "<group>"; };
-  A00000000000000000000005 = {isa = PBXNativeTarget; buildConfigurationList = A00000000000000000000011; buildPhases = (A00000000000000000000012, A00000000000000000000013); buildRules = (); dependencies = (); name = HermiPreview; packageProductDependencies = (A00000000000000000000014); productName = HermiPreview; productReference = A00000000000000000000009; productType = "com.apple.product-type.application"; };
-  A00000000000000000000006 = {isa = XCBuildConfiguration; buildSettings = {SDKROOT = iphoneos; IPHONEOS_DEPLOYMENT_TARGET = 17.0; SWIFT_VERSION = 5.0; ALWAYS_SEARCH_USER_PATHS = NO; }; name = Debug; };
-  A00000000000000000000007 = {isa = XCBuildConfiguration; buildSettings = {SDKROOT = iphoneos; IPHONEOS_DEPLOYMENT_TARGET = 17.0; SWIFT_VERSION = 5.0; ALWAYS_SEARCH_USER_PATHS = NO; }; name = Release; };
-  A00000000000000000000008 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iOS/HermiPreviewApp.swift; sourceTree = "<group>"; };
-  A00000000000000000000009 = {isa = PBXFileReference; explicitFileType = wrapper.application; path = HermiPreview.app; sourceTree = BUILT_PRODUCTS_DIR; };
-  A00000000000000000000010 = {isa = XCLocalSwiftPackageReference; relativePath = .; };
-  A00000000000000000000011 = {isa = XCConfigurationList; buildConfigurations = (A00000000000000000000015, A00000000000000000000016); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
-  A00000000000000000000012 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A00000000000000000000017); runOnlyForDeploymentPostprocessing = 0; };
-  A00000000000000000000013 = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (A00000000000000000000018); runOnlyForDeploymentPostprocessing = 0; };
-  A00000000000000000000014 = {isa = XCSwiftPackageProductDependency; productName = HermiDesign; };
-  A00000000000000000000015 = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_STYLE = Automatic;  GENERATE_INFOPLIST_FILE = YES; INFOPLIST_KEY_CFBundleDisplayName = "Hermi Preview"; INFOPLIST_KEY_UILaunchScreen_Generation = YES; INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES; PRODUCT_BUNDLE_IDENTIFIER = tech.hermi.designpreview; PRODUCT_NAME = "$(TARGET_NAME)"; TARGETED_DEVICE_FAMILY = "1,2"; MARKETING_VERSION = 0.1.0; CURRENT_PROJECT_VERSION = 1; SWIFT_EMIT_LOC_STRINGS = YES; SWIFT_OPTIMIZATION_LEVEL = "-Onone"; ONLY_ACTIVE_ARCH = YES; }; name = Debug; };
-  A00000000000000000000016 = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_STYLE = Automatic;  GENERATE_INFOPLIST_FILE = YES; INFOPLIST_KEY_CFBundleDisplayName = "Hermi Preview"; INFOPLIST_KEY_UILaunchScreen_Generation = YES; INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES; PRODUCT_BUNDLE_IDENTIFIER = tech.hermi.designpreview; PRODUCT_NAME = "$(TARGET_NAME)"; TARGETED_DEVICE_FAMILY = "1,2"; MARKETING_VERSION = 0.1.0; CURRENT_PROJECT_VERSION = 1; SWIFT_EMIT_LOC_STRINGS = YES; }; name = Release; };
-  A00000000000000000000017 = {isa = PBXBuildFile; fileRef = A00000000000000000000008; };
-  A00000000000000000000018 = {isa = PBXBuildFile; productRef = A00000000000000000000014; };
- };
- rootObject = A00000000000000000000001;
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 60;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A00000000000000000000017 /* iOS/HermiPreviewApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000008 /* iOS/HermiPreviewApp.swift */; };
+		A00000000000000000000018 /* HermiDesign in Frameworks */ = {isa = PBXBuildFile; productRef = A00000000000000000000014 /* HermiDesign */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		A00000000000000000000008 /* iOS/HermiPreviewApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iOS/HermiPreviewApp.swift; sourceTree = "<group>"; };
+		A00000000000000000000009 /* HermiPreview.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; path = HermiPreview.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A00000000000000000000013 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A00000000000000000000018 /* HermiDesign in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A00000000000000000000003 = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000008 /* iOS/HermiPreviewApp.swift */,
+				A00000000000000000000004 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A00000000000000000000004 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000009 /* HermiPreview.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A00000000000000000000005 /* HermiPreview */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A00000000000000000000011 /* Build configuration list for PBXNativeTarget "HermiPreview" */;
+			buildPhases = (
+				A00000000000000000000012 /* Sources */,
+				A00000000000000000000013 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = HermiPreview;
+			packageProductDependencies = (
+				A00000000000000000000014 /* HermiDesign */,
+			);
+			productName = HermiPreview;
+			productReference = A00000000000000000000009 /* HermiPreview.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A00000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+			};
+			buildConfigurationList = A00000000000000000000002 /* Build configuration list for PBXProject "HermiPreview" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = A00000000000000000000003;
+			packageReferences = (
+				A00000000000000000000010 /* XCLocalSwiftPackageReference "." */,
+			);
+			productRefGroup = A00000000000000000000004 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A00000000000000000000005 /* HermiPreview */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A00000000000000000000012 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A00000000000000000000017 /* iOS/HermiPreviewApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		A00000000000000000000006 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		A00000000000000000000007 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		A00000000000000000000015 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = Y6YL6C7GDZ;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Hermi Preview";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				MARKETING_VERSION = 0.1.0;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = tech.hermi.designpreview;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A00000000000000000000016 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = Y6YL6C7GDZ;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Hermi Preview";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = tech.hermi.designpreview;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A00000000000000000000002 /* Build configuration list for PBXProject "HermiPreview" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A00000000000000000000006 /* Debug */,
+				A00000000000000000000007 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A00000000000000000000011 /* Build configuration list for PBXNativeTarget "HermiPreview" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A00000000000000000000015 /* Debug */,
+				A00000000000000000000016 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		A00000000000000000000010 /* XCLocalSwiftPackageReference "." */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = .;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		A00000000000000000000014 /* HermiDesign */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = HermiDesign;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = A00000000000000000000001 /* Project object */;
 }

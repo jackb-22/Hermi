@@ -163,4 +163,30 @@ describe('POST /checkins', () => {
     const r = await post({ tier: 'gps', ...ORIGIN, accuracy: 5 });
     expect(r.statusCode).toBe(400);
   });
+
+  test('a tag read that fires several times at once checks in (and pays) once', async () => {
+    const [bench] = await insertPlaces(t.ctx.db, [
+      placeDoc({ name: 'Double Tap Deli', category: 'food', at: offset(ORIGIN, -900, 0) }),
+    ]);
+    const tag = await venueTag(t.ctx.db, bench!._id);
+    const v = await devLogin(t.app, 'doubletap');
+    const tap = () =>
+      t.app.inject({
+        method: 'POST',
+        url: '/v1/checkins',
+        headers: v.headers,
+        payload: { tier: 'tag', tagUrl: tag.url, ...offset(ORIGIN, -900, 0), accuracy: 10 },
+      });
+    const codes = (await Promise.all(Array.from({ length: 5 }, tap))).map((r) => r.statusCode);
+    expect(codes.filter((c) => c === 200)).toHaveLength(1);
+    expect(codes.filter((c) => c === 429)).toHaveLength(4);
+    const { rows } = await t.ctx.tiger.query(
+      'select kind, xp from xp_events where user_id = $1 order by kind',
+      [v.id],
+    );
+    expect(rows).toEqual([
+      { kind: 'checkin_tag', xp: 15 },
+      { kind: 'first_visit', xp: 10 },
+    ]);
+  });
 });

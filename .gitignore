@@ -17,3 +17,13 @@ apps/ios/.swiftpm/
 apps/ios/HermiPreview/.build/
 apps/ios/HermiPreview/.preview/
 apps/ios/HermiPreview/.swiftpm/
+
+# Demo C2PA signing keys (scripts/make-c2pa-cert.sh)
+.c2pa/
+
+# Any env file with real values (only the example is committed)
+.env.*
+!.env.example
+!.env.*.example
+.demo/
+env.yaml

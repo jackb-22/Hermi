@@ -17,5 +17,7 @@ export interface PlaceDoc {
   been: number;
   wouldGoAgain: { yes: number; total: number };
   hours?: { open: string; close: string; day: number }[];
+  /** Two lines summarizing live Review posts here (worker job summarize_reviews). */
+  reviewSummary?: { text: string; count: number; at: Date };
   createdAt: Date;
 }

@@ -4,6 +4,14 @@ Updated: 2026-09-27. Branch: frontend. Earlier 47-commit history pushed with use
 
 ## Current checkpoint
 
+### Merge finalized handoff — development paused here
+
+User authorized finalizing the merge in favor of incoming `e61193dea14a024a6dff1c053a99add9f7564903`. ProfileSettingsPage matches incoming ServerSettingsSection; the replay button is absent. The unfinished crab redraw/accelerating-walk revision was set aside and its two files restored to committed HEAD. Existing staged integration and iOS prototype work was preserved; .DS_Store was excluded locally.
+
+Recovery snapshot: `/Users/jia/Desktop/Divhacks/merge-recovery-20260927-044820` contains staged/unstaged binary patches, parent IDs and the unfinished logo source/tests. Apply selectively in an isolated checkout, not blindly over subsequent work. The original committed branding remains; later artwork changes need separate review.
+
+Verification: 62 HermiPreview Swift tests pass; unsigned iPhone build passes; no unresolved conflicts. Backend services and the separate legacy iOS prototype were not runtime-tested in this handoff. Do not resume development or push from this session without a new user instruction. The other editing session owns further work. Earlier checkpoints below are historical.
+
 ### Skyscraper-crab branding increment — implemented for review
 
 Read Desktop/Divhacks/App logo.jpg. User confirmed retaining skyscraper shell and simplifying scenery. Implemented a code-native vector pixel mark, using coral/lavender/paper/ink, with separate shell/body/feet for scalable animation. Original reference is preserved in docs/design-reference/2026-09-27-brand/source-logo.jpg; source image was not modified. Updated small profile mark and static Plan/Saved/Feed empty/end motifs.

@@ -62,24 +62,25 @@ export class GooglePlacesHours implements HoursProvider {
       place = ((await r.json()) as { places?: (typeof place)[] }).places?.[0];
     }
     if (!place) return null;
-    const periods = place.regularOpeningHours?.periods ?? [];
-    return {
-      googlePlaceId: place.id,
-      hours: periods.map(
-        (x) =>
-          x.close
-            ? {
-                day: x.open.day,
-                open: `${pad(x.open.hour)}:${pad(x.open.minute ?? 0)}`,
-                close: `${pad(x.close.hour)}:${pad(x.close.minute ?? 0)}`,
-              }
-            : { day: x.open.day, open: '00:00', close: '00:00' }, // open 24h
-      ),
-    };
+    return { googlePlaceId: place.id, hours: toOpeningHours(place.regularOpeningHours?.periods) };
   }
 }
 
-interface Period {
+/**
+ * Google periods → our rows. A close earlier than the open runs past midnight (validate reads it that way). Google
+ * marks an always-open place with one period that has no close, so that becomes every day, all day.
+ */
+export function toOpeningHours(periods: Period[] = []): OpeningHours[] {
+  if (periods.some((x) => !x.close))
+    return Array.from({ length: 7 }, (_, day) => ({ day, open: '00:00', close: '00:00' }));
+  return periods.map((x) => ({
+    day: x.open.day,
+    open: `${pad(x.open.hour)}:${pad(x.open.minute ?? 0)}`,
+    close: `${pad(x.close!.hour)}:${pad(x.close!.minute ?? 0)}`,
+  }));
+}
+
+export interface Period {
   open: { day: number; hour: number; minute?: number };
   close?: { day: number; hour: number; minute?: number };
 }
