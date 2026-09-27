@@ -23,7 +23,7 @@ struct MapSamplePlace: Identifiable {
   var coordinate: GeoPoint {
     // Explicit sample locations around Columbia; fixture names are not verified businesses.
     let coordinates: [String: GeoPoint] = [
-      "garden": .init(latitude: 40.8078, longitude: -73.9715),
+      "garden": .init(latitude: 40.808, longitude: -73.967),
       "cafe": .init(latitude: 40.8073, longitude: -73.9654),
       "gallery": .init(latitude: 40.8077, longitude: -73.9625),
       "books": .init(latitude: 40.8050, longitude: -73.9653),
@@ -55,44 +55,65 @@ struct MapPreviewState: Codable, Equatable {
   var returnSheet: MapPreviewSheet?
   var discovery: CGPoint? // Legacy illustration state, retained only for migration/tests.
   var geographicDiscovery: GeoPoint? // Legacy key retained for existing preview snapshots.
-  var discoveryPin: DiscoveryPin?
+  var discoveryPin: DiscoveryPin? // Decode-only legacy single-pin snapshot.
+  var storedDiscoveryPins: [DiscoveryPin]?
+  var citywideCategory: HermiCategory?
+  var discoveryPins: [DiscoveryPin] {
+    get { storedDiscoveryPins ?? discoveryPin.map { [$0] } ?? [] }
+    set { storedDiscoveryPins = newValue; discoveryPin = nil; geographicDiscovery = nil }
+  }
+  var activeCitywideCategory: HermiCategory? { citywideCategory ?? (filterEnabled ? category : nil) }
+  func pin(id: UUID?) -> DiscoveryPin? { discoveryPins.first { $0.id == id } }
+  mutating func toggleCategoryFilter() {
+    citywideCategory = activeCitywideCategory == category ? nil : category
+    filterEnabled = false
+  }
   var planIDs: [String] = []
   var savedIDs: Set<String> = []
 
   var showsPlan: Bool { true }
-  var nearby: [MapSamplePlace] { MapSamplePlace.all.filter { place in
-    if let pin = discoveryPin {
-      return place.category == pin.category && pin.coordinate.distance(to: place.coordinate) <= pin.radiusMeters
+  var nearby: [MapSamplePlace] { matchingPlaces(MapSamplePlace.all) }
+  func matchingPlaces(_ places: [MapSamplePlace]) -> [MapSamplePlace] {
+    let pins = discoveryPins, citywide = activeCitywideCategory
+    var seen = Set<String>()
+    return places.filter { place in
+      let matches = (pins.isEmpty && citywide == nil) || place.category == citywide || pins.contains {
+        place.category == $0.category && $0.coordinate.distance(to: place.coordinate) <= $0.radiusMeters
+      }
+      return matches && seen.insert(place.id).inserted
     }
-    return !filterEnabled || place.category == category
-  } }
+  }
 
   mutating func restoreDiscovery() {
-    if discoveryPin == nil, let point = geographicDiscovery, NYCLandMask.shared.allows(point) {
-      discoveryPin = DiscoveryPin(category: category, coordinate: point)
+    var pins = discoveryPins
+    if storedDiscoveryPins == nil, discoveryPin == nil, let point = geographicDiscovery, NYCLandMask.shared.allows(point) {
+      pins = [DiscoveryPin(category: category, coordinate: point)]
     }
-    if let pin = discoveryPin,
-       !NYCLandMask.shared.allows(pin.coordinate) || !pin.radiusMiles.isFinite || !(0.1...4).contains(pin.radiusMiles) {
-      discoveryPin = nil
+    var seen = Set<UUID>()
+    discoveryPins = pins.filter {
+      NYCLandMask.shared.allows($0.coordinate) && $0.radiusMiles.isFinite && (0.1...4).contains($0.radiusMiles) && seen.insert($0.id).inserted
     }
-    geographicDiscovery = discoveryPin?.coordinate
+    if citywideCategory == nil && filterEnabled { citywideCategory = category }
+    filterEnabled = false
   }
 
   @discardableResult mutating func moveDiscovery(id: UUID, to point: GeoPoint) -> Bool {
-    guard discoveryPin?.id == id, NYCLandMask.shared.allows(point) else { return false }
-    discoveryPin?.coordinate = point
-    geographicDiscovery = point
+    guard let index = discoveryPins.firstIndex(where: { $0.id == id }), NYCLandMask.shared.allows(point) else { return false }
+    discoveryPins[index].coordinate = point
     return true
   }
   mutating func setDiscoveryRadius(id: UUID, miles: Double) {
-    guard discoveryPin?.id == id, miles.isFinite else { return }
-    discoveryPin?.radiusMiles = min(4, max(0.1, miles))
+    guard let index = discoveryPins.firstIndex(where: { $0.id == id }), miles.isFinite else { return }
+    discoveryPins[index].radiusMiles = min(4, max(0.1, miles))
   }
   mutating func removeDiscovery(id: UUID) {
-    guard discoveryPin?.id == id else { return }
-    discoveryPin = nil; geographicDiscovery = nil; discovery = nil
-    if sheet == .nearby { sheet = nil }
-    if returnSheet == .nearby { returnSheet = nil }
+    guard pin(id: id) != nil else { return }
+    discoveryPins.removeAll { $0.id == id }
+    discovery = nil
+    if discoveryPins.isEmpty && activeCitywideCategory == nil {
+      if sheet == .nearby { sheet = nil }
+      if returnSheet == .nearby { returnSheet = nil }
+    }
   }
 
   mutating func switchPanel(_ panel: HomePanel) { self.panel = panel; sheet = nil; returnSheet = nil }
@@ -100,7 +121,7 @@ struct MapPreviewState: Codable, Equatable {
     let categories = HermiCategory.allCases
     let current = categories.firstIndex(of: category)!
     category = categories[(current + delta % categories.count + categories.count) % categories.count]
-    if sheet == .nearby { filterEnabled = true }
+
   }
   mutating func dropPin(at point: CGPoint) {
     discovery = CGPoint(x: min(0.95, max(0.05, point.x)), y: min(0.88, max(0.15, point.y)))
@@ -109,14 +130,13 @@ struct MapPreviewState: Codable, Equatable {
   }
   @discardableResult mutating func dropGeographicPin(at point: GeoPoint) -> Bool {
     guard NYCLandMask.shared.allows(point) else { return false }
-    discoveryPin = DiscoveryPin(category: category, coordinate: point)
-    geographicDiscovery = point
+    discoveryPins.append(DiscoveryPin(category: category, coordinate: point))
     sheet = .nearby
     return true
   }
   mutating func selectPlace(_ id: String) {
     guard MapSamplePlace.find(id) != nil else { return }
-    returnSheet = (sheet == .plan || sheet == .saved) ? sheet : (discovery == nil && geographicDiscovery == nil ? nil : .nearby)
+    returnSheet = (sheet == .plan || sheet == .saved) ? sheet : (discovery == nil && discoveryPins.isEmpty && activeCitywideCategory == nil ? nil : .nearby)
     sheet = .place(id)
   }
   mutating func goBack() { sheet = returnSheet; returnSheet = nil }

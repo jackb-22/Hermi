@@ -12,7 +12,7 @@ class MapStub {
  addSource(k,v){this.sources[k]={data:v.data,setData(d){this.data=d}}} getSource(k){return this.sources[k]}
  panBy(offset){this.lastPan=offset}
  getContainer(){return {clientWidth:400,clientHeight:800}} getCanvas(){return {width:1200,height:2400,clientWidth:400,clientHeight:800}}
- project(){return {x:200,y:350}} unproject(p){this.lastUnproject=p;return {lng:-73.9654,lat:40.8073}}
+ project(point){return this.projectOverride?this.projectOverride(point):{x:200,y:350}} unproject(p){this.lastUnproject=p;return {lng:-73.9654,lat:40.8073}}
 }
 class MarkerStub {
  constructor(options){this.options=options;this.handlers={};markers.push(this)} setLngLat(c){this.point={lng:c[0],lat:c[1]};return this} getLngLat(){return this.point}
@@ -48,3 +48,26 @@ context.renderHermi({...payload,editingDiscovery:true,bottomInset:520});
 assert.equal(nodes.get('pin-editor').style.bottom,'656px');assert.equal(nodes.get('pin-remove').style.display,'block');
 for(const [value,expected] of [['0',0.1],['1',4]]){nodes.get('pin-radius').value=value;nodes.get('pin-radius').listeners.input();assert.equal(messages.at(-1).miles,expected)}
 console.log('Map bridge passed: dots, tap-away, panel clearance, 0.1–4 radius, readiness, CSS coordinate scaling, bounds, stable drag marker, rejected-move restore, radius and remove.');
+
+// Multiple pins retain marker identities, individual values and one visible badge per category.
+const food2={...pin,id:'food-2',lng:-73.963,radiusMiles:0.1};
+const nature={...pin,id:'nature-1',category:'Nature',lng:-73.962,radiusMiles:4};
+const multi={...payload,discoveries:[pin,food2,nature],discovery:pin,editingDiscovery:true};
+context.renderHermi(multi);
+const live=()=>markers.filter(m=>m.options.draggable&&!m.removed);
+assert.equal(live().length,3);
+const firstMarker=live().find(m=>m.pinID===pin.id), secondMarker=live().find(m=>m.pinID===food2.id);
+assert.equal(live().filter(m=>m.categoryBadge.style.display==='block').length,2);
+assert.equal(firstMarker.categoryBadge.style.display,'block');assert.equal(secondMarker.categoryBadge.style.display,'none');
+context.renderHermi({...multi,discovery:food2});assert.equal(nodes.get('radius-value').textContent,'0.1 mi');
+assert.equal(live().find(m=>m.pinID===pin.id),firstMarker);
+nodes.get('pin-radius').value='1';nodes.get('pin-radius').listeners.input();assert.equal(messages.at(-1).id,food2.id);
+// Move prior representative off screen: badge transfers to visible same-category pin.
+map.projectOverride=p=>({x:p.lng===pin.lng?-100:200,y:350});map.events.move();
+assert.equal(firstMarker.categoryBadge.style.display,'none');assert.equal(secondMarker.categoryBadge.style.display,'block');
+map.projectOverride=null;map.events.move();assert.equal(secondMarker.categoryBadge.style.display,'block');
+map.events.click();context.renderHermi({...multi,discovery:undefined,editingDiscovery:false});assert.equal(live().length,3);
+assert.equal(nodes.get('pin-editor').style.display,'none');
+context.renderHermi({...multi,discoveries:[pin,nature],discovery:nature});
+assert.equal(secondMarker.removed,true);assert.equal(live().length,2);assert.equal(nodes.get('radius-value').textContent,'4 mi');
+console.log('Multi-pin bridge passed: identities, independent selection, radius target, deselection, removal and sticky visible category badges.');

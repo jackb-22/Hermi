@@ -54,6 +54,7 @@ struct PixelIcon: View {
 
 struct CategoryPinControl: View {
   @Binding var category: HermiCategory
+  var filterActive = false
   var onFilter: () -> Void
   var onDrop: (CGPoint) -> Void
   var onDragBegan: () -> Void = {}
@@ -103,13 +104,14 @@ struct CategoryPinControl: View {
         PixelIcon(name: "right").frame(width: 8, height: 12).allowsHitTesting(false)
       }
       Text(category.rawValue).font(.caption2.weight(.semibold)).fixedSize()
+        .underline(filterActive, color: HermiPalette.green)
     }
       .onChange(of: touching) { _, active in
         if !active { showing = false; dropping = false; dragging = .zero }
       }
       .sensoryFeedback(.selection, trigger: feedback)
       .accessibilityElement(children: .ignore).accessibilityLabel("Activity pin")
-      .accessibilityValue(category.rawValue)
+      .accessibilityValue(category.rawValue + (filterActive ? ", citywide filter active" : ""))
       .accessibilityHint("Swipe up or down to choose a category. Drag sideways onto the map to discover.")
       .accessibilityAdjustableAction { direction in
         let current = categories.firstIndex(of: category) ?? 0

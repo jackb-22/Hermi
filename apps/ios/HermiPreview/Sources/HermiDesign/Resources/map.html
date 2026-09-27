@@ -16,10 +16,12 @@ html,body,#map{margin:0;width:100%;height:100%;overflow:hidden;background:var(--
 #pin-editor output{display:block;font-weight:600;padding:2px 0;text-shadow:0 1px var(--paper)}
 .recommendation{border:0;padding:0;background:none;width:28px;height:28px;display:grid;place-items:center;cursor:pointer}
 .recommendation span{display:block;width:8px;height:8px;clip-path:polygon(25% 0,75% 0,75% 25%,100% 25%,100% 75%,75% 75%,75% 100%,25% 100%,25% 75%,0 75%,0 25%,25% 25%)}
+.category-indicator{position:absolute;top:-14px;left:14px;width:16px;height:16px;pointer-events:none}.category-indicator svg{width:16px;height:16px}
 @media(prefers-reduced-motion:reduce){#pin-editor{transition:none}}
 </style></head><body><div id="map"></div><button id="pin-remove" aria-label="Remove discovery pin"><svg viewBox="0 0 9 9" aria-hidden="true"><path fill="currentColor" d="M0 0h2v1h1v1h1v1h1V2h1V1h1V0h2v2H8v1H7v1H6v1h1v1h1v1h1v2H7V8H6V7H5V6H4v1H3v1H2v1H0V7h1V6h1V5h1V4H2V3H1V2H0z"/></svg></button><div id="pin-editor"><input id="pin-radius" aria-label="Geographic radius in miles" type="range" min="0" max="1" step="0.01" value="0.5"><output id="radius-value">1 mi</output></div><div id="control-tip" role="status"></div><div class="notice" style="display:none"></div><div id="error">Map unavailable. Check your connection.<button onclick="location.reload()">Retry map</button></div><script src="maplibre-gl.js"></script><script>
 const send=body=>window.webkit?.messageHandlers.hermi.postMessage(body);
 let map, pending={},markers=[],loaded=false,placeSignature="",discoveryMarker=null,draggingPin=false,revealDiscovery=false,lastBottomInset=0;
+const discoveryMarkers=new Map(), categoryRepresentatives=new Map();
 const empty={type:'FeatureCollection',features:[]};
 const error=document.getElementById('error');
 try {
@@ -37,7 +39,7 @@ map.addControl(new maplibregl.AttributionControl({compact:true}),'bottom-right')
 map.on('load',()=>{loaded=true;error.style.display='none';map.addSource('adventure',{type:'geojson',data:empty});map.addLayer({id:'adventure',type:'line',source:'adventure',paint:{'line-color':palette.green,'line-width':4,'line-dasharray':[2,1]}});map.addSource('discovery-radius',{type:'geojson',data:empty});map.addLayer({id:'discovery-radius-fill',type:'fill',source:'discovery-radius',paint:{'fill-color':palette.lime,'fill-opacity':0.13}});map.addLayer({id:'discovery-radius-line',type:'line',source:'discovery-radius',paint:{'line-color':palette.green,'line-width':2,'line-dasharray':[3,2]}});renderHermi(pending);send({type:'ready'})});
 map.on('error',()=>{error.style.display='block';send({type:'error'})});
 map.on('idle',()=>{if(map.areTilesLoaded()){error.style.display='none';send({type:'ready'})}});
-map.on('move',()=>positionEditor());
+map.on('move',()=>{positionEditor();updateCategoryIndicators()});
 map.on('click',()=>{if(!draggingPin){pending.editingDiscovery=false;positionEditor();map.getSource('discovery-radius').setData(empty);send({type:'mapTap'})}});
 map.on('movestart',()=>send({type:'moving'}));map.on('moveend',()=>send({type:'stopped'}));
 window.addEventListener('resize',()=>map.resize());
@@ -90,37 +92,68 @@ radius.addEventListener('input',updateRadius);
 for(const event of ['pointerdown','pointermove','pointerup','touchstart','touchmove','touchend'])editor.addEventListener(event,e=>e.stopPropagation());
 removeButton.onclick=e=>{e.stopPropagation();if(pending.discovery)send({type:'pinRemove',id:pending.discovery.id})};
 for(const event of ['pointerdown','pointermove','pointerup','touchstart','touchmove','touchend'])removeButton.addEventListener(event,e=>e.stopPropagation());
-function renderDiscovery(){
- if(lastBottomInset!==pending.bottomInset){lastBottomInset=pending.bottomInset;revealDiscovery=true}
- const p=pending.discovery;
- if(!p){discoveryMarker?.remove();discoveryMarker=null;editor.style.display='none';removeButton.style.display='none';map.getSource('discovery-radius').setData(empty);return}
- if(discoveryMarker?.pinID!==p.id){
-  discoveryMarker?.remove();
-  const el=pin(p.color,p.category+' discovery pin. Drag to move; tap to edit radius.',p.rows);
-  el.onclick=e=>{e.stopPropagation();send({type:'discovery',id:p.id})};
-  discoveryMarker=new maplibregl.Marker({element:el,anchor:'bottom',draggable:true}).setLngLat([p.lng,p.lat]).addTo(map);
-  discoveryMarker.pinID=p.id;revealDiscovery=true;
-  const cancelDrag=()=>{
-    if(!draggingPin||!pending.discovery)return;
-    draggingPin=false;
-    discoveryMarker.setLngLat([pending.discovery.lng,pending.discovery.lat]);
-    map.getSource('discovery-radius').setData(radiusFeature(pending.discovery));positionEditor();
-    send({type:'pinDragCancelled',id:p.id});
-  };
-  el.addEventListener('pointercancel',cancelDrag);el.addEventListener('touchcancel',cancelDrag);
-  discoveryMarker.on('dragstart',()=>{draggingPin=true;send({type:'pinDragStart',id:p.id})});
-  discoveryMarker.on('drag',()=>{const c=discoveryMarker.getLngLat();map.getSource('discovery-radius').setData(radiusFeature({...pending.discovery,lng:c.lng,lat:c.lat}));positionEditor()});
-  discoveryMarker.on('dragend',()=>{if(!draggingPin)return;draggingPin=false;revealDiscovery=true;const c=discoveryMarker.getLngLat();send({type:'pinMove',id:p.id,latitude:c.lat,longitude:c.lng})});
+function discoveryPins(){return pending.discoveries|| (pending.discovery?[pending.discovery]:[])}
+function currentPin(id){return discoveryPins().find(p=>p.id===id)}
+function categoryIndicator(p){
+ const badge=document.createElement('span');badge.className='category-indicator';badge.setAttribute('aria-hidden','true');
+ const rows=p.categoryRows||p.rows, svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+ svg.setAttribute('viewBox',`0 0 ${rows[0].length} ${rows.length}`);svg.setAttribute('shape-rendering','crispEdges');
+ rows.forEach((row,y)=>[...row].forEach((pixel,x)=>{if(pixel!=='I')return;const r=document.createElementNS(svg.namespaceURI,'rect');for(const [k,v]of Object.entries({x,y,width:1,height:1,fill:palette.ink}))r.setAttribute(k,v);svg.append(r)}));
+ badge.append(svg);return badge;
+}
+function updateCategoryIndicators(){
+ if(!map||!loaded)return;
+ const groups=new Map(), width=map.getContainer().clientWidth, bottom=map.getContainer().clientHeight-(pending.bottomInset||110);
+ for(const p of discoveryPins()){
+  const marker=discoveryMarkers.get(p.id);if(!marker)continue;
+  marker.categoryBadge.style.display='none';
+  const xy=map.project(marker.getLngLat());
+  if(xy.x<0||xy.x>width||xy.y<75||xy.y>bottom)continue;
+  if(!groups.has(p.category))groups.set(p.category,[]);groups.get(p.category).push(p.id);
  }
- if(!draggingPin)discoveryMarker.setLngLat([p.lng,p.lat]);
+ for(const [category,ids]of groups){
+  const previous=categoryRepresentatives.get(category), id=ids.includes(previous)?previous:ids[0];
+  categoryRepresentatives.set(category,id);discoveryMarkers.get(id).categoryBadge.style.display='block';
+ }
+ for(const category of categoryRepresentatives.keys())if(!groups.has(category))categoryRepresentatives.delete(category);
+}
+function renderDiscovery(){
+ const pins=discoveryPins(), ids=new Set(pins.map(p=>p.id));
+ if(lastBottomInset!==pending.bottomInset){lastBottomInset=pending.bottomInset;revealDiscovery=true}
+ for(const [id,marker]of discoveryMarkers)if(!ids.has(id)){marker.remove();discoveryMarkers.delete(id)}
+ for(const p of pins){
+  let marker=discoveryMarkers.get(p.id);
+  if(!marker){
+   const el=pin(p.color,p.category+' discovery pin. Drag to move; tap to edit radius.',p.rows);
+   const badge=categoryIndicator(p);el.append(badge);
+   el.onclick=e=>{e.stopPropagation();send({type:'discovery',id:p.id})};
+   marker=new maplibregl.Marker({element:el,anchor:'bottom',draggable:true}).setLngLat([p.lng,p.lat]).addTo(map);
+   marker.pinID=p.id;marker.categoryBadge=badge;marker.isDragging=false;discoveryMarkers.set(p.id,marker);revealDiscovery=true;
+   const cancelDrag=()=>{
+    const original=currentPin(p.id);if(!marker.isDragging||!original)return;
+    marker.isDragging=false;draggingPin=false;marker.setLngLat([original.lng,original.lat]);
+    map.getSource('discovery-radius').setData(pending.editingDiscovery?radiusFeature(pending.discovery):empty);positionEditor();
+    send({type:'pinDragCancelled',id:p.id});
+   };
+   el.addEventListener('pointercancel',cancelDrag);el.addEventListener('touchcancel',cancelDrag);
+   marker.on('dragstart',()=>{marker.isDragging=true;draggingPin=true;send({type:'pinDragStart',id:p.id})});
+   marker.on('drag',()=>{const original=currentPin(p.id);if(!original)return;const c=marker.getLngLat();map.getSource('discovery-radius').setData(radiusFeature({...original,lng:c.lng,lat:c.lat}));positionEditor()});
+   marker.on('dragend',()=>{if(!marker.isDragging)return;marker.isDragging=false;draggingPin=false;revealDiscovery=true;const c=marker.getLngLat();send({type:'pinMove',id:p.id,latitude:c.lat,longitude:c.lng})});
+  }
+  if(!marker.isDragging)marker.setLngLat([p.lng,p.lat]);
+ }
+ const p=pending.editingDiscovery?pending.discovery:null;
+ discoveryMarker=p?discoveryMarkers.get(p.id):null;
+ if(!p||!discoveryMarker){editor.style.display='none';removeButton.style.display='none';map.getSource('discovery-radius').setData(empty);updateCategoryIndicators();return}
  if(revealDiscovery&&!draggingPin){
   revealDiscovery=false;
   const screen=map.project(discoveryMarker.getLngLat()), usableBottom=map.getContainer().clientHeight-(pending.bottomInset||110)-44;
-  if(screen.y>usableBottom||screen.y<100)map.panBy([0,screen.y-(100+usableBottom)/2],{duration:0});
+  if(screen.y>usableBottom||screen.y<120)map.panBy([0,screen.y-(120+usableBottom)/2],{duration:0});
  }
- if(document.activeElement!==radius)radius.value=Math.log(p.radiusMiles/0.1)/Math.log(40);
- radiusValue.textContent=Number(p.radiusMiles.toPrecision(2))+' mi';radius.setAttribute('aria-valuetext',radiusValue.textContent);
- map.getSource('discovery-radius').setData(pending.editingDiscovery?radiusFeature(p):empty);positionEditor();
+ // Always sync when selection changes, even while the range has keyboard focus.
+ if(radius.pinID!==p.id||document.activeElement!==radius)radius.value=Math.log(p.radiusMiles/0.1)/Math.log(40);
+ radius.pinID=p.id;radiusValue.textContent=Number(p.radiusMiles.toPrecision(2))+' mi';radius.setAttribute('aria-valuetext',radiusValue.textContent);
+ map.getSource('discovery-radius').setData(radiusFeature(p));positionEditor();updateCategoryIndicators();
 }
 window.renderHermi=data=>{pending=data;if(!loaded)return;
  const signature=JSON.stringify([data.places,data.social]);

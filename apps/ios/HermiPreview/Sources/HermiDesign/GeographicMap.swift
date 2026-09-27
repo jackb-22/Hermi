@@ -9,7 +9,7 @@ struct MapCommand: Equatable {
 struct GeographicMap: View {
   var state: MapPreviewState
   var command: MapCommand?
-  var editingDiscovery = false
+  var editingPinID: UUID?
   var revision = 0
   var bottomInset: CGFloat = 110
   var adventure = false
@@ -18,7 +18,7 @@ struct GeographicMap: View {
   var body: some View { GeographicWebMap(payload: payload, command: command, onEvent: onEvent) }
   private var payload: [String: Any] {
     var result: [String: Any] = [
-      "editingDiscovery": editingDiscovery,
+      "editingDiscovery": state.pin(id: editingPinID) != nil,
       "revision": revision,
       "bottomInset": bottomInset,
       "places": adventure || !showsPlaces ? [] : state.nearby.map { place -> [String: Any] in
@@ -27,11 +27,13 @@ struct GeographicMap: View {
       "social": state.social,
       "adventure": adventure
     ]
-    if !adventure, showsPlaces, let pin = state.discoveryPin {
-      result["discovery"] = ["rows": PinArtwork.rows(for: pin.category), "id": pin.id.uuidString, "lng": pin.coordinate.longitude,
-        "lat": pin.coordinate.latitude, "radiusMiles": pin.radiusMiles,
-        "color": PinArtwork.hex(pin.category), "category": pin.category.rawValue]
+    let pins: [[String: Any]] = adventure || !showsPlaces ? [] : state.discoveryPins.map { pin in
+      ["rows": PinArtwork.rows(for: pin.category), "categoryRows": CategorySprite.rows(for: pin.category),
+       "id": pin.id.uuidString, "lng": pin.coordinate.longitude, "lat": pin.coordinate.latitude,
+       "radiusMiles": pin.radiusMiles, "color": PinArtwork.hex(pin.category), "category": pin.category.rawValue]
     }
+    result["discoveries"] = pins
+    result["discovery"] = pins.first { $0["id"] as? String == editingPinID?.uuidString }
     return result
   }
 }
