@@ -178,6 +178,10 @@ public struct HermiMapPreview: View {
     }
     .task { _ = await Task.detached { NYCLandMask.shared.available }.value }
     .task { await LiveSession.shared.restore() }
+    .onChange(of: LiveSession.shared.isLive) { _, live in
+      // Connecting (or restoring) swaps fixtures for the live places in the current map area.
+      if live { PlaceCatalog.shared.refresh() }
+    }
     .onChange(of: scenePhase) { _, phase in
       if phase == .active { Task { await LiveSession.shared.restore() } }
     }
@@ -201,7 +205,7 @@ public struct HermiMapPreview: View {
         Button("Reset preview") {
           UserDefaults.standard.removeObject(forKey: "hermi.preview.routeAudience")
           UserDefaults.standard.removeObject(forKey: "hermi.preview.stopTimes")
-          for place in MapSamplePlace.all { UserDefaults.standard.removeObject(forKey: "hermi.preview.invites.\(place.id)") }
+          for place in MapSamplePlace.known { UserDefaults.standard.removeObject(forKey: "hermi.preview.invites.\(place.id)") }
           state.reset(); mapCommand = MapCommand(action: "recenter"); panelLevel = .compact
           reduceMotionOverride = false; profileTab = "Adventures"
           restorePill?.cancel(); moving = false
@@ -270,7 +274,11 @@ public struct HermiMapPreview: View {
       case "socialInfo": if state.social, let id = event["id"] as? String { pinNotice = SocialMapPreview.detail(id) }
       case "mapTap": editingPinID = nil
       case "moving": beginMapGesture()
-      case "stopped", "error": endMapGesture()
+      case "stopped", "error":
+        endMapGesture()
+        if let bounds = event["bounds"] as? [Double] { PlaceCatalog.shared.viewportChanged(bounds) }
+      case "viewport":
+        if let bounds = event["bounds"] as? [Double] { PlaceCatalog.shared.viewportChanged(bounds) }
       case "place": if let id = event["id"] as? String { editingPinID = nil; state.selectPlace(id); panelLevel = .compact }
       case "discovery":
         guard let raw = event["id"] as? String, let id = UUID(uuidString: raw), state.pin(id: id) != nil else { return }
@@ -420,7 +428,7 @@ public struct HermiMapPreview: View {
     VStack(alignment: .leading, spacing: 12) {
       HStack { Text("Nearby").font(.headline); Spacer(); Text(discoverySummary).font(.caption).foregroundStyle(HermiPalette.secondary) }
       if state.nearby.isEmpty {
-        Text("No sample places match these filters.").font(.subheadline)
+        Text(LiveSession.shared.isLive ? (PlaceCatalog.shared.loading ? "Loading places…" : "No places match these filters here.") : "No sample places match these filters.").font(.subheadline)
       }
       ScrollView(.horizontal) {
         HStack(spacing: 12) {
@@ -453,6 +461,10 @@ public struct HermiMapPreview: View {
         }.buttonStyle(.plain)
           .accessibilityLabel(state.planIDs.contains(place.id) ? "Remove from plan" : "Add to plan")
           .controlHelp("Toggle this place in My Plan without changing Saved")
+      }
+      if let address = place.address {
+        Text([address, place.wouldGoAgainPct.map { "\(Int($0))% would go again" }].compactMap { $0 }.joined(separator: " · "))
+          .font(.caption).foregroundStyle(HermiPalette.secondary)
       }
       PlaceFeedContent(place: place, savedPostIDs: Set(state.library.posts.map(\.refID))) { state.togglePostBookmark($0) }
         .id(place.id)
@@ -510,7 +522,7 @@ public struct HermiMapPreview: View {
         } else {
           LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 3), count: 3), spacing: 3) {
             ForEach(0..<12) { index in
-              let place = MapSamplePlace.all[index % MapSamplePlace.all.count]
+              let place = MapSamplePlace.fixtures[index % MapSamplePlace.fixtures.count]
               Button { postPlace = place.id } label: {
                 mediaTile(place.category, variant: index % 3).aspectRatio(0.8, contentMode: .fit)
               }.buttonStyle(.plain).accessibilityLabel("Sample post at \(place.name)").controlHelp("Open posts and reviews for \(place.name)")

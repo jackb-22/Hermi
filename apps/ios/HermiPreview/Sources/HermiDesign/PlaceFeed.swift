@@ -8,10 +8,11 @@ struct PlaceFeedPost: Identifiable, Equatable {
   let caption: String
   let mediaCount: Int
   static func find(_ id: String) -> Self? {
-    MapSamplePlace.all.lazy.flatMap { samples(for: $0.id) }.first { $0.id == id }
+    MapSamplePlace.fixtures.lazy.flatMap { samples(for: $0.id) }.first { $0.id == id }
   }
   static func samples(for placeID: String) -> [Self] {
-    guard MapSamplePlace.find(placeID) != nil else { return [] }
+    // Sample posts belong to sample places only; live places never show invented posts.
+    guard MapSamplePlace.fixtures.contains(where: { $0.id == placeID }) else { return [] }
     return [
       .init(id: "\(placeID)-alex", placeID: placeID, author: "@alex", caption: "A little detour.", mediaCount: 3),
       .init(id: "\(placeID)-sam", placeID: placeID, author: "@sam", caption: "Worth stepping outside for.", mediaCount: 2),
@@ -59,7 +60,7 @@ struct PlaceFeedContent: View {
           Text(post.caption).font(.subheadline)
         }.accessibilityElement(children: .contain)
       }
-      Text("End of sample posts · reviews not connected")
+      Text(place.isLive ? "No posts here yet." : "End of sample posts · reviews not connected")
         .font(.caption).foregroundStyle(HermiPalette.secondary)
     }
   }

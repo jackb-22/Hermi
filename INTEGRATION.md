@@ -49,6 +49,17 @@ Paste any compile or test failure back verbatim.
 - [ ] Disconnect: the badge goes back to SAMPLE and the header shows Alex again.
 - [ ] The privacy preferences in the same Settings page still save as before.
 
+### Step 2: real places on the map
+- [ ] `swift test` passes: 65 tests, 3 of them new. `node scripts/test-map-bridge.cjs` also passes.
+- [ ] **Sample mode** (Disconnected): the map shows the 7 sample dots exactly as before, and their sheets still show sample posts.
+- [ ] **Connected** as jack: within about a second, the map fills with real venue dots around Columbia, up to 25 per category.
+- [ ] Pan to another neighborhood (Midtown, the Village). About half a second after you stop, new dots appear for that area.
+- [ ] Zoom out to the whole city: dots stay capped (about 175) and the map stays responsive.
+- [ ] Tap a dot: the sheet shows the real venue name, its address and "% would go again" where known, and "No posts here yet." Real posts arrive in Step 4.
+- [ ] Save (bookmark) and + Add on a real venue still toggle. Add it to My Plan: it shows there by its real name.
+- [ ] Relaunch while connected: My Plan still lists the real venue, because the place cache is persisted.
+- [ ] Discovery pins and the citywide category filter now filter the live dots. Full pin and filter behaviour on real data comes in Step 3.
+
 ---
 
 ## Deferred / deviations log

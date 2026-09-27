@@ -55,4 +55,36 @@ final class LiveContractTests: XCTestCase {
     XCTAssertFalse(session.isLive)
     XCTAssertNil(session.api)
   }
+
+  func testPlacesResponseDecodesAndMapsCategories() throws {
+    let json = #"{"items":[{"id":"01M3FJEN9H7Z2V5JB4SNEKDEW3","name":"Oren’s Coffee","category":"food","tags":["coffee","indoor"],"loc":{"lat":40.80554248930695,"lng":-73.96533068914333},"address":"2882 Broadway, New York","been":8,"wouldGoAgainPct":null},{"id":"01M3FJEN4ZD4C1NRC2W656FCH7","name":"Zanny's Cafe","category":"food","tags":["coffee"],"loc":{"lat":40.8004,"lng":-73.9619},"address":"975 Columbus Ave, New York","been":6,"wouldGoAgainPct":100},{"id":"x","name":"Odd","category":"spaceport","tags":[],"loc":{"lat":40.8,"lng":-73.9},"address":null,"been":0,"wouldGoAgainPct":null}],"nextCursor":null}"#
+    let response = try HermiAPI.decoder.decode(PlacesResponseDTO.self, from: Data(json.utf8))
+    let places = response.items.compactMap(\.place)
+    XCTAssertEqual(places.count, 2, "unknown categories are dropped, not forced")
+    XCTAssertEqual(places[0].category, .food)
+    XCTAssertTrue(places[0].isLive)
+    XCTAssertEqual(places[0].coordinate.latitude, 40.80554248930695, accuracy: 1e-9)
+    XCTAssertNil(places[0].wouldGoAgainPct)
+    XCTAssertEqual(places[1].wouldGoAgainPct, 100)
+    for category in HermiCategory.allCases { XCTAssertEqual(HermiCategory(serverName: category.serverName), category) }
+  }
+
+  func testCatalogResolvesFixturesAndPersistsLivePlaces() throws {
+    let defaults = try XCTUnwrap(UserDefaults(suiteName: "hermi.tests.place-catalog"))
+    defaults.removePersistentDomain(forName: "hermi.tests.place-catalog")
+    let catalog = PlaceCatalog(defaults: defaults)
+    XCTAssertEqual(catalog.place("cafe")?.name, "Corner café")
+    XCTAssertNil(catalog.place("live-1"))
+    catalog.upsert([MapSamplePlace(id: "live-1", name: "Real place", category: .music, latitude: 40.8, longitude: -73.96, isLive: true)])
+    let reloaded = PlaceCatalog(defaults: defaults)
+    XCTAssertEqual(reloaded.place("live-1")?.name, "Real place")
+    XCTAssertEqual(reloaded.place("live-1")?.isLive, true)
+    // Sample mode keeps discovery on fixtures even with a warm cache.
+    XCTAssertEqual(reloaded.discoverable.map(\.id), MapSamplePlace.fixtures.map(\.id))
+  }
+
+  func testLivePlacesNeverGetSamplePosts() {
+    XCTAssertEqual(PlaceFeedPost.samples(for: "cafe").count, 3)
+    XCTAssertTrue(PlaceFeedPost.samples(for: "01M3FJEN9H7Z2V5JB4SNEKDEW3").isEmpty)
+  }
 }

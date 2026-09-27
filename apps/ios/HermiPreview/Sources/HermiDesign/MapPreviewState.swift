@@ -4,36 +4,36 @@ import CoreLocation
 enum HomePanel: String, CaseIterable, Codable { case map = "Map", feed = "Feed", profile = "Profile" }
 enum MapPreviewSheet: Equatable, Hashable, Codable { case nearby, place(String), plan, saved }
 
-struct MapSamplePlace: Identifiable {
+/// A place the map can show: a labeled sample fixture, or a live place from `/v1/places` (see PlaceCatalog).
+struct MapSamplePlace: Identifiable, Codable, Equatable {
   let id: String
   let name: String
   let category: HermiCategory
-  let x: Double
-  let y: Double
+  var latitude: Double
+  var longitude: Double
+  var address: String?
+  var wouldGoAgainPct: Double?
+  var been: Int?
+  var tags: [String]?
+  var isLive = false
 
-  static let all: [MapSamplePlace] = [
-    .init(id: "garden", name: "Riverside gardens", category: .nature, x: 0.31, y: 0.48),
-    .init(id: "cafe", name: "Corner café", category: .food, x: 0.48, y: 0.41),
-    .init(id: "gallery", name: "Little gallery", category: .culture, x: 0.74, y: 0.51),
-    .init(id: "books", name: "The book nook", category: .shopping, x: 0.46, y: 0.65),
-    .init(id: "tea", name: "Tea room", category: .drinks, x: 0.76, y: 0.31),
-    .init(id: "court", name: "Riverside courts", category: .sports, x: 0.33, y: 0.73),
-    .init(id: "music", name: "Evening jazz", category: .music, x: 0.69, y: 0.78),
+  var coordinate: GeoPoint { .init(latitude: latitude, longitude: longitude) }
+
+  // Explicit sample locations around Columbia; fixture names are not verified businesses.
+  static let fixtures: [MapSamplePlace] = [
+    .init(id: "garden", name: "Riverside gardens", category: .nature, latitude: 40.808, longitude: -73.967),
+    .init(id: "cafe", name: "Corner café", category: .food, latitude: 40.8073, longitude: -73.9654),
+    .init(id: "gallery", name: "Little gallery", category: .culture, latitude: 40.8077, longitude: -73.9625),
+    .init(id: "books", name: "The book nook", category: .shopping, latitude: 40.8050, longitude: -73.9653),
+    .init(id: "tea", name: "Tea room", category: .drinks, latitude: 40.8101, longitude: -73.9620),
+    .init(id: "court", name: "Riverside courts", category: .sports, latitude: 40.8039, longitude: -73.9708),
+    .init(id: "music", name: "Evening jazz", category: .music, latitude: 40.8026, longitude: -73.9661),
   ]
-  var coordinate: GeoPoint {
-    // Explicit sample locations around Columbia; fixture names are not verified businesses.
-    let coordinates: [String: GeoPoint] = [
-      "garden": .init(latitude: 40.808, longitude: -73.967),
-      "cafe": .init(latitude: 40.8073, longitude: -73.9654),
-      "gallery": .init(latitude: 40.8077, longitude: -73.9625),
-      "books": .init(latitude: 40.8050, longitude: -73.9653),
-      "tea": .init(latitude: 40.8101, longitude: -73.9620),
-      "court": .init(latitude: 40.8039, longitude: -73.9708),
-      "music": .init(latitude: 40.8026, longitude: -73.9661)
-    ]
-    return coordinates[id]!
-  }
-  static func find(_ id: String) -> MapSamplePlace? { all.first { $0.id == id } }
+  /// Discovery candidates: live places for the current map area when signed in, otherwise the fixtures.
+  static var all: [MapSamplePlace] { PlaceCatalog.shared.discoverable }
+  /// Every place an ID can resolve to (fixtures plus cached live places), for saved/plan lookups.
+  static var known: [MapSamplePlace] { fixtures + PlaceCatalog.shared.cached }
+  static func find(_ id: String) -> MapSamplePlace? { PlaceCatalog.shared.place(id) }
 }
 
 struct GeoPoint: Codable, Equatable {

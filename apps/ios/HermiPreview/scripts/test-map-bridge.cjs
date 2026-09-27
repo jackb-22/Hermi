@@ -12,6 +12,7 @@ class MapStub {
  addSource(k,v){this.sources[k]={data:v.data,setData(d){this.data=d}}} getSource(k){return this.sources[k]}
  panBy(offset){this.lastPan=offset}
  getContainer(){return {clientWidth:400,clientHeight:800}} getCanvas(){return {width:1200,height:2400,clientWidth:400,clientHeight:800}}
+ getBounds(){return {getWest:()=>-73.97,getSouth:()=>40.80,getEast:()=>-73.96,getNorth:()=>40.81}} getZoom(){return 15.1}
  project(point){return this.projectOverride?this.projectOverride(point):{x:200,y:350}} unproject(p){this.lastUnproject=p;return {lng:-73.9654,lat:40.8073}}
 }
 class MarkerStub {
@@ -22,6 +23,8 @@ const context={document,console,setTimeout,clearTimeout,hermiPalette:{ink:'#203D
 context.window=context;vm.createContext(context);vm.runInContext(scripts,context);
 context.commandHermi({id:'early',action:'drop',x:0.5,y:0.5});assert.equal(messages.at(-1).type,'dropRejected');
 map.events.load();
+{const v=messages.find(m=>m.type==='viewport');assert.ok(v);assert.deepEqual(Array.from(v.bounds),[-73.97,40.80,-73.96,40.81]);assert.equal(v.zoom,15.1);
+ map.events.moveend();const s=messages.at(-1);assert.equal(s.type,'stopped');assert.equal(s.bounds.length,4)}
 context.commandHermi({id:'drop-1',action:'drop',x:0.5,y:0.5});
 assert.deepEqual(Array.from(map.lastUnproject),[200,400]);assert.equal(messages.at(-1).requestID,'drop-1');
 context.commandHermi({id:'outside',action:'drop',x:1.2,y:0.5});assert.equal(messages.at(-1).type,'dropRejected');

@@ -95,7 +95,7 @@ extension MapPreviewState {
     set { savedLibrary = newValue }
   }
   var savedReferences: [SavedReference] {
-    let places = MapSamplePlace.all.filter { savedIDs.contains($0.id) }.map { SavedReference(kind: .place, refID: $0.id) }
+    let places = MapSamplePlace.known.filter { savedIDs.contains($0.id) }.map { SavedReference(kind: .place, refID: $0.id) }
     return places + library.posts + library.plans.filter { $0.isBookmarked != false }.map { SavedReference(kind: .plan, refID: $0.id.uuidString) }
   }
   mutating func appendSaved(_ reference: SavedReference) -> SavedAppendResult {
