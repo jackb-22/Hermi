@@ -6,7 +6,15 @@ This is the user-facing test entry point. Product reference: [unified design sch
 
 Feed media crop corrected: the 4:3 source now fills the entire portrait viewport before clipping, eliminating solid-color bands. iPhone build passed and the crop was inspected in Simulator. Check Feed reaches all four screen edges, including behind the status area and pill, without shifting controls offscreen.
 
-This does not resolve the missing controls yet. Questions are pending about “Feedback” (Feed?), Save/Add versus Camera/Create, and whether capture enters Action mode. Full drawing comparison: [board review](docs/design-reference/2026-09-26-board/REVIEW.md). Known gaps include Feed's separate Add button, Feed-specific Social filtering, full-width place strip, and later Plan/place-detail composition. Do not treat 01c or 01d as accepted.
+Clarification confirmed: “feedback” meant feedback to the agent. Feed has bookmark (Save for later) and + (Add to plan); Camera/Create is exclusively in Go!/Action mode. The two pixel buttons are now stacked lower-right above the full-width place strip. Mac/iPhone builds passed; Simulator Add inserted one stop, disabled repetition and preserved Saved. Layout inspected. The remaining save/remove round-trip is for user review.
+
+1. In Feed, tap bookmark. Open Plan → Saved: the place appears there, but My plan remains unchanged.
+2. Return to Feed and tap +. It changes to a check and disables repeat addition. Plan contains that place exactly once.
+3. Remove it from My plan: it remains saved. Return to Feed: + is available again.
+4. Unsave from Feed: the bookmark outline returns; this must not remove an existing plan stop.
+5. Check the media fills the screen and both buttons/place strip stay above the bottom pill. No Feed Camera/Create control.
+
+The full drawing comparison is in [board review](docs/design-reference/2026-09-26-board/REVIEW.md). Feed-specific Social filtering and later Plan/place-detail composition remain known gaps, not completed features. Visual acceptance remains pending.
 
 ## Previous review: 01c — geography, pin gesture and Profile
 

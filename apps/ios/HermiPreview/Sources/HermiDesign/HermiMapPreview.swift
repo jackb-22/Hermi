@@ -326,13 +326,26 @@ public struct HermiMapPreview: View {
             Text("A little detour.").font(.title3.weight(.medium))
           }
           Spacer()
-          Button { state.toggleSave("garden") } label: {
-            PixelIcon(name: state.savedIDs.contains("garden") ? "saved" : "save").frame(width: 22, height: 26).frame(width: 44, height: 44)
-          }.buttonStyle(.plain).accessibilityLabel("Save sample feed place")
+          VStack(spacing: 10) {
+            Button { state.toggleSave("garden") } label: {
+              PixelIcon(name: state.savedIDs.contains("garden") ? "saved" : "save")
+                .frame(width: 22, height: 26).frame(width: 44, height: 44)
+                .background(HermiPalette.paper, in: PixelPanel(corner: 6))
+            }.buttonStyle(.plain)
+              .accessibilityLabel(state.savedIDs.contains("garden") ? "Remove from Saved" : "Save for later")
+              .accessibilityValue(state.savedIDs.contains("garden") ? "Saved" : "Not saved")
+            Button { state.addPlace("garden") } label: {
+              PixelIcon(name: state.planIDs.contains("garden") ? "check" : "plus")
+                .frame(width: 22, height: 22).frame(width: 44, height: 44)
+                .background(state.planIDs.contains("garden") ? HermiPalette.lime : HermiPalette.paper, in: PixelPanel(corner: 6))
+            }.buttonStyle(.plain).disabled(state.planIDs.contains("garden"))
+              .accessibilityLabel(state.planIDs.contains("garden") ? "Added to plan" : "Add to plan")
+          }
         }
         Button { state.switchPanel(.map); state.selectPlace("garden") } label: {
-          HStack { BallpointPin(category: .nature).frame(width: 16, height: 22); Text("Riverside gardens") }.font(.subheadline).padding(12)
-            .background(.white.opacity(0.15), in: Capsule())
+          HStack { BallpointPin(category: .nature).frame(width: 16, height: 22); Text("Riverside gardens"); Spacer() }
+            .font(.subheadline).foregroundStyle(HermiPalette.ink).padding(.horizontal, 12).frame(minHeight: 44)
+            .background(HermiPalette.paper, in: PixelPanel(corner: 6))
         }.buttonStyle(.plain)
         Text("SAMPLE MEDIA PLACEMENT").font(.system(size: 9, design: .monospaced)).opacity(0.8)
       }.foregroundStyle(.white).padding(.horizontal, 24).padding(.bottom, 100)
