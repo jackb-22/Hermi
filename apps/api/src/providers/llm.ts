@@ -112,7 +112,7 @@ export class FakeLlm implements Llm {
     const bad = /\b(kill yourself|nazi)\b/i.test(o.text ?? '');
     return { allowed: !bad, reason: bad ? 'fake filter' : 'ok' };
   }
-  async json<T>(): Promise<T> {
+  async json<T>(_prompt: string, _schema: object): Promise<T> {
     throw new Error('fake llm has no free-form json');
   }
   async runTools(): Promise<string> {
