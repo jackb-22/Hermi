@@ -18,7 +18,7 @@ import { violatesDislikes } from '../domain/taste.ts';
 import { bestDay, isOutdoor, nyLocal, nyLocalToUtc, outdoorShare } from '../domain/weatherDay.ts';
 import type { ToolSpec } from '../providers/llm.ts';
 import { PLANNER_SYSTEM, recentMemories, remember } from './memory.ts';
-import { places, WALK_M_PER_MIN } from './places.ts';
+import { placeRank, places, WALK_M_PER_MIN } from './places.ts';
 import {
   type GhostChangeDoc,
   loadPlaces,
@@ -495,6 +495,116 @@ async function spaceStops(ctx: AppContext, ed: PlanEditor): Promise<AskResult> {
   };
 }
 
+const CATEGORY_NOUN: Record<PinType, string> = {
+  food: 'food',
+  shopping: 'shopping',
+  nature: 'outdoors',
+  culture: 'culture',
+  drinks: 'drinks',
+  sports: 'sports',
+  music: 'music',
+};
+
+/**
+ * Add a [category] stop: code finds candidates around every stop and the cheapest place to insert each (least extra
+ * distance), ranks them by popularity × taste × detour, and Gemini picks one of the top five and says why. An id
+ * the model invents falls back to code's first choice.
+ */
+async function suggestActivity(
+  ctx: AppContext,
+  ed: PlanEditor,
+  category: PinType,
+): Promise<AskResult> {
+  const llm = ctx.providers.llm;
+  const noun = CATEGORY_NOUN[category];
+  if (!ed.work.stops.length)
+    return { changes: [], message: 'Add a stop first, then ask again.', sources: [], via: 'code' };
+  if (ed.work.stops.length >= 12)
+    return { changes: [], message: 'A plan has at most 12 stops.', sources: [], via: 'code' };
+
+  const seen = new Map<string, PlaceDoc>();
+  for (let i = 1; i <= ed.work.stops.length; i++)
+    for (const f of await ed.search({ category, near_index: i })) {
+      const p = ed.places.get(f.placeId);
+      if (p) seen.set(p._id, p);
+    }
+  const stops = ed.sched.map((s) => s.loc);
+  const detour = (at: LatLng, pos: number) => {
+    // Inserting at 1-based `pos` puts the place between stops pos-1 and pos.
+    const prev = stops[pos - 2];
+    const next = stops[pos - 1];
+    const d = (a?: LatLng, b?: LatLng) => (a && b ? haversineM(a, b) : 0);
+    return d(prev, at) + d(at, next) - d(prev, next);
+  };
+  const ranked = [...seen.values()]
+    .map((p) => {
+      const at = fromGeoJSONPoint(p.loc);
+      let pos = 1;
+      let extra = Number.POSITIVE_INFINITY;
+      for (let k = 1; k <= stops.length + 1; k++) {
+        const m = detour(at, k);
+        if (m < extra - 1) [pos, extra] = [k, m];
+      }
+      return { p, pos, extraM: extra, score: placeRank(p, ed.user.prefVector, extra) };
+    })
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5);
+  if (!ranked.length)
+    return {
+      changes: [],
+      message: `I couldn't find a ${noun} spot near this plan.`,
+      sources: [],
+      via: 'code',
+    };
+
+  let pick = ranked[0]!;
+  let why = '';
+  let via: AskResult['via'] = 'code';
+  if (llm.name !== 'fake') {
+    try {
+      const where = (pos: number) =>
+        pos === 1 ? 'before the first stop' : `after stop ${pos - 1}`;
+      const r = await llm.json<{ id: string; why: string }>(
+        `Pick the best ${noun} stop to add to this New York outing and say why in one short sentence (under 15 words).
+It is now ${nyTime(ctx.clock.now())}. Plan: ${ed.state()}
+Candidates (already filtered for this person, best first by code): ${JSON.stringify(
+          ranked.map((c) => ({
+            id: c.p._id,
+            name: c.p.name,
+            tags: c.p.tags,
+            goes: where(c.pos),
+            extraWalkMin: Math.round(c.extraM / WALK_M_PER_MIN),
+          })),
+        )}`,
+        {
+          type: 'object',
+          properties: { id: { type: 'string' }, why: { type: 'string' } },
+          required: ['id', 'why'],
+        },
+      );
+      const chosen = ranked.find((c) => c.p._id === r.id);
+      if (chosen) {
+        pick = chosen;
+        why = r.why?.trim().slice(0, 120) ?? '';
+        via = 'gemini';
+      }
+    } catch (e) {
+      console.warn(`[planner] suggest_activity pick failed: ${(e as Error).message}`);
+    }
+  }
+  const extraMin = Math.round(pick.extraM / WALK_M_PER_MIN);
+  await ed.add({ placeId: pick.p._id, position: pick.pos, why: `Add ${pick.p.name}` });
+  const where = pick.pos === 1 ? 'first' : `after stop ${pick.pos - 1}`;
+  return {
+    changes: ed.changes,
+    message:
+      why ||
+      `${pick.p.name} fits ${where}, ${extraMin ? `${extraMin} min off your route` : 'right on your route'}.`,
+    sources: [],
+    via,
+  };
+}
+
 /** Chips without a model: the same edits, chosen by rules. */
 async function codeChip(ed: PlanEditor, chip: Exclude<Chip, CodeChip>): Promise<string> {
   const sched = () => ed.sched;
@@ -584,7 +694,7 @@ export async function askPlanner(
     return bestWeatherDay(ctx, await PlanEditor.create(ctx, plan, user));
   if (body.chip === 'space_stops') return spaceStops(ctx, await PlanEditor.create(ctx, plan, user));
   if (body.chip === 'suggest_activity')
-    return { changes: [], message: 'Not available yet.', sources: [], via: 'code' };
+    return suggestActivity(ctx, await PlanEditor.create(ctx, plan, user), body.category!);
 
   const request = body.chip ? CHIP_PROMPTS[body.chip] : body.prompt!;
   const content = (ed: PlanEditor) =>
