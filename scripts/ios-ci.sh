@@ -2,40 +2,37 @@
 # iOS feedback loop from Linux: push this branch, wait for the `ios` workflow on this commit, download its
 # screenshots, contact sheets and test log into .ci-shots/<sha>/.
 #
-#   scripts/ios-ci.sh                     # push HEAD; the push triggers the workflow (all scenarios + tests)
-#   scripts/ios-ci.sh --only 'ai-'        # dispatch a run shooting only matching scenarios (no push needed)
-#   scripts/ios-ci.sh --only 'ai-' --no-tests
+#   scripts/ios-ci.sh            # push HEAD (the push triggers the run), wait, download
+#   scripts/ios-ci.sh --rerun    # run the workflow again on HEAD (e.g. a flaky simulator)
+#
+# A commit whose message has a line `shots: <regex>` shoots only matching scenarios, and `tests: skip` skips
+# swift test (see .github/workflows/ios.yml). The workflow only lives on this branch, so runs are found by commit.
 set -eu
 cd "$(dirname "$0")/.."
-only=""; tests=true
-while [ $# -gt 0 ]; do
-  case "$1" in
-    --only) only="$2"; shift ;;
-    --no-tests) tests=false ;;
-    *) echo "unknown option: $1"; exit 2 ;;
+rerun=0
+for arg in "$@"; do
+  case "$arg" in
+    --rerun) rerun=1 ;;
+    *) echo "unknown option: $arg"; exit 2 ;;
   esac
-  shift
 done
 branch=$(git rev-parse --abbrev-ref HEAD)
 sha=$(git rev-parse HEAD); short=$(git rev-parse --short HEAD)
 git push -q -u origin "HEAD:$branch" 2>&1 | grep -v '^remote:' || true
 
-if [ -n "$only" ]; then
-  gh workflow run ios.yml --ref "$branch" -f only="$only" -f tests="$tests"
-  event=workflow_dispatch
-else
-  event=push
-fi
-
-echo "▶ waiting for the ios run on $short ($event)"
+find_run() {
+  gh run list --branch "$branch" --commit "$sha" --limit 10 --json databaseId,workflowName \
+    --jq 'map(select(.workflowName == "ios"))[0].databaseId // empty'
+}
+echo "▶ waiting for the ios run on $short"
 run=""
 for _ in $(seq 1 30); do
-  run=$(gh run list --workflow ios.yml --branch "$branch" --event "$event" --limit 10 \
-    --json databaseId,headSha --jq "map(select(.headSha == \"$sha\"))[0].databaseId // empty")
+  run=$(find_run || true)
   [ -n "$run" ] && break
   sleep 4
 done
-[ -n "$run" ] || { echo "no run found (did the push touch apps/ios/**?). Try --only ."; exit 1; }
+[ -n "$run" ] || { echo "no ios run for $short (the push must touch apps/ios/** or the workflow)"; exit 1; }
+if [ "$rerun" = 1 ]; then gh run rerun "$run"; sleep 5; fi
 echo "  run $run: $(gh run view "$run" --json url --jq .url)"
 
 status=0
@@ -45,7 +42,7 @@ rm -rf "$out"; mkdir -p "$out"
 gh run download "$run" -D "$out" 2>/dev/null || true
 if [ "$status" != 0 ]; then
   echo "✗ run failed; failing steps:"
-  gh run view "$run" --log-failed 2>/dev/null | tail -60
+  gh run view "$run" --log-failed 2>/dev/null | tail -80
 fi
 find "$out" -name 'sheet*.png' | sort
 find "$out" -name 'swift-test.log' -exec sh -c 'grep -E "Executed|error:|failed" "$1" | tail -8' _ {} \;
