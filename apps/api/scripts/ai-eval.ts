@@ -13,7 +13,12 @@ import { closeContext, createContext } from '../src/boot.ts';
 import { loadConfig } from '../src/config.ts';
 
 const { values: args } = parseArgs({
-  options: { only: { type: 'string' }, json: { type: 'string' } },
+  // --gap: ms between cases, for free-tier keys (their per-minute limits are low).
+  options: {
+    only: { type: 'string' },
+    json: { type: 'string' },
+    gap: { type: 'string', default: '0' },
+  },
 });
 const config = loadConfig({ ...process.env, RUN_WORKER: 'off', LOG_LEVEL: 'warn' });
 if (!/localhost|127\.0\.0\.1/.test(config.MONGO_URI)) {
@@ -56,7 +61,7 @@ const tomorrow1pm = () => {
   return new Date(`${day}T13:00:00-04:00`).toISOString();
 };
 
-type Case = { name: string; body: object; expect: 'changes' | 'none' | 'any' };
+type Case = { name: string; body: object; expect: 'changes' | 'none' | 'any'; reply?: RegExp };
 const cases: Case[] = [
   { name: 'space_stops', body: { chip: 'space_stops' }, expect: 'any' },
   { name: 'best_weather_day', body: { chip: 'best_weather_day' }, expect: 'any' },
@@ -109,6 +114,7 @@ const cases: Case[] = [
     name: 'chat: off-topic (refuse)',
     body: { prompt: 'write a haiku about Kant' },
     expect: 'none',
+    reply: /only help with this plan/,
   },
 ];
 
@@ -126,6 +132,7 @@ const results: Record<string, unknown>[] = [];
 const failures: string[] = [];
 
 for (const c of cases.filter((c) => !args.only || new RegExp(args.only).test(c.name))) {
+  await new Promise((r) => setTimeout(r, Number(args.gap)));
   const plan = await inject('POST', '/plans', headers, {
     startAt: tomorrow1pm(),
     stops: stops.map((placeId) => ({ placeId })),
@@ -152,6 +159,8 @@ for (const c of cases.filter((c) => !args.only || new RegExp(args.only).test(c.n
     }
   }
   if (c.expect === 'changes' && !changes.length) fail('expected a change');
+  if (c.reply && !c.reply.test(r.body.message ?? ''))
+    fail(`reply ${JSON.stringify(r.body.message)} !~ ${c.reply}`);
   if (c.expect === 'none' && changes.length)
     fail(`expected no change, got ${changes.map((g) => g.kind)}`);
 

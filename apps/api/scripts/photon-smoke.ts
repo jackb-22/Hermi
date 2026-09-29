@@ -5,7 +5,8 @@
  *   pnpm --filter @itp/api exec tsx --env-file=../../.env.demo scripts/photon-smoke.ts [--minutes 10]
  *
  * Stop scripts/demo-up.sh first: two processes on one project would split the messages between them.
- * Then, from your iPhone:
+ * On a shared-pool line (the default plan) the agent must text you first: add --hello <your phone>, then
+ * reply to that message. Then, from your iPhone:
  *   1. text "ping" to PHOTON_AGENT_ADDRESS                → expect "pong 1 (dm)"
  *   2. make a group with the agent and one more person, send "ping"   → "pong 2 (group)"
  *   3. in the group, send a line that doesn't mention it  → logged; tells us whether every group text arrives
@@ -16,7 +17,9 @@
 import { parseArgs } from 'node:util';
 import { loadConfig } from '../src/config.ts';
 
-const { values } = parseArgs({ options: { minutes: { type: 'string', default: '10' } } });
+const { values } = parseArgs({
+  options: { minutes: { type: 'string', default: '10' }, hello: { type: 'string' } },
+});
 const config = loadConfig();
 if (!config.SPECTRUM_PROJECT_ID || !config.SPECTRUM_PROJECT_SECRET) {
   console.error(
@@ -44,7 +47,9 @@ const app = (await Spectrum({
   providers: [imessage.config()],
 })) as unknown as { messages: AsyncIterable<[AnySpace, AnyMessage]>; stop(): Promise<void> };
 const platform = (
-  imessage as unknown as (a: unknown) => { space: { get(id: string): Promise<AnySpace> } }
+  imessage as unknown as (a: unknown) => {
+    space: { get(id: string): Promise<AnySpace>; create(user: string): Promise<AnySpace> };
+  }
 )(app);
 console.log(
   `▶ listening as ${config.PHOTON_AGENT_ADDRESS ?? '(PHOTON_AGENT_ADDRESS unset)'} for ${values.minutes} min`,
@@ -69,6 +74,17 @@ const reply = async (space: AnySpace, text: string) => {
     console.log(`  ✗ send failed: ${(e as Error).message}`);
   }
 };
+
+// Shared-pool lines: the agent texts first; the person replies to whichever pool number that came from.
+if (values.hello) {
+  try {
+    const dm = await platform.space.create(values.hello);
+    await dm.send('Hi from Hermi 🦀 Reply "ping" to test me.');
+    console.log(`→ texted ${values.hello} first (space ${dm.id}); reply to that message`);
+  } catch (e) {
+    console.log(`✗ could not text ${values.hello}: ${(e as Error).message}`);
+  }
+}
 
 const done = new Promise<void>((resolve) => {
   setTimeout(resolve, Number(values.minutes) * 60_000);

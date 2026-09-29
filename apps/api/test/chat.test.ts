@@ -106,7 +106,7 @@ describe('AI chat: POST /plans/:id/ask {prompt, history}', () => {
     expect(sent.map((c) => c.role)).toEqual(['user', 'model', 'user']);
     expect(sent[0]!.parts[0]!.text).toBe('what is stop 1?');
     expect(sent[2]!.parts[0]!.text).toMatch(
-      /^and what is stop 2\?[\s\S]*Current plan: .*"name":"Pier"/,
+      /^Request: <<<and what is stop 2\?>>>[\s\S]*Current plan: .*"name":"Pier"[\s\S]*otherwise reply exactly: I can only help/,
     );
     expect(calls[0]!.config.systemInstruction).toMatch(/only help with this one outing plan/);
   });

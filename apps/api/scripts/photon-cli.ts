@@ -117,22 +117,20 @@ async function line(text: string) {
       const [a, b] = await Promise.all(args.map((n) => users(ctx.db).findOne({ username: n })));
       if (!a || !b) return console.log('  both users must exist (/as them first)');
       const [x, y] = [a._id, b._id].sort() as [string, string];
-      await ctx.db
-        .collection('friendships')
-        .updateOne(
-          { _id: pairKey(x, y) as never },
-          {
-            $setOnInsert: {
-              a: x,
-              b: y,
-              since: new Date(),
-              hangouts: 0,
-              streakWeeks: 0,
-              lastHangoutWeek: 0,
-            },
+      await ctx.db.collection('friendships').updateOne(
+        { _id: pairKey(x, y) as never },
+        {
+          $setOnInsert: {
+            a: x,
+            b: y,
+            since: new Date(),
+            hangouts: 0,
+            streakWeeks: 0,
+            lastHangoutWeek: 0,
           },
-          { upsert: true },
-        );
+        },
+        { upsert: true },
+      );
       return console.log(`  @${args[0]} and @${args[1]} are friends`);
     }
     case '/plan':

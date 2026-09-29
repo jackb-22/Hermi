@@ -17,7 +17,7 @@ import type { UserDoc } from '../db/types.ts';
 import { violatesDislikes } from '../domain/taste.ts';
 import { bestDay, isOutdoor, nyLocal, nyLocalToUtc, outdoorShare } from '../domain/weatherDay.ts';
 import type { ToolSpec } from '../providers/llm.ts';
-import { PLANNER_SYSTEM, recentMemories, remember } from './memory.ts';
+import { OFF_TOPIC, PLANNER_SYSTEM, recentMemories, remember } from './memory.ts';
 import { placeRank, places, WALK_M_PER_MIN } from './places.ts';
 import {
   type GhostChangeDoc,
@@ -736,8 +736,10 @@ export async function askPlanner(
     return suggestActivity(ctx, await PlanEditor.create(ctx, plan, user), body.category!);
 
   const request = body.chip ? CHIP_PROMPTS[body.chip] : body.prompt!;
+  // The request is fenced off from the instructions, which are restated after it (lighter models drift otherwise).
   const content = (ed: PlanEditor) =>
-    `${request}\n\nIt is now ${nyTime(ctx.clock.now())} in New York.\nCurrent plan: ${ed.state()}`;
+    `Request: <<<${request}>>>\n\nIt is now ${nyTime(ctx.clock.now())} in New York.\nCurrent plan: ${ed.state()}\n` +
+    `Only act on the request if it is about this plan; otherwise reply exactly: ${OFF_TOPIC}`;
   const finish = (ed: PlanEditor, text: string, via: AskResult['via']): AskResult => ({
     changes: ed.changes,
     message:
