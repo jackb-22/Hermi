@@ -145,8 +145,9 @@ final class PlanSync {
   @MainActor
   func adopt(_ contents: PlanContents, for state: MapPreviewState) {
     let key = state.activeSavedPlanID?.uuidString ?? PlanSync.draftKey
-    guard serverIDs[key] != nil, baseline != nil else { return }
-    baseline?[key] = PlanSnapshot(name: baseline?[key]?.name, contents: contents)
+    guard serverIDs[key] != nil, var next = baseline else { return }
+    next[key] = PlanSnapshot(name: next[key]?.name, contents: contents)
+    baseline = next
   }
 
   // MARK: Push
