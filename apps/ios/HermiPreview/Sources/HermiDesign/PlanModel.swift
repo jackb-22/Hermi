@@ -52,3 +52,19 @@ extension PlanContents {
     }
   }
 }
+
+extension PlanContents {
+  /// A plan the server returned, keeping what only the app knows about stops that are still there:
+  /// reminder choices and invite picks.
+  func keepingLocalDetails(from current: PlanContents) -> PlanContents {
+    var merged = self
+    for id in merged.ids {
+      if let reminder = current.times[id]?.reminderMinutes, merged.times[id] != nil {
+        merged.times[id]?.reminderMinutes = reminder
+      }
+      if let invites = current.inviteDrafts[id] { merged.inviteDrafts[id] = invites }
+    }
+    return merged
+  }
+}
+

@@ -1,5 +1,20 @@
 # One screenshot scenario per line: name|launch arguments (DEBUG fixture flags; see HermiMapPreview.swift).
-# CI runs every line on every device; `scripts/ios-ci.sh --only <regex>` narrows it.
+# CI runs every line on every device; a commit line `shots: <regex>` narrows it. `--content-size=<size>` sets
+# Dynamic Type for that shot (e.g. accessibility-extra-extra-extra-large).
 plan|--hermi-plan-review
 saved|--hermi-saved-review
 map|--hermi-pin-review
+ai-closed|--hermi-plan-review --hermi-ai-review=closed
+ai-menu|--hermi-plan-review --hermi-ai-review=menu
+ai-category|--hermi-plan-review --hermi-ai-review=category
+ai-asking|--hermi-plan-review --hermi-ai-review=asking
+ai-preview-space|--hermi-plan-review --hermi-ai-review=preview-space
+ai-preview-weather|--hermi-plan-review --hermi-ai-review=preview-weather
+ai-preview-activity|--hermi-plan-review --hermi-ai-review=preview-activity
+ai-chat|--hermi-plan-review --hermi-ai-review=chat
+ai-preview-chat|--hermi-plan-review --hermi-ai-review=preview-chat
+ai-applied|--hermi-plan-review --hermi-ai-review=applied
+ai-error|--hermi-plan-review --hermi-ai-review=error
+ai-sample|--hermi-plan-review --hermi-ai-review=sample
+ai-menu-xxxl|--hermi-plan-review --hermi-ai-review=menu --content-size=accessibility-extra-extra-extra-large
+ai-preview-space-xxxl|--hermi-plan-review --hermi-ai-review=preview-space --content-size=accessibility-extra-extra-extra-large

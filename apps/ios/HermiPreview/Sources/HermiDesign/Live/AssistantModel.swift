@@ -30,6 +30,14 @@ protocol AssistantBackend: Sendable {
   func dismiss(planID: String) async throws -> PlanDTO
 }
 
+/// Always fails with one error (screenshot scenarios and tests of error states).
+struct FailingAssistantBackend: AssistantBackend {
+  var error: HermiAPIError
+  func ask(planID: String, body: AskBody) async throws -> AskResponseDTO { throw error }
+  func apply(planID: String) async throws -> PlanDTO { throw error }
+  func dismiss(planID: String) async throws -> PlanDTO { throw error }
+}
+
 struct LiveAssistantBackend: AssistantBackend {
   var api: HermiAPI
   func ask(planID: String, body: AskBody) async throws -> AskResponseDTO {
@@ -107,6 +115,10 @@ final class PlanAssistant {
   private var askedFor: PlanContents?
 
   var isOpen: Bool { phase != .closed }
+  /// The chat sheet is up: chatting, or waiting on / applying a chat reply.
+  var inChat: Bool { phase == .chat || (home == .chat && isBusy) }
+  /// The preset card is up (menu, categories, or waiting on a preset).
+  var inMenu: Bool { isOpen && !inChat }
   var isBusy: Bool {
     if case .asking = phase { return true }
     return phase == .applying
@@ -117,6 +129,8 @@ final class PlanAssistant {
   func showCategories() { guard !isBusy else { return }; phase = .categories; notice = nil }
   func showChat() { guard !isBusy else { return }; phase = .chat; home = .chat; notice = nil }
   func back() { guard !isBusy else { return }; phase = .menu; home = .menu; notice = nil }
+  /// The chat sheet was swiped away: a reply still on its way lands in the menu instead.
+  func leaveChat() { home = .menu; if !isBusy { phase = .menu } }
 
   /// The earlier chat turns to send along (the newest 8, each at most 600 characters).
   var history: [AskTurn] {

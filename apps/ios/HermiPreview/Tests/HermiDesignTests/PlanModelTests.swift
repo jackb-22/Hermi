@@ -42,4 +42,18 @@ final class PlanModelTests: XCTestCase {
     let chat = PlanContents(server: try AIFixtures.decode(PlanDTO.self, "apply-chat"))
     XCTAssertEqual(chat.ids, ["cafe", "gallery", "tea"])
   }
+
+  func testAServerPlanKeepsRemindersAndInvitePicksOfStopsStillThere() throws {
+    var current = PlanContents(ids: ["cafe", "gallery", "garden"])
+    current.times["cafe"] = PreviewStopTime(arrival: Date(), durationMinutes: 60, reminderMinutes: 15)
+    current.inviteDrafts["gallery"] = ["Sam"]
+    current.inviteDrafts["garden"] = ["Riley"]
+    let server = PlanContents(server: try AIFixtures.decode(PlanDTO.self, "apply-chat")) // garden → tea
+    let merged = server.keepingLocalDetails(from: current)
+    XCTAssertEqual(merged.ids, ["cafe", "gallery", "tea"])
+    XCTAssertEqual(merged.times["cafe"]?.reminderMinutes, 15)
+    XCTAssertEqual(merged.times["cafe"]?.arrival, server.times["cafe"]?.arrival, "times come from the server")
+    XCTAssertEqual(merged.inviteDrafts, ["gallery": ["Sam"]])
+  }
 }
+

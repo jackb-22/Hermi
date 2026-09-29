@@ -43,6 +43,8 @@ xcodebuild -project HermiPreview.xcodeproj -scheme HermiPreview -configuration D
   -destination "platform=iOS Simulator,id=$FIRST" -derivedDataPath .build/xcode \
   CODE_SIGNING_ALLOWED=NO build > "$OUT/build.log" 2>&1 || { grep -E "error:" "$OUT/build.log" | head -40; tail -60 "$OUT/build.log"; exit 1; }
 APP=.build/xcode/Build/Products/Debug-iphonesimulator/HermiPreview.app
+# The AI fixtures are New York times; show them as New York times.
+export SIMCTL_CHILD_TZ=America/New_York
 
 echo "$DEVICES" | while IFS="|" read -r UDID NAME; do
   [ -n "$UDID" ] || continue
