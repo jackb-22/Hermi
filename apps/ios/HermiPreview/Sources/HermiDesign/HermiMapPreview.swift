@@ -215,7 +215,7 @@ public struct HermiMapPreview: View {
     }
     .onChange(of: state.sheet) { _, sheet in
       if case .place = sheet { editingPinID = nil }
-      if sheet != .plan { assistant.close() }
+      if sheet != .plan { assistant.close() } else { Task { await refreshPlans() } }
     }
     .onChange(of: state.planContents) { _, contents in assistant.planChanged(to: contents) }
     .sheet(isPresented: Binding(get: { assistant.inChat && state.sheet == .plan }, set: { if !$0 { assistant.leaveChat() } })) {
@@ -268,7 +268,7 @@ public struct HermiMapPreview: View {
       if let notice { pinNotice = notice }
     }
     .onChange(of: scenePhase) { _, phase in
-      if phase == .active { Task { await LiveSession.shared.restore() } }
+      if phase == .active { Task { await LiveSession.shared.restore(); await refreshPlans() } }
     }
     .task(id: pinNotice) {
       guard pinNotice != nil else { return }
@@ -450,6 +450,14 @@ public struct HermiMapPreview: View {
       do { try await Task.sleep(for: .milliseconds(300)) } catch { return }
       moving = false
     }
+  }
+
+  /// A text to Hermi can change My Plan on the server: pull it when the app returns or My Plan opens.
+  private func refreshPlans() async {
+    guard !aiDebug, LiveSession.shared.isLive, !assistant.isBusy else { return }
+    await PlanSync.shared.flush()
+    guard let plans = await PlanSync.shared.hydrate(), LiveSession.shared.isLive else { return }
+    PlanSync.shared.refresh(plans, to: &state)
   }
 
   // MARK: Hermi AI

@@ -46,8 +46,9 @@ APP=.build/xcode/Build/Products/Debug-iphonesimulator/HermiPreview.app
 # The AI fixtures are New York times; show them as New York times.
 export SIMCTL_CHILD_TZ=America/New_York
 
-echo "$DEVICES" | while IFS="|" read -r UDID NAME; do
-  [ -n "$UDID" ] || continue
+# Each device shoots every scenario in its own background job: three simulators at once.
+shoot_device() { # udid name
+  UDID="$1"; NAME="$2"; MARK="$OUT/.mark-$NAME"
   xcrun simctl boot "$UDID" 2>/dev/null </dev/null || true
   xcrun simctl bootstatus "$UDID" -b > /dev/null </dev/null
   xcrun simctl status_bar "$UDID" override --time 9:41 --batteryState charged --batteryLevel 100 --cellularBars 4 --wifiBars 3 </dev/null || true
@@ -58,7 +59,7 @@ echo "$DEVICES" | while IFS="|" read -r UDID NAME; do
     case "$ARGS" in *--content-size=*) CONTENT_SIZE=$(echo "$ARGS" | sed 's/.*--content-size=\([^ ]*\).*/\1/'); ARGS=$(echo "$ARGS" | sed 's/--content-size=[^ ]*//') ;; esac
     xcrun simctl ui "$UDID" content_size "${CONTENT_SIZE:-large}" 2>/dev/null </dev/null || true
     xcrun simctl terminate "$UDID" tech.hermi.designpreview 2>/dev/null </dev/null || true
-    touch "$OUT/.mark"
+    touch "$MARK"
     # shellcheck disable=SC2086
     xcrun simctl launch "$UDID" tech.hermi.designpreview $ARGS > /dev/null </dev/null || echo "  launch reported a failure"
     sleep "${SHOT_WAIT:-6}"
@@ -68,7 +69,7 @@ echo "$DEVICES" | while IFS="|" read -r UDID NAME; do
     else
       # Crashed: keep the crash report and the app's recent log next to the screenshot.
       echo "  ✗ $SCENARIO @ $NAME: not running (crash report and log saved)"
-      find "$HOME/Library/Logs/DiagnosticReports" -name 'HermiPreview*' -newer "$OUT/.mark" \
+      find "$HOME/Library/Logs/DiagnosticReports" -name 'HermiPreview*' -newer "$MARK" \
         -exec cp {} "$OUT/crash-$SCENARIO@$NAME.ips" \; 2>/dev/null || true
       xcrun simctl spawn "$UDID" log show --last 2m --style compact \
         --predicate 'process == "HermiPreview" OR eventMessage CONTAINS "designpreview"' </dev/null \
@@ -77,6 +78,12 @@ echo "$DEVICES" | while IFS="|" read -r UDID NAME; do
     fi
   done
   xcrun simctl shutdown "$UDID" </dev/null || true
-done
-rm -f "$OUT/.mark"
+  rm -f "$MARK"
+}
+echo "$DEVICES" > "$OUT/.devices"
+while IFS="|" read -r UDID NAME; do
+  [ -n "$UDID" ] && shoot_device "$UDID" "$NAME" &
+done < "$OUT/.devices"
+wait
+rm -f "$OUT/.devices"
 if [ -f "$OUT/crashed.txt" ]; then echo "crashed:"; cat "$OUT/crashed.txt"; exit 3; fi

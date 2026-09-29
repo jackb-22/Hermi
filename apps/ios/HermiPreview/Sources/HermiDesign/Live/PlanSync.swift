@@ -130,6 +130,61 @@ final class PlanSync {
 
   func reset() { baseline = nil }
 
+  /**
+   Later pulls (app back in front, My Plan opened): take only what changed on the server since this device last
+   synced, e.g. a text to Hermi rewrote the draft, or saved it with friends invited. Everything else, and Undo,
+   stays as it is. Returns whether My Plan changed.
+   */
+  @MainActor
+  @discardableResult
+  func refresh(_ hydration: Hydration, to state: inout MapPreviewState) -> Bool {
+    guard var known = baseline else { return false }
+    if let draft = hydration.draft { PlaceCatalog.shared.upsert(draft.stops.compactMap { $0.place?.place }) }
+    let localDraft = state.activeSavedPlanID == nil ? state.planContents : (state.unsavedPlanContents ?? PlanContents())
+    var changed = false
+
+    // The draft was saved elsewhere (a text that named friends to invite): it opens as the current plan.
+    if let draftServer = serverIDs[PlanSync.draftKey], hydration.draft?.id != draftServer,
+       let promoted = hydration.saved.first(where: { $0.id == draftServer }),
+       !state.library.plans.contains(where: { serverIDs[$0.id.uuidString] == draftServer }) {
+      PlaceCatalog.shared.upsert(promoted.stops.compactMap { $0.place?.place })
+      let saved = PlanSync.savedDraft(from: promoted)
+      state.library.plans.append(saved)
+      serverIDs[saved.id.uuidString] = promoted.id
+      serverIDs[PlanSync.draftKey] = nil
+      let contents = PlanContents(ids: saved.stopIDs, times: saved.times, legs: saved.legs)
+        .keepingLocalDetails(from: localDraft)
+      known[saved.id.uuidString] = PlanSnapshot(name: saved.name, contents: contents)
+      known[PlanSync.draftKey] = nil
+      if state.activeSavedPlanID == nil {
+        state.unsavedPlanContents = PlanContents()
+        state.activeSavedPlanID = saved.id
+        state.planUndoHistory = []
+        state.applyPlanContents(contents, recordUndo: false)
+      }
+      changed = true
+    }
+
+    // The draft's places, stays or start changed on the server (or a new draft appeared there).
+    if let server = hydration.draft {
+      let contents = PlanContents(server: server).keepingLocalDetails(from: localDraft)
+      let theirs = PlanSnapshot(name: nil, contents: contents)
+      if server.id != serverIDs[PlanSync.draftKey] || !(known[PlanSync.draftKey].map { $0.sameCore(as: theirs) } ?? false) {
+        serverIDs[PlanSync.draftKey] = server.id
+        known[PlanSync.draftKey] = theirs
+        // Undo can take it back (which pushes the old plan back to the server).
+        if state.activeSavedPlanID == nil { state.applyPlanContents(contents) } else { state.unsavedPlanContents = contents }
+        changed = true
+      }
+    }
+    if changed {
+      baseline = known
+      saveMapping()
+      notice = "My Plan was updated from Hermi."
+    }
+    return changed
+  }
+
   /// Waits for queued writes, so the server plan is the one on screen (the AI button asks about it).
   @MainActor
   func flush() async { await queue?.value }
@@ -297,6 +352,11 @@ struct PlanSnapshot: Equatable {
     stays = contents.ids.map { min(240, max(5, contents.times[$0]?.durationMinutes ?? 60)) }
     modes = contents.ids.map { contents.leg(into: $0)?.mode }
     startAt = contents.ids.first.flatMap { contents.times[$0]?.arrival }
+  }
+
+  /// Same places, stays and start: what a change made elsewhere would alter (leg modes follow from those).
+  func sameCore(as other: PlanSnapshot) -> Bool {
+    stops == other.stops && stays == other.stays && startAt == other.startAt
   }
 
   /// Every live plan in the state: the draft (even while a saved plan is open) and each saved plan.
