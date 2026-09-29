@@ -1,0 +1,5 @@
+# One screenshot scenario per line: name|launch arguments (DEBUG fixture flags; see HermiMapPreview.swift).
+# CI runs every line on every device; `scripts/ios-ci.sh --only <regex>` narrows it.
+plan|--hermi-plan-review
+saved|--hermi-saved-review
+map|--hermi-pin-review

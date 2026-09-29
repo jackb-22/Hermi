@@ -27,3 +27,6 @@ apps/ios/HermiPreview/.swiftpm/
 !.env.*.example
 .demo/
 env.yaml
+
+# iOS CI screenshots downloaded by scripts/ios-ci.sh
+.ci-shots/

@@ -1,0 +1,66 @@
+# iOS checks without a Mac on hand: package tests plus Simulator screenshots of every fixture scenario.
+# Local driver: scripts/ios-ci.sh (push, wait, download PNGs + contact sheets into .ci-shots/<sha>/).
+name: ios
+on:
+  push:
+    branches: [ai-assistant]
+    paths: ['apps/ios/**', '.github/workflows/ios.yml']
+  workflow_dispatch:
+    inputs:
+      only:
+        description: 'Regex of scenario names to shoot (default: all)'
+        default: '.'
+      tests:
+        description: 'Run swift test'
+        type: boolean
+        default: true
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    if: github.event_name == 'push' || inputs.tests
+    runs-on: macos-15
+    timeout-minutes: 25
+    defaults: { run: { working-directory: apps/ios/HermiPreview } }
+    steps:
+      - uses: actions/checkout@v4
+      - name: Newest Xcode
+        run: sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)" && xcodebuild -version
+      - name: swift test
+        run: |
+          mkdir -p .build
+          set -o pipefail
+          swift test --disable-sandbox 2>&1 | tee .build/swift-test.log | grep -E "error:|failed|passed|Executed" | tail -60
+      - name: Snapshot images
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-${{ github.sha }}
+          path: |
+            apps/ios/HermiPreview/.build/swift-test.log
+            apps/ios/HermiPreview/.build/snapshots/
+          if-no-files-found: ignore
+
+  shots:
+    runs-on: macos-15
+    timeout-minutes: 40
+    defaults: { run: { working-directory: apps/ios/HermiPreview } }
+    steps:
+      - uses: actions/checkout@v4
+      - name: Newest Xcode
+        run: sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)" && xcodebuild -version
+      - name: Screenshots
+        run: sh scripts/ci-shots.sh "$RUNNER_TEMP/shots" "${{ inputs.only || '.' }}"
+      - name: Contact sheets
+        if: always()
+        run: |
+          python3 -m pip install --quiet --break-system-packages pillow || python3 -m pip install --quiet pillow
+          python3 scripts/contact-sheet.py "$RUNNER_TEMP/shots" || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: shots-${{ github.sha }}
+          path: ${{ runner.temp }}/shots/
