@@ -47,6 +47,21 @@ describe('reading a plan out of a text (rules)', () => {
     expect(p('Wed 9:30am coffee').date).toBe('2026-10-07');
     expect(p('Wed 9:30am coffee').time).toBe('9:30');
   });
+  test('a group chat: several lines, a time mid-sentence, a trailing "after?"', () => {
+    expect(
+      p(
+        'we should get coffee then Riverside Park tomorrow at 10am\nthen Joe Coffee after?\nplan this',
+      ),
+    ).toMatchObject({
+      date: '2026-10-02',
+      time: '10:00',
+      stops: [
+        { query: 'coffee', kind: 'generic' },
+        { query: 'Riverside Park', kind: 'named' },
+        { query: 'Joe Coffee', kind: 'named' },
+      ],
+    });
+  });
   test('how', () => {
     expect(p('Sat: Joe Coffee then the Met by subway').mode).toBe('transit');
     expect(p('Sat: Joe Coffee then the Met on citibike').mode).toBe('bike');

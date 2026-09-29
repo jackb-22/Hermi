@@ -102,9 +102,12 @@ export class FakeLlm implements Llm {
     return sixWords(`${o.placeName} next`);
   }
   async planName(names: string[]) {
-    return names.length
-      ? sixWords(names.length > 1 ? `${names[0]} and more` : names[0]!)
-      : 'New plan';
+    if (!names.length) return 'New plan';
+    const first = names[0]!;
+    // "X and more" only when it fits in six words; a long first name stands alone rather than being cut.
+    return names.length > 1 && first.split(/\s+/).length <= 4
+      ? `${first} and more`
+      : sixWords(first);
   }
   async rerankGhosts(cands: GhostCandidate[]) {
     return cands.map((c) => ({ id: c.id, label: c.fallbackLabel }));

@@ -135,7 +135,7 @@ const FILLER =
 export function parsePlanText(text: string, now: Date): TextPlan {
   let rest = text
     .replace(/\bhermi\b[,:]?/gi, ' ')
-    .replace(/\s+/g, ' ')
+    .replace(/[ \t]+/g, ' ') // Line breaks separate a chat's messages: keep them.
     .trim();
   const today = nyLocal(now);
   const addDays = (n: number) => nyLocal(new Date(now.getTime() + n * 86_400_000)).date;
@@ -165,7 +165,7 @@ export function parsePlanText(text: string, now: Date): TextPlan {
     .replace(/\b(tomorrow|today|tonight|this|next|on|noon)\b/gi, ' ')
     .replace(/\b(sun|mon|tue|wed|thu|fri|sat)[a-z]*\b/gi, ' ')
     .replace(/\b\d{1,2}(:\d{2})?\s*(am|pm)\b/gi, ' ')
-    .replace(/\bat\s*(?=[:,-]|$)/gi, ' ');
+    .replace(/\b(at|on|around|by)\s*(?=[:,-]|$)/gim, ' ');
 
   // With whom.
   const people: string[] = [];
@@ -190,7 +190,8 @@ export function parsePlanText(text: string, now: Date): TextPlan {
   for (let chunk of rest.split(/\bthen\b|→|->|;|,|\n|\band then\b|:|\.\s/i)) {
     chunk = chunk.trim().replace(/[.!?]+$/, '');
     for (let i = 0; i < 4; i++) chunk = chunk.replace(FILLER, '');
-    chunk = chunk.trim();
+    // "Riverside Park at" once the time is gone; "Riverside Park after?"
+    chunk = chunk.replace(/\s+(at|on|around|by|after|afterwards|later|too|maybe)\??$/i, '').trim();
     if (!chunk || chunk.length < 3 || /^(plan|and|ok|okay|yes|sure)$/i.test(chunk)) continue;
     // "climbing at Movement Harlem": the venue is after "at".
     const at = /\bat\s+(.+)$/i.exec(chunk);
