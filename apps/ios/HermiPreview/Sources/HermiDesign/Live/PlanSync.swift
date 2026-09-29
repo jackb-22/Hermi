@@ -182,7 +182,7 @@ final class PlanSync {
         }))
         continue
       }
-      if before?.stops != snap.stops || before?.stays != snap.stays {
+      if before?.stops != snap.stops || before?.stays != snap.stays || before?.modes != snap.modes {
         ops.append(("update plan", { [self] api in
           guard let id = serverIDs[key] else { return }
           let _: PlanDTO = try await api.send("PUT", "/plans/\(id)/stops", body: PutStopsBody(stops: snap.stopInputs))
@@ -247,37 +247,35 @@ final class PlanSync {
     }
   }
 
-  static func contents(from plan: PlanDTO) -> PlanContents {
-    var contents = PlanContents()
-    for stop in plan.stops {
-      guard let id = stop.place?.id, !contents.ids.contains(id) else { continue }
-      contents.ids.append(id)
-      if let arrival = stop.arriveAt { contents.times[id] = PreviewStopTime(arrival: arrival, durationMinutes: stop.stayMin ?? 60) }
-    }
-    return contents
-  }
+  static func contents(from plan: PlanDTO) -> PlanContents { PlanContents(server: plan) }
 
   static func savedDraft(from plan: PlanDTO) -> SavedPlanDraft {
     let contents = contents(from: plan)
     let invited = (plan.members ?? []).filter { $0.status == "invited" || $0.status == "joined" }.map(\.name)
     return SavedPlanDraft(name: plan.name, folderID: nil, visibility: localVisibility(plan.visibility),
-                          friendNames: invited, stopIDs: contents.ids, times: contents.times, isBookmarked: true)
+                          friendNames: invited, stopIDs: contents.ids, times: contents.times, isBookmarked: true,
+                          legs: contents.legs)
   }
 }
 
-/// What the server holds for one plan: ordered places, stay lengths, start time and (saved plans) name.
+/// What the server holds for one plan: ordered places, stay lengths, leg modes, start time and (saved plans) name.
 struct PlanSnapshot: Equatable {
   var name: String?
   var stops: [String]
   var stays: [Int]
+  /// Mode of the leg into each stop while it is still valid (nil: the server's default).
+  var modes: [String?]
   var startAt: Date?
 
-  var stopInputs: [StopInputBody] { zip(stops, stays).map { StopInputBody(placeId: $0, stayMin: $1) } }
+  var stopInputs: [StopInputBody] {
+    stops.indices.map { StopInputBody(placeId: stops[$0], stayMin: stays[$0], legMode: modes[$0]) }
+  }
 
   init(name: String?, contents: PlanContents) {
     self.name = name
     stops = contents.ids
     stays = contents.ids.map { min(240, max(5, contents.times[$0]?.durationMinutes ?? 60)) }
+    modes = contents.ids.map { contents.leg(into: $0)?.mode }
     startAt = contents.ids.first.flatMap { contents.times[$0]?.arrival }
   }
 
@@ -287,16 +285,17 @@ struct PlanSnapshot: Equatable {
     let draft = state.activeSavedPlanID == nil ? state.planContents : (state.unsavedPlanContents ?? PlanContents())
     if PlanSync.isLive(draft.ids) { result[PlanSync.draftKey] = PlanSnapshot(name: nil, contents: draft) }
     for plan in state.library.plans where PlanSync.isLive(plan.stopIDs) {
-      let contents = PlanContents(ids: plan.stopIDs, times: plan.times)
+      let contents = PlanContents(ids: plan.stopIDs, times: plan.times, legs: plan.legs)
       result[plan.id.uuidString] = PlanSnapshot(name: plan.name, contents: contents)
     }
     return result
   }
 }
 
-struct StopInputBody: Encodable {
+struct StopInputBody: Encodable, Equatable {
   var placeId: String
   var stayMin: Int
+  var legMode: String?
 }
 
 struct CreatePlanBody: Encodable {

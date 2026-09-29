@@ -72,7 +72,7 @@ const SAMPLES = [
     category: 'music',
     lat: 40.8026,
     lng: -73.9661,
-    tags: ['live_music'],
+    tags: ['live_jazz'],
   },
 ] as const;
 
@@ -133,6 +133,7 @@ const newPlan = async () =>
   ).json();
 const post = async (url: string, payload: object) => {
   const r = await t.app.inject({ method: 'POST', url: `/v1${url}`, headers: u.headers, payload });
+  expect(r.statusCode, `${url}: ${r.body.slice(0, 200)}`).toBe(200);
   return r.json();
 };
 /** A Gemini whose SDK replies follow a script (function calls, then text). */

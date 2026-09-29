@@ -71,6 +71,7 @@ struct MapPreviewState: Codable, Equatable {
   var planIDs: [String] = []
   var stopTimes: [String: PreviewStopTime]?
   var stopInviteDrafts: [String: Set<String>]?
+  var stopLegs: [String: PreviewLeg]? // Travel into each stop, from the server ("Space it out").
   var savedIDs: Set<String> = []
   var savedLibrary: SavedLibrary? // Optional so older local snapshots still decode.
   var activeSavedPlanID: UUID?

@@ -1,14 +1,8 @@
 import Foundation
 
-struct PlanContents: Codable, Equatable {
-  var ids: [String] = []
-  var times: [String: PreviewStopTime] = [:]
-  var inviteDrafts: [String: Set<String>] = [:]
-}
-
 extension MapPreviewState {
   var planContents: PlanContents {
-    .init(ids: planIDs, times: stopTimes ?? [:], inviteDrafts: stopInviteDrafts ?? [:])
+    .init(ids: planIDs, times: stopTimes ?? [:], inviteDrafts: stopInviteDrafts ?? [:], legs: stopLegs)
   }
   var editingSavedPlan: SavedPlanDraft? {
     guard let activeSavedPlanID else { return nil }
@@ -26,6 +20,7 @@ extension MapPreviewState {
     planIDs = contents.ids
     stopTimes = contents.times
     stopInviteDrafts = contents.inviteDrafts
+    stopLegs = contents.legs
     autosaveActivePlan()
   }
 
@@ -35,6 +30,7 @@ extension MapPreviewState {
     library.plans[index].stopIDs = planIDs
     library.plans[index].times = stopTimes ?? [:]
     library.plans[index].inviteDrafts = stopInviteDrafts ?? [:]
+    library.plans[index].legs = stopLegs
     savedLibrary = library
   }
 
@@ -45,7 +41,8 @@ extension MapPreviewState {
     autosaveActivePlan()
     activeSavedPlanID = plan.id
     planUndoHistory = []
-    applyPlanContents(.init(ids: plan.stopIDs, times: plan.times, inviteDrafts: plan.inviteDrafts ?? [:]), recordUndo: false)
+    applyPlanContents(.init(ids: plan.stopIDs, times: plan.times, inviteDrafts: plan.inviteDrafts ?? [:], legs: plan.legs),
+                      recordUndo: false)
     sheet = .plan
     return true
   }

@@ -160,7 +160,7 @@ struct PlanPreviewPage: View {
         var library = state.library
         let didSave = library.savePlan(name: name, folderID: folderID, newFolder: newFolder,
                                        visibility: visibility, friends: friends, stops: state.planIDs,
-                                       times: state.stopTimes ?? [:])
+                                       times: state.stopTimes ?? [:], legs: state.stopLegs)
         if didSave {
           state.library = library
           if let id = library.plans.last?.id { state.bindNewSavedPlan(id) }

@@ -1,6 +1,6 @@
 {
   "plan": {
-    "id": "id-17",
+    "id": "id-18",
     "name": "Corner café + 2 more",
     "hostId": "id-2",
     "isHost": true,
@@ -11,7 +11,7 @@
     "status": "draft",
     "stops": [
       {
-        "id": "id-18",
+        "id": "id-19",
         "index": 1,
         "place": {
           "id": "cafe",
@@ -42,7 +42,7 @@
         "checkinId": null
       },
       {
-        "id": "id-19",
+        "id": "id-20",
         "index": 2,
         "place": {
           "id": "gallery",
@@ -74,7 +74,7 @@
         "checkinId": null
       },
       {
-        "id": "id-20",
+        "id": "id-21",
         "index": 3,
         "place": {
           "id": "garden",
@@ -117,7 +117,7 @@
     "issues": [],
     "ghostChanges": [
       {
-        "id": "id-21",
+        "id": "id-22",
         "kind": "set_start",
         "label": "Move to Sunday: 5% rain, 72°F, wind 6 mph",
         "startAt": "2026-10-04T16:00:00.000Z"
