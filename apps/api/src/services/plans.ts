@@ -54,6 +54,11 @@ export interface GhostChangeDoc {
   mode?: Mode;
   startAt?: string;
   stayMin?: number;
+  /** set_mode from "Space it out": the real ETA for that leg, kept on apply while the leg is unchanged. */
+  legMin?: number;
+  legSource?: StopDoc['legSource'];
+  /** Internal: the leg (from→to:mode) legMin belongs to. */
+  legKey?: string;
   sources?: { title: string; uri: string }[];
 }
 
@@ -308,7 +313,7 @@ export async function toPlanView(
       endsAt: t.endsAt?.toISOString() ?? null,
     },
     issues,
-    ghostChanges: plan.ghostChanges,
+    ghostChanges: plan.ghostChanges.map(({ legKey: _key, ...g }) => g),
     matchCount:
       plan.visibility === 'find' && plan.hostId === viewerId ? (plan.matchCount ?? 0) : null,
     shareUrl: `${config.PUBLIC_BASE_URL.replace(/\/$/, '')}/p/${plan.shareToken}`,

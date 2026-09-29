@@ -60,7 +60,7 @@ map.addSource('explored',{type:'geojson',data:empty});map.addLayer({id:'explored
 map.on('error',()=>{error.style.display='block';send({type:'error'})});
 map.on('idle',()=>{if(map.areTilesLoaded()){error.style.display='none';send({type:'ready'})}});
 map.on('move',()=>{positionEditor();updateLandmarks();const now=Date.now();if(now-lastViewportSent>250){lastViewportSent=now;send({type:'viewport',...viewport()})}});
-map.on('click',e=>{if(draggingPin)return;const hit=e&&e.point?placeAt(e.point):null;if(hit){send({type:'place',id:hit});return}{pending.editingDiscovery=false;positionEditor();map.getSource('discovery-radius').setData(empty);send({type:'mapTap'})}});
+map.on('click',e=>{if(draggingPin)return;const hit=e&&e.point?placeAt(e.point):null;if(hit){send({type:'place',id:hit});return}pending.editingDiscovery=false;positionEditor();map.getSource('discovery-radius').setData(empty);send({type:'mapTap'})});
 map.on('movestart',()=>send({type:'moving'}));map.on('moveend',()=>send({type:'stopped',...viewport()}));
 window.addEventListener('resize',()=>map.resize());
 }catch(e){error.style.display='block';send({type:'error'})}
@@ -299,7 +299,7 @@ function radiusFeature(p){
 }
 function updateRadius(){
  if(!pending.discovery)return;
- const miles=0.1*Math.pow(40,Number(radius.value));
+ const miles=0.1*40 ** Number(radius.value);
  radiusValue.textContent=Number(miles.toPrecision(2))+' mi';
  radius.setAttribute('aria-valuetext',radiusValue.textContent);
  map.getSource('discovery-radius').setData(radiusFeature({...pending.discovery,radiusMiles:miles}));

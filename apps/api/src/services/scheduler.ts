@@ -180,8 +180,17 @@ export async function applyGhostChange(
       break;
     }
     case 'set_mode':
-      if (g.stopId) byStop(g.stopId).legMode = g.mode!;
-      else {
+      if (g.stopId) {
+        const s = byStop(g.stopId);
+        s.legMode = g.mode!;
+        // A measured ETA rides along; recompute keeps it only while the leg is still the same one.
+        if (g.legMin !== undefined && g.legKey)
+          Object.assign(s, {
+            legMin: g.legMin,
+            legSource: g.legSource ?? 'estimate',
+            legKey: g.legKey,
+          });
+      } else {
         plan.mode = g.mode!;
         for (const s of plan.stops) s.legMode = g.mode!;
       }

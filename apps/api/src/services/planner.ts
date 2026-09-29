@@ -9,6 +9,7 @@ import {
   TAGS,
   type Tag,
 } from '@itp/shared';
+import { ASK_CHIPS } from '@itp/shared/api';
 import type { Filter } from 'mongodb';
 import type { AppContext } from '../context.ts';
 import type { PlaceDoc } from '../db/placeTypes.ts';
@@ -27,11 +28,20 @@ import {
   toSchedStops,
 } from './plans.ts';
 import { applyGhostChange } from './scheduler.ts';
+import { planSpacing, spacingSummary } from './spacing.ts';
 
-export const CHIPS = ['add_dinner', 'rain_proof', 'best_weather_day', 'cheaper'] as const;
+export const CHIPS = ASK_CHIPS;
 export type Chip = (typeof CHIPS)[number];
+/** Chips code answers on its own (the model at most words the reply). */
+type CodeChip = 'best_weather_day' | 'space_stops' | 'suggest_activity';
+export interface AskInput {
+  prompt?: string;
+  chip?: Chip;
+  category?: PinType;
+  history?: { role: 'user' | 'model'; text: string }[];
+}
 
-const CHIP_PROMPTS: Record<Exclude<Chip, 'best_weather_day'>, string> = {
+const CHIP_PROMPTS: Record<Exclude<Chip, CodeChip>, string> = {
   add_dinner:
     'Add dinner: one food stop around dinner time (6 to 8:30 PM) at a sensible point in the plan.',
   rain_proof:
@@ -262,6 +272,22 @@ class PlanEditor {
     }));
   }
 
+  get places(): PlacesById {
+    return this.byId;
+  }
+
+  /** Records a change code already built (Space it out) the same way a tool call's change is recorded. */
+  async applyPrepared(change: GhostChangeDoc) {
+    await applyGhostChange(this.ctx, this.work, change);
+    this.byId = await loadPlaces(
+      this.ctx.db,
+      this.work.stops.map((s) => s.placeId),
+    );
+    const { issues } = recompute(this.work, this.byId);
+    this.changes.push(change);
+    return issues;
+  }
+
   private async apply(g: Omit<GhostChangeDoc, 'id' | 'label'>, why: unknown, fallback: string) {
     const label = typeof why === 'string' && why.trim() ? why.trim().slice(0, 90) : fallback;
     const change: GhostChangeDoc = { ...g, id: newId(), label };
@@ -445,8 +471,32 @@ async function bestWeatherDay(ctx: AppContext, ed: PlanEditor): Promise<AskResul
   return { changes: ed.changes, message, sources: [], via };
 }
 
+/** Space it out: real ETAs and a mode per leg, so arrivals follow departures plus travel. Code only. */
+async function spaceStops(ctx: AppContext, ed: PlanEditor): Promise<AskResult> {
+  if (ed.work.stops.length < 2)
+    return {
+      changes: [],
+      message: 'Add a second stop, then I can space them out.',
+      sources: [],
+      via: 'code',
+    };
+  const { changes, legs } = await planSpacing(ctx, ed.work, ed.places);
+  let issues: Awaited<ReturnType<PlanEditor['applyPrepared']>> = [];
+  for (const c of changes) issues = await ed.applyPrepared(c);
+  const summary = spacingSummary(ed.work, legs);
+  const warn = issues.length ? ` Heads up: ${issues[0]!.message}` : '';
+  return {
+    changes: ed.changes,
+    message: changes.length
+      ? `Spaced with travel times: ${summary}.${warn}`
+      : `Already spaced right: ${summary}.${warn}`,
+    sources: [],
+    via: 'code',
+  };
+}
+
 /** Chips without a model: the same edits, chosen by rules. */
-async function codeChip(ed: PlanEditor, chip: Exclude<Chip, 'best_weather_day'>): Promise<string> {
+async function codeChip(ed: PlanEditor, chip: Exclude<Chip, CodeChip>): Promise<string> {
   const sched = () => ed.sched;
   if (!ed.work.stops.length) return 'Add a stop first, then ask again.';
   const replace = async (i: number, alt: { placeId: string; name: string }, why: string) => {
@@ -527,11 +577,14 @@ export async function askPlanner(
   ctx: AppContext,
   plan: PlanDoc,
   user: UserDoc,
-  body: { prompt?: string; chip?: Chip },
+  body: AskInput,
 ): Promise<AskResult> {
   const { providers } = ctx;
   if (body.chip === 'best_weather_day')
     return bestWeatherDay(ctx, await PlanEditor.create(ctx, plan, user));
+  if (body.chip === 'space_stops') return spaceStops(ctx, await PlanEditor.create(ctx, plan, user));
+  if (body.chip === 'suggest_activity')
+    return { changes: [], message: 'Not available yet.', sources: [], via: 'code' };
 
   const request = body.chip ? CHIP_PROMPTS[body.chip] : body.prompt!;
   const content = (ed: PlanEditor) =>
