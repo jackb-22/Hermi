@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   test:
-    if: ${{ !contains(github.event.head_commit.message, 'tests: skip') }}
+    if: "!contains(github.event.head_commit.message, 'tests: skip')"
     runs-on: macos-15
     timeout-minutes: 25
     defaults: { run: { working-directory: apps/ios/HermiPreview } }
