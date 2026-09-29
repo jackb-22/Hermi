@@ -11,6 +11,10 @@ export interface ToolSpec {
 }
 
 export type ToolExec = (name: string, args: Record<string, unknown>) => Promise<string>;
+export interface ChatTurn {
+  role: 'user' | 'model';
+  text: string;
+}
 export interface MapsAnswer {
   text: string;
   /** Google Maps source links; must be shown right under the text. */
@@ -74,6 +78,8 @@ export interface Llm {
     tools: ToolSpec[];
     exec: ToolExec;
     maxRounds?: number;
+    /** Earlier turns of a chat, oldest first; the prompt is the newest user turn. */
+    history?: ChatTurn[];
   }): Promise<string>;
   /** A question answered with Grounding with Google Maps near a point (English only). */
   askMaps(question: string, near: LatLng): Promise<MapsAnswer>;
@@ -186,8 +192,12 @@ export class GeminiLlm implements Llm {
     tools: ToolSpec[];
     exec: ToolExec;
     maxRounds?: number;
+    history?: ChatTurn[];
   }): Promise<string> {
-    const contents: Content[] = [{ role: 'user', parts: [{ text: o.prompt }] }];
+    const contents: Content[] = [
+      ...(o.history ?? []).map((h) => ({ role: h.role, parts: [{ text: h.text }] })),
+      { role: 'user', parts: [{ text: o.prompt }] },
+    ];
     const functionDeclarations = o.tools.map((t) => ({
       name: t.name,
       description: t.description,

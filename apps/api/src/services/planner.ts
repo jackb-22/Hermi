@@ -161,6 +161,21 @@ export const PLANNER_TOOLS: ToolSpec[] = [
     parameters: { type: 'object', properties: {} },
   },
   {
+    name: 'get_plan',
+    description: 'The plan as it stands now: stops with times, modes and tags.',
+    parameters: { type: 'object', properties: {} },
+  },
+  {
+    name: 'place_details',
+    description:
+      'Facts about one stop of the plan: address, opening hours, tags, how many went and would go again, and a summary of verified reviews.',
+    parameters: {
+      type: 'object',
+      properties: { index: { type: 'integer', description: '1-based stop number' } },
+      required: ['index'],
+    },
+  },
+  {
     name: 'ask_maps',
     description:
       'Ask Google Maps about places near a stop, for things local data cannot answer (outdoor seating, open late, vibe). English only.',
@@ -382,6 +397,26 @@ class PlanEditor {
     return { days, outdoorShare: share, best };
   }
 
+  details(a: { index: number }) {
+    const i = this.stopAt(a.index);
+    const s = this.work.stops[i - 1]!;
+    const p = s.placeId ? this.byId.get(s.placeId) : undefined;
+    if (!p) return { name: this.sched[i - 1]!.name, note: 'Not a specific place yet' };
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    return {
+      name: p.name,
+      category: p.category,
+      address: p.address ?? null,
+      tags: p.tags,
+      hours: p.hours?.map((h) => `${days[h.day]} ${h.open}–${h.close}`) ?? 'unknown',
+      been: p.been,
+      wouldGoAgainPct: p.wouldGoAgain.total
+        ? Math.round((100 * p.wouldGoAgain.yes) / p.wouldGoAgain.total)
+        : null,
+      reviews: p.reviewSummary?.text ?? null,
+    };
+  }
+
   async maps(a: { question: string; near_index?: number }) {
     const at = this.sched.length ? this.locNear(a.near_index) : { lat: 40.7831, lng: -73.9712 };
     const r = await this.ctx.providers.llm.askMaps(String(a.question ?? ''), at);
@@ -418,6 +453,10 @@ class PlanEditor {
             best: f.best && { date: f.best.day.date, score: f.best.score },
           });
         }
+        case 'get_plan':
+          return this.state();
+        case 'place_details':
+          return JSON.stringify(this.details(a));
         case 'ask_maps': {
           const r = await this.maps(a);
           return JSON.stringify({ answer: r.text, sources: r.sources.map((s) => s.title) });
@@ -720,6 +759,7 @@ export async function askPlanner(
         prompt: content(ed),
         tools: PLANNER_TOOLS,
         exec: ed.exec,
+        history: body.history,
       });
       // Keep what sounds like a lasting preference for the next ask.
       if (body.prompt && PREFERENCE.test(body.prompt))
