@@ -29,7 +29,7 @@ All existing code is provisional. Only increment 00 is active, for framework rev
 | 06 | Pin drop and nearby results | 03–05 | Drop, radius, choose venue, empty results, stale responses | M02, M04 | Specification |
 | 07 | Place sheet | 03, 06 | Counts, missing data, expansion, pinned Add action | P01–P02 | Specification |
 | 08 | Plan stop editor | 07 | Add/fill/reorder/delete, modes, durations, limits | L01–L05 | Specification |
-| 09 | AI scheduling and suggestion review | 08, supported API | Returned timing, red rows, accept/dismiss, sources | L06 | Specification |
+| 09 | AI scheduling and suggestion review | 08, supported API | Returned timing, red rows, accept/dismiss, sources | L06 | Built on `ai-assistant` (CI screenshots; awaiting device review): see INTEGRATION.md Step 13 |
 | 10a | Explain and taste deck | 01, deck contract | Card decisions, age gate, resume/cancel | A01–A02 | Specification |
 | 10b | Apple sign-in and session handling | 10a, native configuration | Cancellation, secure session, expired session | A01, G08 | Specification |
 | 10c | Student verification | 10b, email provider | Domain/code errors, resend, verified state | A04 | Specification |

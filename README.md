@@ -158,7 +158,8 @@ There's no friend search and no friend requests. You add a friend by **tapping p
 - **Captures:** SHA-256 hashing, a presigned upload, then server verification of hash, time window and distance. Posts are moderated.
 - **Recap:** the server builds it. **Score:** rolling XP, stones, ranks and explored tiles.
 - **The Feed, Social map and Profile** read live data.
-- **Backend AI:** the plan scheduler (Gemini), next-stop suggestions, and "Add dinner / Rain-proof / Cheaper" plan edits all exist as APIs.
+- **Hermi AI on My Plan:** the AI button spaces stops with real walk/transit times, finds the best weather day, adds a stop of a chosen kind, and chats about the plan (Gemini, plan-only tools). Every change is previewed until you tap Apply.
+- **Text Hermi (Photon, iMessage):** text the agent a plan, or say "hermi plan this" in a group chat; it becomes your plan with travel times and the right friends invited. "undo" reverts.
 
 **Seeded, because we don't have a user base yet:**
 - Every user other than you: friends, streaks, 30 days of history, open "find someone" plans.
@@ -174,7 +175,6 @@ There's no friend search and no friend requests. You add a friend by **tapping p
 - Push notifications and reminders.
 - Background location: keep the app open during an outing.
 - Video capture and ambient audio. Captures are photos.
-- AI suggestions and the AI plan editor aren't wired into the app UI yet; their APIs are live.
 - Live walking directions: we show the next stop and distance, and open Apple Maps for turn-by-turn.
 
 ---
@@ -196,9 +196,9 @@ archive/                 retired prototype and hosting config
 - Media lives in S3-compatible storage (RustFS) and is served by the API.
 
 **Providers:**
-- **Google Gemini:** the planner (chips, scheduling, the Maps tool) and review summaries.
-- **Backboard:** preference memory.
-- **Photon Spectrum:** an iMessage group chat for each plan.
+- **Google Gemini:** the AI button (presets and chat, with Grounding with Google Maps), stay lengths, reading plans out of texts, review summaries.
+- **Google Routes API:** walk and transit times between stops (Apple Maps first when configured; an estimate otherwise).
+- **Photon Spectrum:** texting Hermi plans, and an iMessage group chat for each plan.
 - **Open-Meteo:** weather.
 - **C2PA:** content credentials for captures, when a signer is configured. Signing is off on the demo server.
 
