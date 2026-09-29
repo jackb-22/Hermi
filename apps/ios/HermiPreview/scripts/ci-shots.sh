@@ -46,7 +46,7 @@ APP=.build/xcode/Build/Products/Debug-iphonesimulator/HermiPreview.app
 # The AI fixtures are New York times; show them as New York times.
 export SIMCTL_CHILD_TZ=America/New_York
 
-# Each device shoots every scenario in its own background job: three simulators at once.
+# One device at a time: booting several simulators at once stalls the hosted runner.
 shoot_device() { # udid name
   UDID="$1"; NAME="$2"; MARK="$OUT/.mark-$NAME"
   xcrun simctl boot "$UDID" 2>/dev/null </dev/null || true
@@ -82,8 +82,7 @@ shoot_device() { # udid name
 }
 echo "$DEVICES" > "$OUT/.devices"
 while IFS="|" read -r UDID NAME; do
-  [ -n "$UDID" ] && shoot_device "$UDID" "$NAME" &
+  [ -n "$UDID" ] && shoot_device "$UDID" "$NAME" </dev/null
 done < "$OUT/.devices"
-wait
 rm -f "$OUT/.devices"
 if [ -f "$OUT/crashed.txt" ]; then echo "crashed:"; cat "$OUT/crashed.txt"; exit 3; fi
