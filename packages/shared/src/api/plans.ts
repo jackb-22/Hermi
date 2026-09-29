@@ -214,5 +214,7 @@ export const AskResponse = z.object({
   sources: z
     .array(z.object({ title: z.string(), uri: z.string() }))
     .describe('Google Maps source links; must be shown right under message'),
-  via: z.enum(['backboard', 'gemini', 'code']),
+  via: z
+    .enum(['backboard', 'gemini', 'code'])
+    .describe("Who answered. 'backboard' is retired (v0.25.3) and no longer returned"),
 });

@@ -15,8 +15,8 @@ import type { PlaceDoc } from '../db/placeTypes.ts';
 import type { UserDoc } from '../db/types.ts';
 import { violatesDislikes } from '../domain/taste.ts';
 import { bestDay, isOutdoor, nyLocal, nyLocalToUtc, outdoorShare } from '../domain/weatherDay.ts';
-import type { ToolSpec } from '../providers/backboard.ts';
-import { ensureAssistant, PLANNER_SYSTEM, recentMemories, remember } from './memory.ts';
+import type { ToolSpec } from '../providers/llm.ts';
+import { PLANNER_SYSTEM, recentMemories, remember } from './memory.ts';
 import { places, WALK_M_PER_MIN } from './places.ts';
 import {
   type GhostChangeDoc,
@@ -409,8 +409,7 @@ export interface AskResult {
   changes: GhostChangeDoc[];
   message: string;
   sources: { title: string; uri: string }[];
-  via: 'backboard' | 'gemini' | 'code';
-  threadId?: string;
+  via: 'gemini' | 'code';
 }
 
 /** Best weather day: code scores the days and picks one; Gemini only writes the one-line why. */
@@ -517,54 +516,12 @@ async function codeChip(ed: PlanEditor, chip: Exclude<Chip, 'best_weather_day'>)
   }
 }
 
-async function viaBackboard(
-  ctx: AppContext,
-  ed: PlanEditor,
-  plan: PlanDoc,
-  content: string,
-): Promise<{ text: string; threadId: string }> {
-  const bb = ctx.providers.backboard;
-  const assistantId = await ensureAssistant(ctx, ed.user);
-  const first = (threadId?: string) =>
-    bb.send({ assistantId, threadId, content, systemPrompt: PLANNER_SYSTEM, tools: PLANNER_TOOLS });
-  let r = await first(plan.aiThreadId).catch((e) => {
-    if (!plan.aiThreadId) throw e;
-    return first(); // The plan's thread is gone: start a new one.
-  });
-  for (
-    let round = 0;
-    round < 8 && r.status === 'REQUIRES_ACTION' && r.tool_calls?.length;
-    round++
-  ) {
-    const outputs = [];
-    for (const c of r.tool_calls)
-      outputs.push({
-        tool_call_id: c.id,
-        output: await ed.exec(c.function.name, c.function.arguments),
-      });
-    r = await bb.submitToolOutputs({
-      threadId: r.thread_id,
-      runId: r.run_id,
-      outputs,
-      tools: PLANNER_TOOLS,
-    });
-  }
-  if (r.status === 'FAILED' || r.status === 'CANCELLED')
-    throw new Error(`backboard run ${r.status}`);
-  // Backboard's free tier covers memory but not model calls, and says so as the reply; that is not an answer.
-  if (!ed.changes.length && BILLING_NOTICE.test(r.content ?? ''))
-    throw new Error(`backboard cannot run the model: ${(r.content ?? '').slice(0, 120)}`);
-  return { text: r.content ?? '', threadId: r.thread_id };
-}
-
-const BILLING_NOTICE = /free credit|add credits|billing page|subscription/i;
-
 const PREFERENCE =
   /\b(no|not|never|don'?t|hate|avoid|prefer|love|always|allergic|vegetarian|vegan)\b/i;
 
 /**
  * AI button, expanded: a chip or free text becomes a diff of ghost changes on the plan.
- * Backboard (memory Auto, Gemini as the model) → direct Gemini function calling → rules for chips.
+ * Gemini function calling over plan tools → rules for chips.
  */
 export async function askPlanner(
   ctx: AppContext,
@@ -579,30 +536,14 @@ export async function askPlanner(
   const request = body.chip ? CHIP_PROMPTS[body.chip] : body.prompt!;
   const content = (ed: PlanEditor) =>
     `${request}\n\nIt is now ${nyTime(ctx.clock.now())} in New York.\nCurrent plan: ${ed.state()}`;
-  const finish = (
-    ed: PlanEditor,
-    text: string,
-    via: AskResult['via'],
-    threadId?: string,
-  ): AskResult => ({
+  const finish = (ed: PlanEditor, text: string, via: AskResult['via']): AskResult => ({
     changes: ed.changes,
     message:
       text.trim() ||
       (ed.changes.length ? 'Here are my suggestions.' : 'I have no changes to suggest.'),
     sources: ed.sources,
     via,
-    threadId,
   });
-
-  if (providers.backboard.enabled) {
-    const ed = await PlanEditor.create(ctx, plan, user);
-    try {
-      const r = await viaBackboard(ctx, ed, plan, content(ed));
-      return finish(ed, r.text, 'backboard', r.threadId);
-    } catch (e) {
-      console.warn(`[planner] backboard failed, falling back to Gemini: ${(e as Error).message}`);
-    }
-  }
 
   if (providers.llm.name !== 'fake') {
     const ed = await PlanEditor.create(ctx, plan, user);
@@ -617,7 +558,7 @@ export async function askPlanner(
         tools: PLANNER_TOOLS,
         exec: ed.exec,
       });
-      // Without Backboard's automatic memory, keep what sounds like a lasting preference.
+      // Keep what sounds like a lasting preference for the next ask.
       if (body.prompt && PREFERENCE.test(body.prompt))
         await remember(ctx, user._id, `Told the planner: "${body.prompt.slice(0, 200)}"`, 'ask');
       return finish(ed, text, 'gemini');

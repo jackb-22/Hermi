@@ -19,9 +19,8 @@ export const askRoutes: FastifyPluginAsyncZod = async (app) => {
         tags: ['plans'],
         summary: 'AI button, expanded: a chip or one line of text becomes suggested changes',
         description:
-          'Runs through Backboard (per-user memory, Gemini as the model) with plan tools: add_stop, remove_stop, move_stop, ' +
-          'set_mode, set_date, plus ask_maps (Grounding with Google Maps). Falls back to Gemini function calling, then to ' +
-          'rules for the chips. Best weather day is always picked by code from the 10-day forecast. The result replaces ' +
+          'Gemini function calling with plan tools only: add_stop, remove_stop, move_stop, set_mode, set_date, plus ' +
+          'ask_maps (Grounding with Google Maps). Falls back to rules for the chips. Best weather day is always picked by code from the 10-day forecast. The result replaces ' +
           'plan.ghostChanges; accept with /plans/:id/changes/apply (all, or ids one at a time). Nothing is applied silently.',
         security: bearer,
         params: z.object({ id: z.string() }),
@@ -36,7 +35,6 @@ export const askRoutes: FastifyPluginAsyncZod = async (app) => {
       const user = await getUser(db, req.userId);
       const r = await askPlanner(app.ctx, plan, user, req.body);
       plan.ghostChanges = r.changes;
-      if (r.threadId) plan.aiThreadId = r.threadId;
       const view = await saveAndView(app.ctx, plan, req.userId);
       return { plan: view, message: r.message, sources: r.sources, via: r.via };
     },

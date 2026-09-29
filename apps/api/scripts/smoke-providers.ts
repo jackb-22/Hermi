@@ -110,17 +110,6 @@ await run('function calling', () =>
     exec: async () => new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }),
   }),
 );
-if (p.backboard.enabled)
-  await run('backboard', async () => {
-    const assistantId = await p.backboard.createAssistant('itp-smoke', 'Answer briefly.');
-    await p.backboard.addMemory(assistantId, 'Prefers no museums before noon');
-    return p.backboard.send({
-      assistantId,
-      content: 'What should I avoid scheduling?',
-      systemPrompt: 'Answer briefly.',
-      tools: [],
-    });
-  });
 if (p.detector.enabled)
   await run('reality defender', async () => {
     const { execFileSync } = await import('node:child_process');

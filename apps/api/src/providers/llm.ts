@@ -2,7 +2,13 @@ import { type Content, type GenerateContentParameters, GoogleGenAI } from '@goog
 import { DEFAULT_STAY_MIN, type LatLng, type PinType } from '@itp/shared';
 import type { Config } from '../config.ts';
 import { clampStay } from '../domain/schedule.ts';
-import type { ToolSpec } from './backboard.ts';
+
+/** A function tool the model may call: JSON-schema parameters, executed by our code. */
+export interface ToolSpec {
+  name: string;
+  description: string;
+  parameters: { type: 'object'; properties: Record<string, unknown>; required?: string[] };
+}
 
 export type ToolExec = (name: string, args: Record<string, unknown>) => Promise<string>;
 export interface MapsAnswer {

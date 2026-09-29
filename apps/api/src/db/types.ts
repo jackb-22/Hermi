@@ -32,6 +32,7 @@ export interface UserDoc {
   openToPlans: boolean;
   ghostMode: boolean;
   tagId?: string;
+  /** Deprecated: the retired Backboard assistant. */
   backboardAssistantId?: string;
   pushTokens?: string[];
   /** Week index of the last weekly nudge (at most one a week). */

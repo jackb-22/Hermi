@@ -73,7 +73,7 @@ export interface PlanDoc {
   shareToken: string;
   sourcePlanId?: string;
   imessageThreadId?: string;
-  /** Backboard thread of the AI planner for this plan, so follow-up asks keep context. */
+  /** Deprecated: the retired Backboard planner's thread. Never set now; copies still clear it. */
   aiThreadId?: string;
   /** iMessage senders who replied "in" in the plan's group thread. */
   imessageRsvps?: string[];
