@@ -27,9 +27,25 @@ struct AssistantButton: View {
 struct AssistantMenuCard: View {
   var assistant: PlanAssistant
   var ask: (AssistantPreset) -> Void
+  /// The screen's width and height, so the card fits a small phone and large text.
+  var room: CGSize = CGSize(width: 390, height: 800)
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   var body: some View {
+    ScrollView {
+      content
+    }
+    .scrollBounceBehavior(.basedOnSize)
+    .frame(width: min(340, room.width - 20))
+    .frame(maxHeight: room.height * 0.62)
+    .fixedSize(horizontal: false, vertical: true)
+    .background(HermiPalette.controlSurface, in: PixelPanel(corner: 10))
+    .overlay(PixelPanel(corner: 10).stroke(HermiPalette.ink.opacity(0.2)).allowsHitTesting(false))
+    .dynamicTypeSize(...DynamicTypeSize.accessibility1)
+    .animation(reduceMotion ? nil : .easeOut(duration: 0.15), value: assistant.phase)
+  }
+
+  private var content: some View {
     VStack(alignment: .leading, spacing: 10) {
       HStack(spacing: 8) {
         CloseButton(label: "Close Hermi AI") { assistant.close() }
@@ -67,10 +83,6 @@ struct AssistantMenuCard: View {
       }
     }
     .padding(12)
-    .frame(width: 300)
-    .background(HermiPalette.controlSurface, in: PixelPanel(corner: 10))
-    .overlay(PixelPanel(corner: 10).stroke(HermiPalette.ink.opacity(0.2)).allowsHitTesting(false))
-    .animation(reduceMotion ? nil : .easeOut(duration: 0.15), value: assistant.phase)
   }
 
   private var categoryPicker: some View {
@@ -102,8 +114,8 @@ struct AssistantMenuCard: View {
         PixelIcon(name: icon).frame(width: 18, height: 16).frame(width: 34, height: 34)
           .background(HermiPalette.lime.opacity(0.55), in: PixelPanel(corner: 5))
         VStack(alignment: .leading, spacing: 1) {
-          Text(title).font(.subheadline.bold())
-          Text(detail).font(.caption).foregroundStyle(HermiPalette.secondary)
+          Text(title).font(.subheadline.bold()).fixedSize(horizontal: false, vertical: true)
+          Text(detail).font(.caption).foregroundStyle(HermiPalette.secondary).fixedSize(horizontal: false, vertical: true)
         }
         Spacer(minLength: 0)
       }.frame(minHeight: 48).contentShape(Rectangle())
@@ -128,16 +140,10 @@ struct SuggestionBar: View {
         Text("· " + change.label).font(.caption).foregroundStyle(HermiPalette.secondary)
       }
       SourceLinks(sources: suggestion.sources)
-      HStack(spacing: 10) {
-        Button(action: dismiss) {
-          Text("Dismiss").font(.subheadline.bold()).frame(maxWidth: .infinity, minHeight: 48)
-            .background(HermiPalette.controlSurface, in: PixelPanel(corner: 8))
-            .overlay(PixelPanel(corner: 8).stroke(HermiPalette.ink.opacity(0.2)))
-        }.accessibilityIdentifier("ai-dismiss")
-        Button(action: apply) {
-          Text(applying ? "Applying…" : "Apply").font(.subheadline.bold()).frame(maxWidth: .infinity, minHeight: 48)
-            .background(HermiPalette.lime, in: PixelPanel(corner: 8))
-        }.accessibilityIdentifier("ai-apply").disabled(applying)
+      // Side by side; stacked (Apply first) when large text would clip them.
+      ViewThatFits(in: .horizontal) {
+        HStack(spacing: 10) { dismissButton; applyButton }
+        VStack(spacing: 8) { applyButton; dismissButton }
       }.buttonStyle(.plain)
     }
     .padding(12)
@@ -145,6 +151,23 @@ struct SuggestionBar: View {
     .overlay(PixelPanel(corner: 8).stroke(HermiPalette.green.opacity(0.5)))
     .accessibilityElement(children: .contain)
     .accessibilityLabel("Suggested changes")
+    .dynamicTypeSize(...DynamicTypeSize.accessibility1)
+  }
+
+  private var dismissButton: some View {
+    Button(action: dismiss) {
+      Text("Dismiss").font(.subheadline.bold()).lineLimit(1).fixedSize()
+        .frame(maxWidth: .infinity, minHeight: 48)
+        .background(HermiPalette.controlSurface, in: PixelPanel(corner: 8))
+        .overlay(PixelPanel(corner: 8).stroke(HermiPalette.ink.opacity(0.2)))
+    }.accessibilityIdentifier("ai-dismiss")
+  }
+  private var applyButton: some View {
+    Button(action: apply) {
+      Text(applying ? "Applying…" : "Apply").font(.subheadline.bold()).lineLimit(1).fixedSize()
+        .frame(maxWidth: .infinity, minHeight: 48)
+        .background(HermiPalette.lime, in: PixelPanel(corner: 8))
+    }.accessibilityIdentifier("ai-apply").disabled(applying)
   }
 }
 

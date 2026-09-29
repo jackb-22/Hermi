@@ -99,7 +99,7 @@ public struct HermiMapPreview: View {
             if state.sheet == .plan && state.actionSession == nil {
               VStack(alignment: .leading, spacing: 10) {
                 if assistant.inMenu {
-                  AssistantMenuCard(assistant: assistant, ask: askAI)
+                  AssistantMenuCard(assistant: assistant, ask: askAI, room: geometry.size)
                     .transition(.opacity.combined(with: .scale(scale: 0.95, anchor: .bottomLeading)))
                 }
                 AssistantButton(assistant: assistant)

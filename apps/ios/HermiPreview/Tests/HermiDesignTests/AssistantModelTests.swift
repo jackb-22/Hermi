@@ -145,4 +145,20 @@ final class AssistantModelTests: XCTestCase {
     XCTAssertNil(model.suggestion)
     XCTAssertEqual(model.notice, "Yes: window seats, open until 9 PM.")
   }
+
+  func testApplyingFromThePlanLeavesTheCardShutAndClosingWhileWaitingSticks() async {
+    let model = PlanAssistant()
+    let backend = FixtureAssistantBackend()
+    model.open()
+    await model.ask(.space, plan: { self.draftPlan }, backend: backend, planID: { "p1" })
+    model.close() // The app shuts the card so the preview shows.
+    _ = await model.apply(backend: backend, planID: "p1")
+    XCTAssertEqual(model.phase, .closed)
+
+    let slow = Scripted()
+    slow.onAsk = { model.close() } // Shut while the request is out.
+    model.open()
+    await model.ask(.weather, plan: { self.draftPlan }, backend: slow, planID: { "p1" })
+    XCTAssertEqual(model.phase, .closed)
+  }
 }

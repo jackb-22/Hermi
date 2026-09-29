@@ -174,11 +174,12 @@ final class PlanAssistant {
     do {
       let plan = try await backend.apply(planID: planID)
       suggestion = nil
-      phase = home
+      // Applied from the plan's bar: the card stays shut. From the chat: back to the chat.
+      settle(to: home == .chat ? .chat : .closed)
       if home == .chat { lines.append(AssistantLine(role: .model, text: "Applied.")) }
       return plan
     } catch {
-      phase = home
+      settle(to: home)
       notice = Self.describe(error)
       return nil
     }
@@ -199,10 +200,10 @@ final class PlanAssistant {
     guard let backend else { notice = Self.signedOut; phase = home; return false }
     guard !asked.ids.isEmpty else { notice = "Add a place to your plan first."; phase = home; return false }
     phase = .asking(title)
-    guard let id = await planID() else { phase = home; notice = Self.signedOut; return false }
+    guard let id = await planID() else { settle(to: home); notice = Self.signedOut; return false }
     do {
       let reply = try await backend.ask(planID: id, body: body)
-      phase = home
+      settle(to: home)
       guard plan() == asked else {
         notice = "Your plan changed while I was thinking. Ask again."
         return false
@@ -213,10 +214,15 @@ final class PlanAssistant {
       if suggestion == nil, home == .menu { notice = reply.message }
       return true
     } catch {
-      phase = home
+      settle(to: home)
       notice = Self.describe(error)
       return false
     }
+  }
+
+  /// After waiting on the server: where to be now, unless the card was closed meanwhile (it stays closed).
+  private func settle(to next: Phase) {
+    if phase != .closed { phase = next }
   }
 
   static let signedOut = "Connect your account (Profile → Server) to use Hermi AI."
