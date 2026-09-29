@@ -3,14 +3,34 @@ import type { AppContext } from '../context.ts';
 import { enqueue } from '../jobs/queue.ts';
 import type { InboundMessage } from '../providers/messenger.ts';
 import type { CheckinHook } from './checkins.ts';
-import { linkByCode } from './imessage.ts';
+import { linkByCode, normalizeHandle, userByHandle } from './imessage.ts';
 import { places } from './places.ts';
 import { loadPlaces, type PlanDoc, plans, toSchedStops } from './plans.ts';
+import { hit } from './rateLimit.ts';
+import { extractPlan, type TextLine } from './textExtract.ts';
+import { planFromText, undoTextPlan } from './textPlan.ts';
 import { users } from './users.ts';
 
 const TOKEN_RE = /\/p\/([A-Za-z0-9_-]{8,})/;
 const IN_RE = /^\s*(i'?m\s+in|in|count me in|yes|i'?ll come)\b/i;
 const LINK_RE = /^\s*link\s+([A-Za-z0-9]{6})\s*$/i;
+const UNDO_RE = /^\s*undo\s*[.!]?\s*$/i;
+/** In a group, Hermi acts only when named ("hermi, plan this"); in a DM, on any text. */
+const HERMI_RE = /\bhermi\b/i;
+/** A group's recent lines, read when Hermi is asked to plan from the chat. */
+const GROUP_WINDOW_MS = 12 * 3600_000;
+const GROUP_LINES = 40;
+const lines = (ctx: AppContext) =>
+  ctx.db.collection<{ _id: string; spaceId: string; sender: string; text: string; at: Date }>(
+    'photon_lines',
+  );
+const threads = (ctx: AppContext) =>
+  ctx.db.collection<{ _id: string; lastPlanAt: Date }>('photon_threads');
+
+const HELP =
+  'Text me a plan and I\'ll put it in Hermi with travel times, like: "Sat 2pm: Hungarian Pastry Shop, then Riverside Park with ben". In a group chat, say "hermi plan this".';
+const UNKNOWN =
+  "I don't know this number yet. In Hermi go to Profile → ⚙︎ → Text Hermi, then text me the code it shows.";
 
 const nyTime = (d: Date, withDay = false) =>
   d.toLocaleString('en-US', {
@@ -122,6 +142,14 @@ export async function handleGroupMessage(ctx: AppContext, m: InboundMessage) {
     return;
   }
   const plan = await plans(ctx.db).findOne({ imessageThreadId: m.spaceId });
+  if (m.group && m.senderId)
+    await lines(ctx).insertOne({
+      _id: newId(),
+      spaceId: m.spaceId,
+      sender: m.senderId,
+      text: m.text,
+      at: ctx.clock.now(),
+    });
   if (plan && m.senderId && IN_RE.test(m.text)) {
     const r = await plans(ctx.db).findOneAndUpdate(
       { _id: plan._id },
@@ -134,7 +162,72 @@ export async function handleGroupMessage(ctx: AppContext, m: InboundMessage) {
       m.spaceId,
       `${n} in so far. Open the link to join in the app, then tap tags at the first stop to become friends: ${shareUrl(ctx, plan)}`,
     );
+    return;
   }
+  await textPlan(ctx, m);
+}
+
+/** A plan by text: a DM, or "hermi …" in a group (read with the group's recent lines); "undo" puts it back. */
+async function textPlan(ctx: AppContext, m: InboundMessage) {
+  if (!m.senderId || !m.text.trim()) return;
+  if (m.group && !HERMI_RE.test(m.text)) return;
+  const host = await userByHandle(ctx, m.senderId);
+  if (!host) {
+    await say(ctx, m.spaceId, UNKNOWN);
+    return;
+  }
+  try {
+    await hit(ctx.db, `photon:${host._id}`, 20, 3600, ctx.clock.now());
+  } catch {
+    await say(ctx, m.spaceId, "That's a lot of plans for one hour. Give me a bit.");
+    return;
+  }
+  if (UNDO_RE.test(m.text.replace(HERMI_RE, ''))) {
+    await say(ctx, m.spaceId, await undoTextPlan(ctx, host));
+    return;
+  }
+  const now = ctx.clock.now();
+  let transcript: TextLine[] = [{ sender: m.senderId, text: m.text }];
+  let groupHandles: string[] = [];
+  if (m.group) {
+    const since = (await threads(ctx).findOne({ _id: m.spaceId }))?.lastPlanAt;
+    const from = new Date(Math.max(now.getTime() - GROUP_WINDOW_MS, since?.getTime() ?? 0));
+    const recent = await lines(ctx)
+      .find({ spaceId: m.spaceId, at: { $gt: from } })
+      .sort({ at: -1 })
+      .limit(GROUP_LINES)
+      .toArray();
+    if (recent.length)
+      transcript = recent.reverse().map((l) => ({ sender: l.sender, text: l.text }));
+    const members = await ctx.providers.messenger.members(m.spaceId);
+    groupHandles = members.flatMap((h) => normalizeHandle(h) ?? []);
+  }
+  const tp = await extractPlan(ctx, transcript, now);
+  if (tp.intent === 'none' || !tp.stops.length) {
+    await say(
+      ctx,
+      m.spaceId,
+      m.group
+        ? "I didn't find a plan in this chat yet. Name a place or two, then ask me again."
+        : HELP,
+    );
+    return;
+  }
+  const { reply, plan } = await planFromText(ctx, host, tp, { groupHandles });
+  if (plan && m.group) {
+    await threads(ctx).updateOne(
+      { _id: m.spaceId },
+      { $set: { lastPlanAt: now } },
+      { upsert: true },
+    );
+    // The group now follows this plan: "in" replies, check-ins and the recap land here.
+    await plans(ctx.db).updateMany(
+      { imessageThreadId: m.spaceId, _id: { $ne: plan._id } },
+      { $unset: { imessageThreadId: '' } },
+    );
+    await plans(ctx.db).updateOne({ _id: plan._id }, { $set: { imessageThreadId: m.spaceId } });
+  }
+  await say(ctx, m.spaceId, reply);
 }
 
 /** "Maya checked in at Hungarian Pastry Shop": one line per check-in on a plan with a bound thread. */

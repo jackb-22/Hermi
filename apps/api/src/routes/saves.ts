@@ -118,6 +118,7 @@ export const saveRoutes: FastifyPluginAsyncZod = async (app) => {
       shareToken: randomBytes(9).toString('base64url'),
       sourcePlanId: src._id,
       imessageThreadId: undefined,
+      textUndo: undefined,
       createdAt: now,
       updatedAt: now,
       completedAt: undefined,

@@ -62,6 +62,21 @@ export interface GhostChangeDoc {
   sources?: { title: string; uri: string }[];
 }
 
+/** What a text to Hermi replaced, so "undo" can put it back. */
+export interface TextUndo {
+  at: Date;
+  /** False when the text created the plan (undo then cancels it). */
+  existed: boolean;
+  stops: StopDoc[];
+  startAt: Date;
+  name: string;
+  nameIsDefault: boolean;
+  mode: Mode;
+  status: PlanStatus;
+  visibility: Visibility;
+  members: PlanDoc['members'];
+}
+
 export interface PlanDoc {
   _id: string;
   hostId: string;
@@ -80,6 +95,8 @@ export interface PlanDoc {
   imessageThreadId?: string;
   /** Deprecated: the retired Backboard planner's thread. Never set now; copies still clear it. */
   aiThreadId?: string;
+  /** Set when a text to Hermi rewrote this plan (see services/textPlan.ts). */
+  textUndo?: TextUndo;
   /** iMessage senders who replied "in" in the plan's group thread. */
   imessageRsvps?: string[];
   /** Find someone: students matched by the last match run, and everyone already pushed about it. */

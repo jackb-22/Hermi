@@ -84,6 +84,11 @@ Open when running locally. On a deployment every dev affordance needs the header
   - **`GET /me/imessage`** → `{linked, handles (masked), agentAddress}`. **`POST /me/imessage/link-code`** → `{code, expiresAt, agentAddress, smsUrl}`: open `smsUrl` (Messages, to the agent, with "link <code>" typed in); texting it within 10 minutes links that phone. **`DELETE /me/imessage`** unlinks every phone.
   - A handle belongs to one account; linking it again moves it. Dev: `POST /dev/imessage/link {username, handle}`.
   - The agent acts on each delivered message once (deliveries are at-least-once) and reaches threads by id after a restart.
+- **v0.28.0** — Texting Hermi a plan (Photon). No new endpoints; this is what the agent does.
+  - **DM** a linked number with a plan ("Sat 2pm: Hungarian Pastry Shop, then Riverside Park with ben"), or say **"hermi …"** in a group chat to plan from its last 12 hours of lines. Gemini reads it (a rule reader without a model); places are matched to our data (Google Maps grounding for names we don't know), never invented.
+  - The plan becomes the sender's **My Plan** draft (newest non-empty draft, or a new one) at the time asked, with AI stays, hours and Space it out applied. Friends it names, and friends in the group, are invited: the plan is saved (`planned`, `invite`) so they see Join / Can't. A group chat then follows the plan ("in", check-ins, recap).
+  - **"undo"** restores the plan the last text changed (a plan a text created is cancelled). Unlinked numbers get linking instructions; 20 texts an hour per person.
+  - Apps should refresh plans when they come to the foreground: a text can change My Plan.
 - **v0.26.0** — Social map for the hermit-crab design.
   - **`friendsOut[].active`:** blink that place. True when they checked in within the hour, or it is the latest stop of an outing they are still on. Still check-ins only, never live location.
   - **`routes[]`:** friends' plans as lines: `{planId, name, host, status: planned|active|completed, style: dotted|solid|mixed, line: [{lat,lng}], doneThrough, startAt, completedAt}`. Planned → dotted; completed in the last 7 days → solid, through the stops they checked in at; under way → solid through `doneThrough`, dotted after. Lines join stops, never GPS traces. Completed routes hide while the friend is in ghost mode.

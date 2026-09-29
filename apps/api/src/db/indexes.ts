@@ -75,6 +75,10 @@ const INDEXES: Record<string, IndexDescription[]> = {
   attest_challenges: [{ key: { expiresAt: 1 }, expireAfterSeconds: 0 }],
   rate_limits: [{ key: { expiresAt: 1 }, expireAfterSeconds: 0 }],
   photon_seen: [{ key: { at: 1 }, expireAfterSeconds: 86400 }],
+  photon_lines: [
+    { key: { spaceId: 1, at: -1 } },
+    { key: { at: 1 }, expireAfterSeconds: 2 * 86400 },
+  ],
   imessage_links: [{ key: { expiresAt: 1 }, expireAfterSeconds: 0 }, { key: { userId: 1 } }],
   checkin_cooldowns: [{ key: { until: 1 }, expireAfterSeconds: 0 }],
   reports: [{ key: { postId: 1 } }, { key: { reporterId: 1 } }],

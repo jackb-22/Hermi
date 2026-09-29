@@ -168,7 +168,14 @@ describe('saves and folders', () => {
     const plans = t.ctx.db.collection('plans');
     await plans.updateOne(
       { _id: theirs.id },
-      { $set: { aiThreadId: 'thr_pal', imessageRsvps: ['+1555'], notifiedMatchIds: ['u1'] } },
+      {
+        $set: {
+          aiThreadId: 'thr_pal',
+          imessageRsvps: ['+1555'],
+          notifiedMatchIds: ['u1'],
+          textUndo: { at: new Date() },
+        },
+      },
     );
     const again = (
       await t.app.inject({
@@ -181,6 +188,7 @@ describe('saves and folders', () => {
     const copy = await plans.findOne({ _id: again.copiedPlanId });
     expect(copy).toMatchObject({ sourcePlanId: theirs.id, hostId: me.id });
     expect(copy).not.toHaveProperty('aiThreadId');
+    expect(copy).not.toHaveProperty('textUndo');
     expect(copy).not.toHaveProperty('imessageRsvps');
     expect(copy).not.toHaveProperty('notifiedMatchIds');
     expect(r.saved.plan).toMatchObject({

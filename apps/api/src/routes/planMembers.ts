@@ -1,4 +1,4 @@
-import { ApiError, newId } from '@itp/shared';
+import { ApiError } from '@itp/shared';
 import {
   InviteBody,
   JoinBody,
@@ -12,10 +12,14 @@ import { authed, bearer } from '../plugins/auth.ts';
 import { openPlansFor } from '../services/matching.ts';
 import { notify } from '../services/notify.ts';
 import {
+  inviteFriends,
+  savePlan,
+  setMember as setPlanMember,
+  suggestPlanName,
+} from '../services/planSharing.ts';
+import {
   assertHost,
-  enqueueMatch,
   getPlan,
-  loadPlaces,
   type MemberStatus,
   type PlanDoc,
   plans,
@@ -28,7 +32,7 @@ import { errs } from './_util.ts';
 const IdParams = z.object({ id: z.string() });
 
 export const planMemberRoutes: FastifyPluginAsyncZod = async (app) => {
-  const { db, config, clock, providers } = app.ctx;
+  const { db, config } = app.ctx;
 
   const view = async (plan: PlanDoc, userId: string) => {
     const me = await getUser(db, userId);
@@ -38,40 +42,8 @@ export const planMemberRoutes: FastifyPluginAsyncZod = async (app) => {
   };
   const memberStatus = (p: PlanDoc, userId: string) =>
     p.members.find((m) => m.userId === userId)?.status;
-  const setMember = async (planId: string, userId: string, status: MemberStatus) => {
-    const now = clock.now();
-    const r = await plans(db).updateOne(
-      { _id: planId, 'members.userId': userId },
-      { $set: { 'members.$.status': status, 'members.$.at': now, updatedAt: now } },
-    );
-    if (!r.matchedCount)
-      await plans(db).updateOne(
-        { _id: planId },
-        { $push: { members: { userId, status, at: now } }, $set: { updatedAt: now } },
-      );
-  };
-  const suggestName = async (plan: PlanDoc) => {
-    const byId = await loadPlaces(
-      db,
-      plan.stops.map((s) => s.placeId),
-    );
-    return providers.llm.planName(
-      plan.stops.flatMap((s) =>
-        s.placeId && byId.get(s.placeId) ? [byId.get(s.placeId)!.name] : [],
-      ),
-    );
-  };
-  const onlyFriends = async (hostId: string, ids: string[]) => {
-    const friends = new Set(await friendIds(db, hostId));
-    const bad = ids.filter((id) => !friends.has(id));
-    if (bad.length)
-      throw new ApiError(
-        400,
-        'BAD_REQUEST',
-        'You can only invite friends; everyone else joins by link or through Find someone',
-        { notFriends: bad },
-      );
-  };
+  const setMember = (planId: string, userId: string, status: MemberStatus) =>
+    setPlanMember(app.ctx, planId, userId, status);
 
   app.get(
     '/plans/:id/name-suggestion',
@@ -88,7 +60,7 @@ export const planMemberRoutes: FastifyPluginAsyncZod = async (app) => {
     async (req) => {
       const plan = await getPlan(db, req.params.id);
       assertHost(plan, req.userId);
-      return { name: await suggestName(plan) };
+      return { name: await suggestPlanName(app.ctx, plan) };
     },
   );
 
@@ -110,46 +82,7 @@ export const planMemberRoutes: FastifyPluginAsyncZod = async (app) => {
     async (req) => {
       const plan = await getPlan(db, req.params.id);
       assertHost(plan, req.userId);
-      await onlyFriends(req.userId, req.body.inviteeIds);
-      if (req.body.visibility === 'find') {
-        const me = await getUser(db, req.userId);
-        if (!me.verifiedAt)
-          throw new ApiError(
-            403,
-            'FORBIDDEN',
-            'Find someone is for verified students; verify your school email first',
-          );
-      }
-      const name = req.body.name ?? (plan.nameIsDefault ? await suggestName(plan) : plan.name);
-      await plans(db).updateOne(
-        { _id: plan._id },
-        {
-          $set: {
-            name,
-            nameIsDefault: false,
-            visibility: req.body.visibility,
-            status: plan.status === 'draft' ? 'planned' : plan.status,
-            updatedAt: clock.now(),
-          },
-        },
-      );
-      for (const id of req.body.inviteeIds)
-        if (!memberStatus(plan, id)) await setMember(plan._id, id, 'invited');
-      // Find someone: match verified students now and push the ones who fit ("!" on their map).
-      if (req.body.visibility === 'find') await enqueueMatch(app.ctx, plan._id);
-      await db
-        .collection('saves')
-        .updateOne(
-          { userId: req.userId, type: 'plan', refId: plan._id },
-          { $setOnInsert: { _id: newId() as never, createdAt: clock.now() } },
-          { upsert: true },
-        );
-      const host = await getUser(db, req.userId);
-      await notify(app.ctx, req.body.inviteeIds, {
-        title: `${host.name ?? 'A friend'} invited you`,
-        body: name,
-        data: { kind: 'plan_invite', planId: plan._id },
-      });
+      await savePlan(app.ctx, plan, req.userId, req.body);
       return view(plan, req.userId);
     },
   );
@@ -170,15 +103,7 @@ export const planMemberRoutes: FastifyPluginAsyncZod = async (app) => {
     async (req) => {
       const plan = await getPlan(db, req.params.id);
       assertHost(plan, req.userId);
-      await onlyFriends(req.userId, req.body.userIds);
-      const fresh = req.body.userIds.filter((id) => !memberStatus(plan, id));
-      for (const id of fresh) await setMember(plan._id, id, 'invited');
-      const host = await getUser(db, req.userId);
-      await notify(app.ctx, fresh, {
-        title: `${host.name ?? 'A friend'} invited you`,
-        body: plan.name,
-        data: { kind: 'plan_invite', planId: plan._id },
-      });
+      await inviteFriends(app.ctx, plan, req.userId, req.body.userIds);
       return view(plan, req.userId);
     },
   );
