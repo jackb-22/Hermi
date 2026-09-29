@@ -35,6 +35,8 @@ export interface UserDoc {
   /** Deprecated: the retired Backboard assistant. */
   backboardAssistantId?: string;
   pushTokens?: string[];
+  /** Phones/emails that text Hermi as this user (normalized; see services/imessage.ts). */
+  imessageHandles?: string[];
   /** Week index of the last weekly nudge (at most one a week). */
   lastNudgeWeek?: number;
   tasteDone: boolean;

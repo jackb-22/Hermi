@@ -3,12 +3,14 @@ import type { AppContext } from '../context.ts';
 import { enqueue } from '../jobs/queue.ts';
 import type { InboundMessage } from '../providers/messenger.ts';
 import type { CheckinHook } from './checkins.ts';
+import { linkByCode } from './imessage.ts';
 import { places } from './places.ts';
 import { loadPlaces, type PlanDoc, plans, toSchedStops } from './plans.ts';
 import { users } from './users.ts';
 
 const TOKEN_RE = /\/p\/([A-Za-z0-9_-]{8,})/;
 const IN_RE = /^\s*(i'?m\s+in|in|count me in|yes|i'?ll come)\b/i;
+const LINK_RE = /^\s*link\s+([A-Za-z0-9]{6})\s*$/i;
 
 const nyTime = (d: Date, withDay = false) =>
   d.toLocaleString('en-US', {
@@ -76,7 +78,33 @@ export async function planCard(ctx: AppContext, plan: PlanDoc): Promise<string> 
  * "in" in a bound thread counts heads. Anything queued for the thread goes out first.
  */
 export async function handleGroupMessage(ctx: AppContext, m: InboundMessage) {
+  // Deliveries are at-least-once: act on each message once.
+  if (m.messageId) {
+    const first = await ctx.db
+      .collection<{ _id: string; at: Date }>('photon_seen')
+      .insertOne({ _id: m.messageId, at: ctx.clock.now() })
+      .then(() => true)
+      .catch((e) => {
+        if ((e as { code?: number }).code === 11000) return false;
+        throw e;
+      });
+    if (!first) return;
+  }
   await flush(ctx, m.spaceId);
+  const link = LINK_RE.exec(m.text)?.[1];
+  if (link && m.senderId) {
+    const r = await linkByCode(ctx, m.senderId, link);
+    await say(
+      ctx,
+      m.spaceId,
+      r.ok
+        ? `Linked to @${r.user.username ?? r.user.name ?? 'you'} ✅ Text me a plan anytime, like: "Sat 2pm: Hungarian Pastry Shop, then Riverside Park with ben".`
+        : r.reason === 'expired'
+          ? 'That code has expired or was already used. Get a new one in Hermi: Profile → ⚙︎ → Text Hermi.'
+          : "I can't link this kind of address.",
+    );
+    return;
+  }
   const token = TOKEN_RE.exec(m.text)?.[1];
   if (token) {
     const plan = await plans(ctx.db).findOne({ shareToken: token, status: { $ne: 'cancelled' } });

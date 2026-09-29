@@ -80,6 +80,10 @@ Open when running locally. On a deployment every dev affordance needs the header
   - **`GhostChange`** gains optional `legMin` and `legSource`.
   - **`AskResponse.preview`**: the plan as it will be once every suggested change is applied (arrivals, legs, added and removed stops), built through the same code path as `/changes/apply`; `null` when nothing changes. Draw the preview from it.
   - **`PUT /plans/:id/stops`** without stop `id`s now matches stops by place, so an unchanged place keeps its AI stay and measured leg (the app sends places, stays and `legMode` only).
+- **v0.27.0** — Texting Hermi (Photon): link a phone to your account.
+  - **`GET /me/imessage`** → `{linked, handles (masked), agentAddress}`. **`POST /me/imessage/link-code`** → `{code, expiresAt, agentAddress, smsUrl}`: open `smsUrl` (Messages, to the agent, with "link <code>" typed in); texting it within 10 minutes links that phone. **`DELETE /me/imessage`** unlinks every phone.
+  - A handle belongs to one account; linking it again moves it. Dev: `POST /dev/imessage/link {username, handle}`.
+  - The agent acts on each delivered message once (deliveries are at-least-once) and reaches threads by id after a restart.
 - **v0.26.0** — Social map for the hermit-crab design.
   - **`friendsOut[].active`:** blink that place. True when they checked in within the hour, or it is the latest stop of an outing they are still on. Still check-ins only, never live location.
   - **`routes[]`:** friends' plans as lines: `{planId, name, host, status: planned|active|completed, style: dotted|solid|mixed, line: [{lat,lng}], doneThrough, startAt, completedAt}`. Planned → dotted; completed in the last 7 days → solid, through the stops they checked in at; under way → solid through `doneThrough`, dotted after. Lines join stops, never GPS traces. Completed routes hide while the friend is in ghost mode.

@@ -6,6 +6,8 @@ export interface InboundMessage {
   group: boolean;
   text: string;
   senderId: string | null;
+  /** The platform's id for this message; deliveries are at-least-once, so it dedupes. */
+  messageId?: string | null;
 }
 
 /**
@@ -20,8 +22,10 @@ export interface Messenger {
   /** True once this process runs the stream (the worker); only then can it reach threads. */
   readonly listening: boolean;
   start(onMessage: (m: InboundMessage) => Promise<void>): Promise<void>;
-  /** False when the thread is not reachable now (Spectrum has no "get space by id"; it is known once it speaks). */
+  /** False when the thread is not reachable now (this process is not the agent, or the thread is gone). */
   send(spaceId: string, text: string): Promise<boolean>;
+  /** A group's participants (handles), without the agent; [] for a DM or when unknown. */
+  members(spaceId: string): Promise<string[]>;
   stop(): Promise<void>;
 }
 
@@ -34,6 +38,9 @@ export class OffMessenger implements Messenger {
   async send() {
     return false;
   }
+  async members() {
+    return [];
+  }
   async stop() {}
 }
 
@@ -44,6 +51,8 @@ export class FakeMessenger implements Messenger {
   readonly address = '+15550001234';
   listening = false;
   sent: { spaceId: string; text: string }[] = [];
+  /** Group participants by space, as tests set them. */
+  groups = new Map<string, string[]>();
   private live = new Set<string>();
   private handler?: (m: InboundMessage) => Promise<void>;
   async start(onMessage: (m: InboundMessage) => Promise<void>) {
@@ -62,14 +71,19 @@ export class FakeMessenger implements Messenger {
     this.sent.push({ spaceId, text });
     return true;
   }
+  async members(spaceId: string) {
+    return this.groups.get(spaceId) ?? [];
+  }
   async stop() {}
 }
 
 interface SpaceLike {
   id: string;
   send(text: string): Promise<unknown>;
+  getMembers(): Promise<{ id: string }[]>;
 }
 interface MessageLike {
+  id?: string;
   direction: 'inbound' | 'outbound';
   platform: string;
   content: { type: string; text?: string };
@@ -83,6 +97,7 @@ export class PhotonMessenger implements Messenger {
   listening = false;
   private spaces = new Map<string, SpaceLike>();
   private app?: { messages: AsyncIterable<[SpaceLike, MessageLike]>; stop(): Promise<void> };
+  private platform?: { space: { get(id: string): Promise<SpaceLike> } };
   constructor(
     private projectId: string,
     private secret: string,
@@ -98,6 +113,7 @@ export class PhotonMessenger implements Messenger {
       projectSecret: this.secret,
       providers: [imessage.config()],
     })) as unknown as PhotonMessenger['app'];
+    this.platform = (imessage as unknown as (a: unknown) => PhotonMessenger['platform'])(this.app);
     void (async () => {
       for await (const [space, message] of this.app!.messages) {
         this.spaces.set(space.id, space);
@@ -108,16 +124,40 @@ export class PhotonMessenger implements Messenger {
           group: type === 'group',
           text: message.content.text ?? '',
           senderId: message.sender?.id ?? null,
+          messageId: message.id ?? null,
         }).catch((e) => console.warn(`[photon] handler failed: ${(e as Error).message}`));
       }
     })().catch((e) => console.warn(`[photon] stream ended: ${(e as Error).message}`));
   }
 
+  /** A thread not seen since this process started is rebuilt from its id (space.get). */
+  private async space(spaceId: string): Promise<SpaceLike | undefined> {
+    const known = this.spaces.get(spaceId);
+    if (known || !this.platform) return known;
+    try {
+      const space = await this.platform.space.get(spaceId);
+      this.spaces.set(spaceId, space);
+      return space;
+    } catch (e) {
+      console.warn(`[photon] cannot reach ${spaceId}: ${(e as Error).message}`);
+      return undefined;
+    }
+  }
+
   async send(spaceId: string, text: string) {
-    const space = this.spaces.get(spaceId);
+    const space = await this.space(spaceId);
     if (!space) return false;
     await space.send(text);
     return true;
+  }
+
+  async members(spaceId: string) {
+    const space = await this.space(spaceId);
+    try {
+      return space ? (await space.getMembers()).map((m) => m.id) : [];
+    } catch {
+      return []; // A DM has no member list.
+    }
   }
 
   async stop() {
