@@ -29,6 +29,8 @@ struct SourceDTO: Decodable, Equatable, Hashable, Sendable {
 
 struct AskResponseDTO: Decodable, Sendable {
   var plan: PlanDTO
+  /// The plan once every change is applied (nil when nothing changes): what the preview draws.
+  var preview: PlanDTO?
   var message: String
   var sources: [SourceDTO]
   /// gemini or code.

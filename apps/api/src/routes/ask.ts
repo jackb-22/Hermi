@@ -3,8 +3,16 @@ import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { authed, bearer } from '../plugins/auth.ts';
 import { askPlanner } from '../services/planner.ts';
-import { assertHost, getPlan, saveAndView } from '../services/plans.ts';
+import {
+  assertHost,
+  getPlan,
+  loadPlaces,
+  recompute,
+  saveAndView,
+  toPlanView,
+} from '../services/plans.ts';
 import { hit } from '../services/rateLimit.ts';
+import { applyGhostChange } from '../services/scheduler.ts';
 import { getUser } from '../services/users.ts';
 import { errs } from './_util.ts';
 
@@ -36,7 +44,20 @@ export const askRoutes: FastifyPluginAsyncZod = async (app) => {
       const r = await askPlanner(app.ctx, plan, user, req.body);
       plan.ghostChanges = r.changes;
       const view = await saveAndView(app.ctx, plan, req.userId);
-      return { plan: view, message: r.message, sources: r.sources, via: r.via };
+      // The plan as it would be after Apply, built through the same code path Apply uses.
+      let preview = null;
+      if (r.changes.length) {
+        const after = structuredClone(plan);
+        for (const g of r.changes) await applyGhostChange(app.ctx, after, g);
+        after.ghostChanges = [];
+        const byId = await loadPlaces(
+          db,
+          after.stops.map((s) => s.placeId),
+        );
+        const { issues } = recompute(after, byId);
+        preview = await toPlanView(db, app.ctx.config, after, req.userId, { byId, issues });
+      }
+      return { plan: view, preview, message: r.message, sources: r.sources, via: r.via };
     },
   );
 };

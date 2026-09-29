@@ -7,6 +7,7 @@
  * Without the variable the test fails when a checked-in fixture no longer matches what the server returns.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { haversineM } from '@itp/shared';
 import { afterAll, beforeAll, expect, test } from 'vitest';
@@ -219,15 +220,19 @@ test('AI button fixtures', async () => {
   };
   const text = JSON.stringify(out, null, 2)
     .replace(/\b[0-9A-HJKMNP-TV-Z]{26}\b/g, renumber('id-'))
-    .replace(/(?<=\/p\/)[A-Za-z0-9_-]{12}\b/g, renumber('share-'));
+    .replace(/(?<=\/p\/)[A-Za-z0-9_-]{12}(?=")/g, renumber('share-'));
   const files = JSON.parse(text) as Record<string, unknown>;
   for (const [name, value] of Object.entries(files)) {
     const path = join(DIR, `${name}.json`);
     const json = `${JSON.stringify(value, null, 2)}\n`;
     if (process.env.WRITE_IOS_FIXTURES === '1') writeFileSync(path, json);
-    else
-      expect(readFileSync(path, 'utf8'), `${name}.json is stale: regenerate (see header)`).toBe(
+    else {
+      const want = readFileSync(path, 'utf8');
+      const got = join(tmpdir(), `ios-fixture-${name}.json`);
+      if (want !== json) writeFileSync(got, json);
+      expect(want, `${name}.json is stale: regenerate (see header); this run wrote ${got}`).toBe(
         json,
       );
+    }
   }
 });

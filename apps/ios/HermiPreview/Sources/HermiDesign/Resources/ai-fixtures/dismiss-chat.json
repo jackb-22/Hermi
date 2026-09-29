@@ -1,5 +1,5 @@
 {
-  "id": "id-23",
+  "id": "id-24",
   "name": "Corner café + 2 more",
   "hostId": "id-2",
   "isHost": true,
@@ -10,7 +10,7 @@
   "status": "draft",
   "stops": [
     {
-      "id": "id-24",
+      "id": "id-25",
       "index": 1,
       "place": {
         "id": "cafe",
@@ -41,7 +41,7 @@
       "checkinId": null
     },
     {
-      "id": "id-25",
+      "id": "id-26",
       "index": 2,
       "place": {
         "id": "gallery",
@@ -73,7 +73,7 @@
       "checkinId": null
     },
     {
-      "id": "id-29",
+      "id": "id-31",
       "index": 3,
       "place": {
         "id": "tea",

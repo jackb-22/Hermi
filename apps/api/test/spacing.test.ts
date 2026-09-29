@@ -275,3 +275,69 @@ describe('PUT /plans/:id/stops from a client that only sends places', () => {
     expect(moved.stops[2]).toMatchObject({ legMin: 11, legSource: 'google' });
   });
 });
+
+describe('AskResponse.preview', () => {
+  test('is the plan after Apply, built the same way', async () => {
+    const t = await setupTestApp();
+    try {
+      const docs = await insertPlaces(t.ctx.db, [
+        placeDoc({ name: 'Cafe', category: 'food', at: ORIGIN }),
+        placeDoc({ name: 'Pier', category: 'nature', at: offset(ORIGIN, 3000, 0) }),
+      ]);
+      t.ctx.providers.eta = {
+        name: 'stub',
+        eta: async (o, d, mode) => ({
+          minutes: Math.round(
+            mode === 'transit' ? 8 + haversineM(o, d) / 400 : haversineM(o, d) / 80,
+          ),
+          source: 'google',
+        }),
+      };
+      const u = await devLogin(t.app, 'previewer');
+      const p = (
+        await t.app.inject({
+          method: 'POST',
+          url: '/v1/plans',
+          headers: u.headers,
+          payload: {
+            startAt: new Date(t.ctx.clock.now().getTime() + 86_400_000).toISOString(),
+            stops: docs.map((d) => ({ placeId: d._id })),
+          },
+        })
+      ).json();
+      const asked = (
+        await t.app.inject({
+          method: 'POST',
+          url: `/v1/plans/${p.id}/ask`,
+          headers: u.headers,
+          payload: { chip: 'space_stops' },
+        })
+      ).json();
+      expect(asked.preview.ghostChanges).toEqual([]);
+      expect(asked.preview.stops[1]).toMatchObject({ legMode: 'transit', legMin: 16 });
+      const applied = (
+        await t.app.inject({
+          method: 'POST',
+          url: `/v1/plans/${p.id}/changes/apply`,
+          headers: u.headers,
+          payload: {},
+        })
+      ).json();
+      const times = (x: { stops: { arriveAt: string; legMin: number }[] }) =>
+        x.stops.map((s) => [s.arriveAt, s.legMin]);
+      expect(times(asked.preview)).toEqual(times(applied));
+      // Nothing to change: no preview.
+      const again = (
+        await t.app.inject({
+          method: 'POST',
+          url: `/v1/plans/${p.id}/ask`,
+          headers: u.headers,
+          payload: { chip: 'space_stops' },
+        })
+      ).json();
+      expect(again.preview).toBeNull();
+    } finally {
+      await t.teardown();
+    }
+  });
+});

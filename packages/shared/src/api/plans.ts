@@ -247,6 +247,11 @@ export const AskBody = z
 
 export const AskResponse = z.object({
   plan: PlanSchema.describe('plan.ghostChanges holds the diff: accept all or tap one at a time'),
+  preview: PlanSchema.nullable()
+    .optional()
+    .describe(
+      'The plan as it will be once every change is applied (times, legs); null when nothing changes',
+    ),
   message: z.string().describe('One line from the planner'),
   sources: z
     .array(z.object({ title: z.string(), uri: z.string() }))

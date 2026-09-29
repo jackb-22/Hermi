@@ -33,6 +33,11 @@ final class AssistantContractTests: XCTestCase {
     XCTAssertEqual(changes.map(\.legMin), [4, 5])
     XCTAssertEqual(changes[0].label, "Walk 4 min to Little gallery")
     XCTAssertNotNil(changes[0].stopId)
+    // The preview is the plan after Apply: same arrivals as the applied fixture.
+    let preview = try XCTUnwrap(r.preview)
+    let applied = try AIFixtures.decode(PlanDTO.self, "apply-space_stops")
+    XCTAssertEqual(preview.stops.map(\.arriveAt), applied.stops.map(\.arriveAt))
+    XCTAssertNil(try AIFixtures.decode(AskResponseDTO.self, "ask-chat-answer").preview)
   }
 
   func testSuggestAndWeatherAndChat() throws {
