@@ -6,7 +6,9 @@
       "!**/dist",
       "!apps/mobile",
       "!apps/api/src/data",
-      "!apps/ios/HermiPreview/Sources/HermiDesign/Resources/ai-fixtures"
+      "!apps/ios/HermiPreview/Sources/HermiDesign/Resources/ai-fixtures",
+      "!**/.build",
+      "!.ci-shots"
     ]
   },
   "formatter": { "indentStyle": "space", "indentWidth": 2, "lineWidth": 100 },

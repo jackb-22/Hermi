@@ -16,7 +16,7 @@ const NYC: [[number, number], [number, number]] = [
 export const DEFAULT_ANCHOR: LatLng = { lat: 40.8075, lng: -73.9626 };
 const GENERIC_RADIUS_M = 1200;
 
-const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 /** What New Yorkers call places, by the names our data uses. Keys are normalized (see norm). */
 const ALIASES: Record<string, string> = {
   met: 'The Metropolitan Museum of Art',
@@ -49,7 +49,7 @@ const norm = (s: string) =>
 export function namePattern(q: string, wholeWord = q.length <= 5): string {
   const body = q
     .split(' ')
-    .map((w) => [...w].map(escape).join("['’]?"))
+    .map((w) => [...w].map(escapeRegex).join("['’]?"))
     .join('\\s+');
   return wholeWord ? `\\b${body}\\b` : body;
 }
