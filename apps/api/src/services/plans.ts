@@ -122,7 +122,10 @@ export function slotLabel(c: PinType): string {
   return `Pick a ${c === 'nature' ? 'nature' : c === 'culture' ? 'culture' : c} spot`;
 }
 
-/** Merge requested stops with existing ones: a stop keeps its AI stay length while its place is unchanged. */
+/**
+ * Merge requested stops with existing ones: a stop keeps its AI stay length and measured leg while its place is
+ * unchanged. Stops are matched by id, or (for clients that only send places, like the app) by place.
+ */
 export function normalizeStops(
   input: z.infer<typeof StopInput>[],
   existing: StopDoc[],
@@ -131,10 +134,21 @@ export function normalizeStops(
   now: Date,
 ): StopDoc[] {
   const prev = new Map(existing.map((s) => [s.id, s]));
+  const byPlace = new Map<string, StopDoc>();
+  for (const s of existing) if (s.placeId && !byPlace.has(s.placeId)) byPlace.set(s.placeId, s);
+  const claimed = new Set(input.flatMap((s) => (s.id && prev.has(s.id) ? [s.id] : [])));
   return input.map((s) => {
     if (s.placeId && !byId.has(s.placeId))
       throw new ApiError(400, 'BAD_REQUEST', `Unknown place ${s.placeId}`);
-    const old = s.id ? prev.get(s.id) : undefined;
+    let found = s.id ? prev.get(s.id) : undefined;
+    if (!found && !s.id && s.placeId) {
+      const same = byPlace.get(s.placeId);
+      if (same && !claimed.has(same.id)) {
+        found = same;
+        claimed.add(same.id);
+      }
+    }
+    const old = found;
     const samePlace = old && old.placeId === s.placeId && !s.slot;
     const category = s.placeId ? byId.get(s.placeId)!.category : s.slot!.category;
     const stay =

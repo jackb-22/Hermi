@@ -186,3 +186,92 @@ describe('POST /plans/:id/ask {chip: space_stops}', () => {
     expect(pier).toMatchObject({ legMode: 'transit', legSource: 'estimate' });
   });
 });
+
+describe('PUT /plans/:id/stops from a client that only sends places', () => {
+  let t: Awaited<ReturnType<typeof setupTestApp>>;
+  let u: Awaited<ReturnType<typeof devLogin>>;
+  const id: Record<string, string> = {};
+  beforeAll(async () => {
+    t = await setupTestApp();
+    for (const d of await insertPlaces(t.ctx.db, [
+      placeDoc({ name: 'Cafe', category: 'food', at: ORIGIN }),
+      placeDoc({ name: 'Gallery', category: 'culture', at: offset(ORIGIN, 900, 0) }),
+      placeDoc({ name: 'Pier', category: 'nature', at: offset(ORIGIN, 3000, 0) }),
+    ]))
+      id[d.name] = d._id;
+    t.ctx.providers.eta = {
+      name: 'stub',
+      eta: async (o, d, mode) => ({
+        minutes: Math.round(
+          mode === 'transit' ? 8 + haversineM(o, d) / 400 : haversineM(o, d) / 80,
+        ),
+        source: 'google',
+      }),
+    };
+    u = await devLogin(t.app, 'placesonly');
+  });
+  afterAll(() => t.teardown());
+
+  test('a stay edit keeps the measured legs and modes of unchanged stops', async () => {
+    const p = (
+      await t.app.inject({
+        method: 'POST',
+        url: '/v1/plans',
+        headers: u.headers,
+        payload: {
+          startAt: new Date(t.ctx.clock.now().getTime() + 86_400_000).toISOString(),
+          stops: ['Cafe', 'Gallery', 'Pier'].map((n) => ({ placeId: id[n] })),
+        },
+      })
+    ).json();
+    await t.app.inject({
+      method: 'POST',
+      url: `/v1/plans/${p.id}/ask`,
+      headers: u.headers,
+      payload: { chip: 'space_stops' },
+    });
+    await t.app.inject({
+      method: 'POST',
+      url: `/v1/plans/${p.id}/changes/apply`,
+      headers: u.headers,
+      payload: {},
+    });
+    // The app re-sends places, stays and leg modes, never stop ids.
+    const put = await t.app.inject({
+      method: 'PUT',
+      url: `/v1/plans/${p.id}/stops`,
+      headers: u.headers,
+      payload: {
+        stops: [
+          { placeId: id.Cafe, stayMin: 45 },
+          { placeId: id.Gallery, stayMin: 60, legMode: 'walk' },
+          { placeId: id.Pier, stayMin: 60, legMode: 'transit' },
+        ],
+      },
+    });
+    expect(put.statusCode).toBe(200);
+    const legs = put
+      .json()
+      .stops.map((s: { legMode: string; legMin: number; legSource: string }) => [
+        s.legMode,
+        s.legMin,
+        s.legSource,
+      ]);
+    expect(legs).toEqual([
+      [null, null, null],
+      ['walk', 11, 'google'],
+      ['transit', 13, 'google'],
+    ]);
+    // Reordering changes the legs, so they fall back to estimates.
+    const moved = (
+      await t.app.inject({
+        method: 'PUT',
+        url: `/v1/plans/${p.id}/stops`,
+        headers: u.headers,
+        payload: { stops: [{ placeId: id.Pier }, { placeId: id.Cafe }, { placeId: id.Gallery }] },
+      })
+    ).json();
+    expect(moved.stops[1].legSource).toBe('estimate');
+    expect(moved.stops[2]).toMatchObject({ legMin: 11, legSource: 'google' });
+  });
+});
