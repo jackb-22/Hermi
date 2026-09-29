@@ -17,6 +17,7 @@ apps/ios/.swiftpm/
 apps/ios/HermiPreview/.build/
 apps/ios/HermiPreview/.preview/
 apps/ios/HermiPreview/.swiftpm/
+apps/ios/HermiPreview/LinuxCheck/.build/
 
 # Demo C2PA signing keys (scripts/make-c2pa-cert.sh)
 .c2pa/

@@ -179,6 +179,16 @@ struct PlanDTO: Decodable, Sendable {
     var place: PlaceDTO?
     var stayMin: Int?
     var arriveAt: Date?
+    var departAt: Date?
+    /// The leg arriving at this stop (null for the first stop): walk, transit, bike or car.
+    var legMode: String?
+    var legMin: Int?
+    /// estimate, apple or google.
+    var legSource: String?
+  }
+  struct Totals: Decodable, Sendable {
+    var legMin: Int?
+    var endsAt: Date?
   }
   struct Member: Decodable, Sendable {
     var userId: String
@@ -201,6 +211,9 @@ struct PlanDTO: Decodable, Sendable {
   var startAt: Date?
   var stops: [Stop]
   var members: [Member]?
+  var totals: Totals?
+  /// Suggested edits waiting for Apply (the AI button's preview).
+  var ghostChanges: [GhostChangeDTO]?
 }
 
 struct PlansPageDTO: Decodable, Sendable {
