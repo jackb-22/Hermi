@@ -42,11 +42,25 @@ echo "$DEVICES" | while IFS="|" read -r UDID NAME; do
     case "$ARGS" in *--content-size=*) CONTENT_SIZE=$(echo "$ARGS" | sed 's/.*--content-size=\([^ ]*\).*/\1/'); ARGS=$(echo "$ARGS" | sed 's/--content-size=[^ ]*//') ;; esac
     xcrun simctl ui "$UDID" content_size "${CONTENT_SIZE:-large}" 2>/dev/null </dev/null || true
     xcrun simctl terminate "$UDID" tech.hermi.designpreview 2>/dev/null </dev/null || true
+    touch "$OUT/.mark"
     # shellcheck disable=SC2086
-    xcrun simctl launch "$UDID" tech.hermi.designpreview $ARGS > /dev/null </dev/null
+    xcrun simctl launch "$UDID" tech.hermi.designpreview $ARGS > /dev/null </dev/null || echo "  launch reported a failure"
     sleep "${SHOT_WAIT:-6}"
     xcrun simctl io "$UDID" screenshot --type=png "$OUT/$SCENARIO@$NAME.png" > /dev/null 2>&1 </dev/null
-    echo "  ✓ $SCENARIO @ $NAME"
+    if xcrun simctl spawn "$UDID" launchctl list </dev/null 2>/dev/null | grep -q tech.hermi.designpreview; then
+      echo "  ✓ $SCENARIO @ $NAME"
+    else
+      # Crashed: keep the crash report and the app's recent log next to the screenshot.
+      echo "  ✗ $SCENARIO @ $NAME: not running (crash report and log saved)"
+      find "$HOME/Library/Logs/DiagnosticReports" -name 'HermiPreview*' -newer "$OUT/.mark" \
+        -exec cp {} "$OUT/crash-$SCENARIO@$NAME.ips" \; 2>/dev/null || true
+      xcrun simctl spawn "$UDID" log show --last 2m --style compact \
+        --predicate 'process == "HermiPreview" OR eventMessage CONTAINS "designpreview"' </dev/null \
+        2>/dev/null | tail -150 > "$OUT/log-$SCENARIO@$NAME.txt" || true
+      echo "$SCENARIO@$NAME" >> "$OUT/crashed.txt"
+    fi
   done
   xcrun simctl shutdown "$UDID" </dev/null || true
 done
+rm -f "$OUT/.mark"
+if [ -f "$OUT/crashed.txt" ]; then echo "crashed:"; cat "$OUT/crashed.txt"; exit 3; fi

@@ -44,7 +44,7 @@ if [ "$status" != 0 ]; then
   echo "✗ run failed; failing steps:"
   gh run view "$run" --log-failed 2>/dev/null | tail -80
 fi
-find "$out" -name 'sheet*.png' | sort
+find "$out" -name "sheet*.png" -o -name "crash-*" -o -name "log-*" | sort
 find "$out" -name 'swift-test.log' -exec sh -c 'grep -E "Executed|error:|failed" "$1" | tail -8' _ {} \;
 echo "shots: $(find "$out" -name '*@*.png' ! -name 'sheet*' | wc -l) in $out"
 exit "$status"
