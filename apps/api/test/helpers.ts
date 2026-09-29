@@ -7,6 +7,32 @@ import { loadConfig } from '../src/config.ts';
 import type { AppContext } from '../src/context.ts';
 import { testSuffix } from './globalSetup.ts';
 
+/**
+ * Keys that switch a provider from fake to real. A key exported in the shell (or loaded from .env) would make tests
+ * call Gemini, Google Routes, Photon… for real, so they are dropped unless LIVE=1.
+ */
+const LIVE_KEYS = [
+  'GEMINI_API_KEY',
+  'GOOGLE_MAPS_KEY',
+  'APPLE_MAPS_KEY_ID',
+  'APPLE_MAPS_PRIVATE_KEY',
+  'WEATHERKIT_KEY_ID',
+  'WEATHERKIT_PRIVATE_KEY',
+  'BACKBOARD_API_KEY',
+  'SPECTRUM_PROJECT_ID',
+  'SPECTRUM_PROJECT_SECRET',
+  'PHOTON_AGENT_ADDRESS',
+  'REALITY_DEFENDER_KEY',
+  'RESEND_API_KEY',
+];
+
+export function testEnv(env: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
+  if (env.LIVE === '1') return { ...env };
+  const out = { ...env };
+  for (const k of LIVE_KEYS) delete out[k];
+  return out;
+}
+
 /** Isolated Mongo database + Postgres schema per test file, against the docker compose infra. */
 export async function setupTestApp(
   overrides: Record<string, string> = {},
@@ -15,7 +41,7 @@ export async function setupTestApp(
   const suffix = testSuffix(randomBytes(3).toString('hex'));
   const schema = `t_${suffix}`;
   const config = loadConfig({
-    ...process.env,
+    ...testEnv(),
     NODE_ENV: 'test',
     MONGO_DB: `itp_test_${suffix}`,
     TIGER_SCHEMA: schema,

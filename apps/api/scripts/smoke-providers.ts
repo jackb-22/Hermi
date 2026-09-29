@@ -4,8 +4,10 @@
  */
 import { loadConfig } from '../src/config.ts';
 import { createProviders, describeProviders } from '../src/providers/index.ts';
+import { GeminiLlm } from '../src/providers/llm.ts';
 
-const p = createProviders(loadConfig());
+const config = loadConfig();
+const p = createProviders(config);
 const from = { lat: 40.8075, lng: -73.9626 }; // Columbia gate
 const to = { lat: 40.8003, lng: -73.9582 }; // Morningside Park
 console.log('providers', describeProviders(p));
@@ -20,6 +22,31 @@ const run = async (name: string, f: () => Promise<unknown>) => {
   }
 };
 
+// The configured models must exist for this key (AI Studio keys see a different list than Vertex).
+if (p.llm instanceof GeminiLlm) {
+  const llm = p.llm;
+  await run('gemini models', async () => {
+    const names: string[] = [];
+    for await (const m of await llm.ai.models.list())
+      if (m.name) names.push(m.name.replace(/^models\//, ''));
+    const want = [config.GEMINI_MODEL, config.GEMINI_BACKUP_MODEL].filter(Boolean) as string[];
+    const missing = want.filter((w) => !names.includes(w));
+    if (missing.length)
+      throw new Error(
+        `missing ${missing.join(', ')}; flash models here: ${names.filter((n) => n.includes('flash')).join(', ')}`,
+      );
+    return { ok: want };
+  });
+}
+
+// Columbia → Movement Harlem (the README route), both modes the spacing preset compares.
+const harlem = { lat: 40.80965, lng: -73.95021 };
+await run('eta walk → Movement Harlem', () =>
+  p.eta.eta(from, harlem, 'walk', new Date(Date.now() + 3600_000)),
+);
+await run('eta transit → Movement Harlem', () =>
+  p.eta.eta(from, harlem, 'transit', new Date(Date.now() + 3600_000)),
+);
 await run('eta walk', () => p.eta.eta(from, to, 'walk', new Date(Date.now() + 3600_000)));
 await run('eta transit', () =>
   p.eta.eta(from, { lat: 40.7411, lng: -74.0048 }, 'transit', new Date(Date.now() + 3600_000)),
