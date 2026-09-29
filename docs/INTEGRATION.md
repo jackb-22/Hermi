@@ -246,7 +246,10 @@ Built and checked without a Mac: Linux tests, then macOS CI builds and screensho
 4. AI → **Ask about this plan**: "is the first stop open then?" (answer, no change) · "add dinner after the gallery" (preview → Apply) · "write me a poem" (declines).
 5. Profile → ⚙︎ → **Text Hermi** → Link this phone → send the text → "Linked to @you". Text a plan → open Hermi → My Plan shows it.
 
-**Photon findings (fill in from `scripts/photon-smoke.ts`):** DMs reach the agent: ☐ · every group line reaches it (not just mentions): ☐ · shared-number mode: ☐ · `space.get(id)` rebuilds a thread: ☐.
+**Photon findings (2026-09-29):**
+- The project `hermi` is on Photon's **shared pool** line (+1 415 605 5838). Texts are "matched by sender ID": a phone that isn't listed under **Project → Users** on app.photon.codes gets Photon's own "This number didn't recognize yours" reply, and the agent never sees it. The agent also can't text a phone first ("Target not allowed for this project") until it is listed.
+- So on the shared plan, **every phone that texts Hermi must be added under Users**. DMs are the demo path. Photon's docs list group creation, group events and membership as **dedicated-line only**, so "hermi plan this" in a group needs a dedicated line (Business, or Pro if it includes one; Platforms → iMessage → Get a dedicated line).
+- Still to confirm once a phone is listed (`photon-smoke.ts --hello <phone>`): DM round trip ☐ · `space.get(id)` rebuilds a thread ☐ · group delivery on the current line ☐.
 
 ### Linux ↔ Mac loop
 

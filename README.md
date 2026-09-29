@@ -4,6 +4,8 @@
 
 The name is a hermit crab plus Hermes: the messenger who gets you out of your shell.
 
+**Running the live demo:** [docs/DEMO.md](docs/DEMO.md) (AI button + texting Hermi).
+
 **For judges:** [Submission responses](docs/submission-responses.md) — our pitch, project story, technology stack, and generative AI implementation.
 
 ## Why (our design thesis)
