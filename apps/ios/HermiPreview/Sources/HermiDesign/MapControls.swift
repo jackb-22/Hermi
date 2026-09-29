@@ -46,6 +46,12 @@ struct PixelIcon: View {
     case "play": return ["II      ","IIII    ","IIIIII  ","IIIIIIII","IIIIII  ","IIII    ","II      "]
     case "photo": return ["IIIIIIIIIII","I         I","I  II     I","I  II  I  I","I     III I","I II IIIII I","IIIIIIIIIII"]
     case "locate": return ["    I    ","   III   ","  IIIII  "," IIIIIII ","IIIIIIIII"," III III "," II   II "," I     I "]
+    case "spark": return ["    I      ","    I      ","   III     ","IIIIIIIII I","   III   III","    I     I ","    I      "]
+    case "walk": return ["  II  ","  II  ","      "," IIII ","I II I","  II  "," I  I ","I    I"]
+    case "transit": return [" IIIIIII "," I  I  I "," I  I  I "," IIIIIII "," IIIIIII "," I     I ","  I   I  "," I     I "]
+    case "bike": return ["     II  ","  IIII   ","   I  I  "," III III ","I I I I I","I I   I I"," I     I "]
+    case "car": return ["  IIIII  "," I     I ","IIIIIIIII","IIIIIIIII","I       I"," II   II "]
+    case "send": return ["I        ","III      ","IIIII    ","IIIIIII  ","IIIII    ","III      ","I        "]
     default: return ["         ","II II II ","II II II ","         "]
     }
   }

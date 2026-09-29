@@ -1,6 +1,5 @@
 import { groupSay } from '../services/groupChat.ts';
 import { matchNotify } from '../services/matching.ts';
-import { syncMemory } from '../services/memory.ts';
 import { sendPush } from '../services/notify.ts';
 import { reviewReminder, weeklyNudge } from '../services/nudges.ts';
 import { moderatePost, summarizeReviews } from '../services/posts.ts';
@@ -15,7 +14,8 @@ export const handlers: Record<string, JobHandler> = {
   moderate_post: moderatePost as JobHandler,
   process_media: processMedia as JobHandler,
   push: sendPush as JobHandler,
-  remember: syncMemory as JobHandler,
+  // Retired with Backboard; jobs already queued finish as no-ops.
+  remember: (async () => {}) as JobHandler,
   match_notify: matchNotify as JobHandler,
   scan_photo: scanPhoto as JobHandler,
   review_report: reviewReport as JobHandler,

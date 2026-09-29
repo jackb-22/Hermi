@@ -5,6 +5,7 @@ export * from './common.ts';
 export * from './dev.ts';
 export * from './feed.ts';
 export * from './ghosts.ts';
+export * from './imessage.ts';
 export * from './media.ts';
 export * from './places.ts';
 export * from './plans.ts';

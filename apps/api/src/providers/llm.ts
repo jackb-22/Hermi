@@ -2,9 +2,19 @@ import { type Content, type GenerateContentParameters, GoogleGenAI } from '@goog
 import { DEFAULT_STAY_MIN, type LatLng, type PinType } from '@itp/shared';
 import type { Config } from '../config.ts';
 import { clampStay } from '../domain/schedule.ts';
-import type { ToolSpec } from './backboard.ts';
+
+/** A function tool the model may call: JSON-schema parameters, executed by our code. */
+export interface ToolSpec {
+  name: string;
+  description: string;
+  parameters: { type: 'object'; properties: Record<string, unknown>; required?: string[] };
+}
 
 export type ToolExec = (name: string, args: Record<string, unknown>) => Promise<string>;
+export interface ChatTurn {
+  role: 'user' | 'model';
+  text: string;
+}
 export interface MapsAnswer {
   text: string;
   /** Google Maps source links; must be shown right under the text. */
@@ -68,6 +78,8 @@ export interface Llm {
     tools: ToolSpec[];
     exec: ToolExec;
     maxRounds?: number;
+    /** Earlier turns of a chat, oldest first; the prompt is the newest user turn. */
+    history?: ChatTurn[];
   }): Promise<string>;
   /** A question answered with Grounding with Google Maps near a point (English only). */
   askMaps(question: string, near: LatLng): Promise<MapsAnswer>;
@@ -90,9 +102,12 @@ export class FakeLlm implements Llm {
     return sixWords(`${o.placeName} next`);
   }
   async planName(names: string[]) {
-    return names.length
-      ? sixWords(names.length > 1 ? `${names[0]} and more` : names[0]!)
-      : 'New plan';
+    if (!names.length) return 'New plan';
+    const first = names[0]!;
+    // "X and more" only when it fits in six words; a long first name stands alone rather than being cut.
+    return names.length > 1 && first.split(/\s+/).length <= 4
+      ? `${first} and more`
+      : sixWords(first);
   }
   async rerankGhosts(cands: GhostCandidate[]) {
     return cands.map((c) => ({ id: c.id, label: c.fallbackLabel }));
@@ -106,7 +121,7 @@ export class FakeLlm implements Llm {
     const bad = /\b(kill yourself|nazi)\b/i.test(o.text ?? '');
     return { allowed: !bad, reason: bad ? 'fake filter' : 'ok' };
   }
-  async json<T>(): Promise<T> {
+  async json<T>(_prompt: string, _schema: object): Promise<T> {
     throw new Error('fake llm has no free-form json');
   }
   async runTools(): Promise<string> {
@@ -180,8 +195,12 @@ export class GeminiLlm implements Llm {
     tools: ToolSpec[];
     exec: ToolExec;
     maxRounds?: number;
+    history?: ChatTurn[];
   }): Promise<string> {
-    const contents: Content[] = [{ role: 'user', parts: [{ text: o.prompt }] }];
+    const contents: Content[] = [
+      ...(o.history ?? []).map((h) => ({ role: h.role, parts: [{ text: h.text }] })),
+      { role: 'user', parts: [{ text: o.prompt }] },
+    ];
     const functionDeclarations = o.tools.map((t) => ({
       name: t.name,
       description: t.description,

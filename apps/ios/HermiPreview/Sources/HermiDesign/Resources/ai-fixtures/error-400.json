@@ -1,0 +1,26 @@
+{
+  "error": {
+    "code": "BAD_REQUEST",
+    "message": "Request did not match schema",
+    "details": [
+      {
+        "keyword": "too_small",
+        "instancePath": "/prompt",
+        "schemaPath": "#/prompt/too_small",
+        "message": "Too small: expected string to have >=1 characters",
+        "params": {
+          "origin": "string",
+          "minimum": 1,
+          "inclusive": true
+        }
+      },
+      {
+        "keyword": "custom",
+        "instancePath": "/",
+        "schemaPath": "#//custom",
+        "message": "Send exactly one of prompt or chip",
+        "params": {}
+      }
+    ]
+  }
+}

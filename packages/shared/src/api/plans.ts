@@ -79,6 +79,12 @@ export const GhostChangeSchema = z.object({
   mode: ModeSchema.optional(),
   startAt: z.string().optional(),
   stayMin: z.number().int().optional(),
+  legMin: z
+    .number()
+    .int()
+    .optional()
+    .describe('set_mode from Space it out: minutes of that leg once applied'),
+  legSource: z.enum(['estimate', 'apple', 'google']).optional(),
   sources: z
     .array(z.object({ title: z.string(), uri: z.string() }))
     .optional()
@@ -189,7 +195,18 @@ export const JoinBody = z.object({
 });
 export const NameSuggestionResponse = z.object({ name: z.string() });
 
-export const ASK_CHIPS = ['add_dinner', 'rain_proof', 'best_weather_day', 'cheaper'] as const;
+export const ASK_CHIPS = [
+  'add_dinner',
+  'rain_proof',
+  'best_weather_day',
+  'cheaper',
+  'space_stops',
+  'suggest_activity',
+] as const;
+export const AskTurn = z.object({
+  role: z.enum(['user', 'model']),
+  text: z.string().trim().min(1).max(600),
+});
 export const AskBody = z
   .object({
     prompt: z
@@ -204,15 +221,42 @@ export const AskBody = z
     chip: z
       .enum(ASK_CHIPS)
       .optional()
-      .describe('Add dinner · Rain-proof it · Best weather day · Make it cheaper'),
+      .describe(
+        'Add dinner · Rain-proof it · Best weather day · Make it cheaper · Space it out (transport times) · ' +
+          'Add a stop in `category`',
+      ),
+    category: z
+      .enum(PIN_TYPES)
+      .optional()
+      .describe('Required with chip suggest_activity: the kind of stop to add'),
+    history: z
+      .array(AskTurn)
+      .max(8)
+      .optional()
+      .describe('Chat only: the earlier turns of this conversation, oldest first'),
   })
-  .refine((b) => !!b.prompt !== !!b.chip, { message: 'Send exactly one of prompt or chip' });
+  .refine((b) => !!b.prompt !== !!b.chip, { message: 'Send exactly one of prompt or chip' })
+  .refine((b) => (b.chip === 'suggest_activity') === !!b.category, {
+    message: 'category goes with chip suggest_activity, and only with it',
+    path: ['category'],
+  })
+  .refine((b) => !b.history?.length || !!b.prompt, {
+    message: 'history goes with a prompt',
+    path: ['history'],
+  });
 
 export const AskResponse = z.object({
   plan: PlanSchema.describe('plan.ghostChanges holds the diff: accept all or tap one at a time'),
+  preview: PlanSchema.nullable()
+    .optional()
+    .describe(
+      'The plan as it will be once every change is applied (times, legs); null when nothing changes',
+    ),
   message: z.string().describe('One line from the planner'),
   sources: z
     .array(z.object({ title: z.string(), uri: z.string() }))
     .describe('Google Maps source links; must be shown right under message'),
-  via: z.enum(['backboard', 'gemini', 'code']),
+  via: z
+    .enum(['backboard', 'gemini', 'code'])
+    .describe("Who answered. 'backboard' is retired (v0.25.3) and no longer returned"),
 });

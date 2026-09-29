@@ -16,6 +16,12 @@ const INDEXES: Record<string, IndexDescription[]> = {
     },
     { key: { tagId: 1 }, sparse: true },
     { key: { campus: 1 } },
+    // A handle texts as one account only.
+    {
+      key: { imessageHandles: 1 },
+      unique: true,
+      partialFilterExpression: { imessageHandles: { $type: 'string' } },
+    },
   ],
   places: [
     { key: { loc: '2dsphere' } },
@@ -68,6 +74,12 @@ const INDEXES: Record<string, IndexDescription[]> = {
   attest_keys: [{ key: { userId: 1 } }],
   attest_challenges: [{ key: { expiresAt: 1 }, expireAfterSeconds: 0 }],
   rate_limits: [{ key: { expiresAt: 1 }, expireAfterSeconds: 0 }],
+  photon_seen: [{ key: { at: 1 }, expireAfterSeconds: 86400 }],
+  photon_lines: [
+    { key: { spaceId: 1, at: -1 } },
+    { key: { at: 1 }, expireAfterSeconds: 2 * 86400 },
+  ],
+  imessage_links: [{ key: { expiresAt: 1 }, expireAfterSeconds: 0 }, { key: { userId: 1 } }],
   checkin_cooldowns: [{ key: { until: 1 }, expireAfterSeconds: 0 }],
   reports: [{ key: { postId: 1 } }, { key: { reporterId: 1 } }],
 };

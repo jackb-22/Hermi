@@ -3,8 +3,16 @@ import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { authed, bearer } from '../plugins/auth.ts';
 import { askPlanner } from '../services/planner.ts';
-import { assertHost, getPlan, saveAndView } from '../services/plans.ts';
+import {
+  assertHost,
+  getPlan,
+  loadPlaces,
+  recompute,
+  saveAndView,
+  toPlanView,
+} from '../services/plans.ts';
 import { hit } from '../services/rateLimit.ts';
+import { applyGhostChange } from '../services/scheduler.ts';
 import { getUser } from '../services/users.ts';
 import { errs } from './_util.ts';
 
@@ -19,9 +27,8 @@ export const askRoutes: FastifyPluginAsyncZod = async (app) => {
         tags: ['plans'],
         summary: 'AI button, expanded: a chip or one line of text becomes suggested changes',
         description:
-          'Runs through Backboard (per-user memory, Gemini as the model) with plan tools: add_stop, remove_stop, move_stop, ' +
-          'set_mode, set_date, plus ask_maps (Grounding with Google Maps). Falls back to Gemini function calling, then to ' +
-          'rules for the chips. Best weather day is always picked by code from the 10-day forecast. The result replaces ' +
+          'Gemini function calling with plan tools only: add_stop, remove_stop, move_stop, set_mode, set_date, plus ' +
+          'ask_maps (Grounding with Google Maps). Falls back to rules for the chips. Best weather day is always picked by code from the 10-day forecast. The result replaces ' +
           'plan.ghostChanges; accept with /plans/:id/changes/apply (all, or ids one at a time). Nothing is applied silently.',
         security: bearer,
         params: z.object({ id: z.string() }),
@@ -36,9 +43,21 @@ export const askRoutes: FastifyPluginAsyncZod = async (app) => {
       const user = await getUser(db, req.userId);
       const r = await askPlanner(app.ctx, plan, user, req.body);
       plan.ghostChanges = r.changes;
-      if (r.threadId) plan.aiThreadId = r.threadId;
       const view = await saveAndView(app.ctx, plan, req.userId);
-      return { plan: view, message: r.message, sources: r.sources, via: r.via };
+      // The plan as it would be after Apply, built through the same code path Apply uses.
+      let preview = null;
+      if (r.changes.length) {
+        const after = structuredClone(plan);
+        for (const g of r.changes) await applyGhostChange(app.ctx, after, g);
+        after.ghostChanges = [];
+        const byId = await loadPlaces(
+          db,
+          after.stops.map((s) => s.placeId),
+        );
+        const { issues } = recompute(after, byId);
+        preview = await toPlanView(db, app.ctx.config, after, req.userId, { byId, issues });
+      }
+      return { plan: view, preview, message: r.message, sources: r.sources, via: r.via };
     },
   );
 };

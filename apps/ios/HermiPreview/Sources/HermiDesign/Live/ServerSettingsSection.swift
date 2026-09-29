@@ -65,6 +65,7 @@ struct ServerSettingsSection: View {
           set: { value in Task { accountError = await live.updateMe(openToPlans: value) } }
         )).tint(HermiPalette.green).font(.subheadline)
         if let accountError { Text(accountError).font(.caption).foregroundStyle(HermiPalette.error) }
+        TextHermiRow()
       }
       if case .failed(let message) = live.status {
         Text(message).font(.caption).foregroundStyle(HermiPalette.error)
@@ -91,3 +92,45 @@ private extension View {
     #endif
   }
 }
+
+/// Profile → ⚙︎ → Text Hermi: link this phone, then text plans to Hermi (DM, or "hermi …" in a group chat).
+struct TextHermiRow: View {
+  private let model = TextHermi.shared
+  @Environment(\.openURL) private var openURL
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 8) {
+      Divider().padding(.vertical, 4)
+      Text("TEXT HERMI").font(.system(size: 10, design: .monospaced))
+      if let status = model.status, status.linked {
+        Text("Linked: \(status.handles.joined(separator: ", "))").font(.subheadline)
+        Text("Text a plan, like “Sat 2pm: Hungarian Pastry Shop, then Riverside Park with ben”, or say “hermi plan this” in a group chat with Hermi in it.")
+          .font(.caption).foregroundStyle(HermiPalette.secondary)
+        HStack(spacing: 10) {
+          if let url = model.messagesURL {
+            Button("Text Hermi") { openURL(url) }
+              .font(.subheadline.bold()).padding(.horizontal, 14).frame(minHeight: 44)
+              .background(HermiPalette.lime, in: PixelPanel(corner: 6))
+          }
+          Button("Unlink") { Task { await model.unlink(api: LiveSession.shared.api) } }
+            .font(.subheadline).padding(.horizontal, 14).frame(minHeight: 44)
+            .background(.white, in: PixelPanel(corner: 6))
+        }
+      } else {
+        Text("Plan by text: link this phone, then text Hermi a plan and it lands in My Plan with travel times and invites.")
+          .font(.caption).foregroundStyle(HermiPalette.secondary)
+        Button(model.working ? "Getting a code…" : "Link this phone") {
+          Task { if let url = await model.linkURL(api: LiveSession.shared.api) { openURL(url) } }
+        }.font(.subheadline.bold()).padding(.horizontal, 14).frame(minHeight: 44)
+          .background(HermiPalette.lime, in: PixelPanel(corner: 6))
+          .disabled(model.working || model.status?.agentAddress == nil)
+        if model.status?.agentAddress == nil {
+          Text("Hermi's texting number isn't set up on this server.").font(.caption2).foregroundStyle(HermiPalette.secondary)
+        }
+      }
+      if let notice = model.notice { Text(notice).font(.caption) }
+    }
+    .task { await model.load(api: LiveSession.shared.api) }
+  }
+}
+

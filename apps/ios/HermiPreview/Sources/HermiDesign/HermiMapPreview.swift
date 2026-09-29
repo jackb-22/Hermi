@@ -25,6 +25,10 @@ public struct HermiMapPreview: View {
   @State private var profileDetail: ProfileDetail?
   @State private var profilePost: SavedReference?
   @State private var mapPost: SavedReference?
+  @State private var assistant = PlanAssistant()
+  /// DEBUG screenshot scenarios (--hermi-ai-review=…) swap the live API for recorded responses or a failure.
+  @State private var aiDebug = false
+  @State private var aiDebugBackend: AssistantBackend?
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @Environment(\.scenePhase) private var scenePhase
   private var pinReviewFixture: Bool {
@@ -79,7 +83,7 @@ public struct HermiMapPreview: View {
             }, goJoined: { planID, stops in
               state.startAction(stops: stops)
               if state.actionSession != nil { Task { await LiveOuting.shared.start(planID: planID) } }
-            })
+            }, assistant: assistant, applySuggestion: applyAI, dismissSuggestion: dismissAI)
               .padding(.top, safeGeometry.safeAreaInsets.top)
           } else {
             VStack { Spacer(); bottomSheet(sheet, height: geometry.size.height, safeTop: safeGeometry.safeAreaInsets.top) }.transition(.move(edge: .bottom))
@@ -87,8 +91,21 @@ public struct HermiMapPreview: View {
         }
         VStack {
           Spacer()
-          navigationPill.opacity(moving ? 0 : 1).allowsHitTesting(!moving)
-            .accessibilityHidden(moving)
+          ZStack(alignment: .bottomLeading) {
+            navigationPill.opacity(moving ? 0 : 1).allowsHitTesting(!moving)
+              .accessibilityHidden(moving)
+              .frame(maxWidth: .infinity)
+            // Hermi AI lives on My Plan only, and only edits that plan.
+            if state.sheet == .plan && state.actionSession == nil {
+              VStack(alignment: .leading, spacing: 10) {
+                if assistant.inMenu {
+                  AssistantMenuCard(assistant: assistant, ask: askAI, room: geometry.size)
+                    .transition(.opacity.combined(with: .scale(scale: 0.95, anchor: .bottomLeading)))
+                }
+                AssistantButton(assistant: assistant)
+              }.padding(.leading, 10)
+            }
+          }
         }.padding(.bottom, max(16, safeGeometry.safeAreaInsets.bottom))
       }
       .coordinateSpace(name: "mapPreview")
@@ -175,6 +192,11 @@ public struct HermiMapPreview: View {
           }
           state.planUndoHistory = [] // Fixture setup is not a user edit.
           state.sheet = .plan
+          #if DEBUG
+          if let flag = ProcessInfo.processInfo.arguments.first(where: { $0.hasPrefix("--hermi-ai-review=") }) {
+            seedAIScenario(String(flag.dropFirst("--hermi-ai-review=".count)))
+          }
+          #endif
         }
         return
       }
@@ -193,6 +215,13 @@ public struct HermiMapPreview: View {
     }
     .onChange(of: state.sheet) { _, sheet in
       if case .place = sheet { editingPinID = nil }
+      if sheet != .plan { assistant.close() } else { Task { await refreshPlans() } }
+    }
+    .onChange(of: state.planContents) { _, contents in assistant.planChanged(to: contents) }
+    .sheet(isPresented: Binding(get: { assistant.inChat && state.sheet == .plan }, set: { if !$0 { assistant.leaveChat() } })) {
+      AssistantChatSheet(assistant: assistant, send: sendAI, apply: applyAI, dismissSuggestion: dismissAI)
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
     }
     .onChange(of: state) { _, value in
       guard !pinReviewFixture else { return }
@@ -239,7 +268,7 @@ public struct HermiMapPreview: View {
       if let notice { pinNotice = notice }
     }
     .onChange(of: scenePhase) { _, phase in
-      if phase == .active { Task { await LiveSession.shared.restore() } }
+      if phase == .active { Task { await LiveSession.shared.restore(); await refreshPlans() } }
     }
     .task(id: pinNotice) {
       guard pinNotice != nil else { return }
@@ -422,6 +451,100 @@ public struct HermiMapPreview: View {
       moving = false
     }
   }
+
+  /// A text to Hermi can change My Plan on the server: pull it when the app returns or My Plan opens.
+  private func refreshPlans() async {
+    guard !aiDebug, LiveSession.shared.isLive, !assistant.isBusy else { return }
+    await PlanSync.shared.flush()
+    guard let plans = await PlanSync.shared.hydrate(), LiveSession.shared.isLive else { return }
+    PlanSync.shared.refresh(plans, to: &state)
+  }
+
+  // MARK: Hermi AI
+
+  private var aiBackend: AssistantBackend? {
+    aiDebug ? aiDebugBackend : LiveSession.shared.api.map { LiveAssistantBackend(api: $0) }
+  }
+  private func aiPlanID() async -> String? {
+    aiDebug ? "fixture" : await PlanSync.shared.readyPlanID(for: state)
+  }
+  private func askAI(_ preset: AssistantPreset) {
+    Task { @MainActor in
+      await assistant.ask(preset, plan: { state.planContents }, backend: aiBackend, planID: aiPlanID)
+      afterAsk()
+    }
+  }
+  private func sendAI() {
+    Task { @MainActor in
+      await assistant.send(plan: { state.planContents }, backend: aiBackend, planID: aiPlanID)
+      afterAsk()
+    }
+  }
+  /// New places in a preview must be known to draw them; a preset's card steps aside so the preview shows.
+  private func afterAsk() {
+    if !aiDebug, let preview = assistant.suggestion?.preview {
+      PlaceCatalog.shared.upsert(preview.stops.compactMap { $0.place?.place })
+    }
+    if assistant.suggestion != nil, assistant.inMenu { assistant.close() }
+  }
+  private func applyAI() {
+    Task { @MainActor in
+      let planID = aiDebug ? "fixture" : PlanSync.shared.serverPlanID(for: state)
+      guard let plan = await assistant.apply(backend: aiBackend, planID: planID) else { return }
+      if !aiDebug { PlaceCatalog.shared.upsert(plan.stops.compactMap { $0.place?.place }) }
+      let contents = PlanContents(server: plan).keepingLocalDetails(from: state.planContents)
+      PlanSync.shared.adopt(contents, for: state)
+      state.applyPlanContents(contents)
+    }
+  }
+  private func dismissAI() {
+    Task { @MainActor in
+      await assistant.dismiss(backend: aiBackend, planID: aiDebug ? "fixture" : PlanSync.shared.serverPlanID(for: state))
+    }
+  }
+
+  #if DEBUG
+  /// `--hermi-ai-review=<scenario>` (with --hermi-plan-review): the AI button in a known state, from recorded
+  /// server responses, for CI screenshots. The plan is the review plan on the fixtures' date (Sat 3 Oct, noon).
+  private func seedAIScenario(_ name: String) {
+    let noon = Date(timeIntervalSince1970: 1_791_043_200) // 2026-10-03T16:00:00Z, 12:00 in New York
+    state.stopTimes = [:]
+    state.setStopTime(.init(arrival: noon, durationMinutes: 60, reminderMinutes: 15), for: "cafe")
+    state.setStopTime(.init(arrival: noon.addingTimeInterval(1800), durationMinutes: 60), for: "gallery")
+    state.setStopTime(.init(arrival: noon.addingTimeInterval(7200), durationMinutes: 30), for: "garden")
+    state.planUndoHistory = []
+    aiDebug = true
+    aiDebugBackend = FixtureAssistantBackend(delay: name == "asking" ? .seconds(900) : .zero)
+    switch name {
+    case "menu": assistant.open()
+    case "category": assistant.open(); assistant.showCategories()
+    case "asking": assistant.open(); askAI(.space)
+    case "preview-space": assistant.open(); askAI(.space)
+    case "preview-weather": assistant.open(); askAI(.weather)
+    case "preview-activity": assistant.open(); askAI(.add(.music))
+    case "chat", "preview-chat":
+      assistant.showChat()
+      Task { @MainActor in
+        assistant.draft = "does the tea room have seats?"
+        await assistant.send(plan: { state.planContents }, backend: aiBackend, planID: aiPlanID)
+        assistant.draft = name == "chat" ? "is the gallery free" : "it might rain, make the last stop indoors"
+        if name == "preview-chat" { sendAI() }
+      }
+    case "applied":
+      Task { @MainActor in
+        await assistant.ask(.space, plan: { state.planContents }, backend: aiBackend, planID: aiPlanID)
+        applyAI()
+      }
+    case "error":
+      aiDebugBackend = FailingAssistantBackend(error: HermiAPIError(status: 429, code: "RATE_LIMITED", message: "Too many requests"))
+      assistant.open(); askAI(.weather)
+    case "sample":
+      aiDebugBackend = nil
+      assistant.open(); askAI(.space)
+    default: break // "closed": the button alone
+    }
+  }
+  #endif
 
   private var navigationPill: some View {
     HomeNavigationPill(selected: state.panel) { panel in

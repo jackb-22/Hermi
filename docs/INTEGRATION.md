@@ -227,6 +227,36 @@ pnpm exec tsx --env-file=../../.env.demo scripts/seed-curated.ts        # real p
 
 ---
 
+### Step 13: Hermi AI on My Plan, and texting Hermi a plan (branch `ai-assistant`)
+
+Built and checked without a Mac: Linux tests, then macOS CI builds and screenshots (see "Linux ↔ Mac loop" below).
+
+- **AI button** (bottom-left, level with the Home pill; only on My Plan): Space it out · Best weather day · Add a <category> stop · Ask about this plan (chat sheet).
+  - A suggestion redraws the timeline as it would be after Apply (`AskResponse.preview`): new stops marked NEW, changed times in green, travel legs between stops. **Apply** / **Dismiss** replace Go! until you choose. Undo still works after Apply.
+  - The model can only edit this plan: it has plan tools only (no invite/share/save/message), and every edit is a suggestion.
+- **Legs**: travel time and mode into each stop are kept with the plan and shown between stops ("9 min walk", "18 min by transit", "est." when estimated). Reordering voids the affected legs until the next Space it out.
+- **Text Hermi** (Profile → ⚙︎): *Link this phone* opens Messages with "link CODE" typed in. After that:
+  - DM the agent a plan ("Sat 2pm: Hungarian Pastry Shop, then Riverside Park with ben"), or say "hermi plan this" in a group chat with the agent. It becomes My Plan, spaced, with the friends it names (or who are in the group) invited. Reply "undo" to revert.
+  - The app picks the change up when it comes to the front or My Plan opens ("My Plan was updated from Hermi").
+
+**Checklist (on a Mac or phone, live):**
+1. My Plan with 2–3 real stops → AI → **Space it out** → preview shows legs and moved times → **Apply** → times and legs stay; **Undo** reverts.
+2. AI → **Add a stop…** → Music → a NEW row appears where it fits → **Dismiss** → unchanged.
+3. AI → **Best weather day** → the date moves (or "already the best day").
+4. AI → **Ask about this plan**: "is the first stop open then?" (answer, no change) · "add dinner after the gallery" (preview → Apply) · "write me a poem" (declines).
+5. Profile → ⚙︎ → **Text Hermi** → Link this phone → send the text → "Linked to @you". Text a plan → open Hermi → My Plan shows it.
+
+**Photon findings (2026-09-29):**
+- The project `hermi` is on Photon's **shared pool** line (+1 415 605 5838). Texts are "matched by sender ID": a phone that isn't listed under **Project → Users** on app.photon.codes gets Photon's own "This number didn't recognize yours" reply, and the agent never sees it. The agent also can't text a phone first ("Target not allowed for this project") until it is listed.
+- So on the shared plan, **every phone that texts Hermi must be added under Users**. DMs are the demo path. Photon's docs list group creation, group events and membership as **dedicated-line only**, so "hermi plan this" in a group needs a dedicated line (Business, or Pro if it includes one; Platforms → iMessage → Get a dedicated line).
+- Still to confirm once a phone is listed (`photon-smoke.ts --hello <phone>`): DM round trip ☐ · `space.get(id)` rebuilds a thread ☐ · group delivery on the current line ☐.
+
+### Linux ↔ Mac loop
+
+- `scripts/linux-swift.sh`: Foundation-only Swift (DTOs, plan model, AI state machine) builds and tests on Linux in seconds (`apps/ios/HermiPreview/LinuxCheck`, symlinks to the real files).
+- `scripts/ios-ci.sh`: pushes the branch; GitHub Actions (macOS) runs `swift test` and screenshots every scenario in `apps/ios/HermiPreview/scripts/shot-scenarios.txt` on iPhone SE / 17 / 17 Pro Max; PNGs, contact sheets, crash reports land in `.ci-shots/<sha>/`. A commit line `shots: <regex>` narrows the shots; `tests: skip` skips `swift test`.
+- DEBUG `--hermi-ai-review=<scenario>` replays real server responses recorded by `apps/api/test/iosFixtures.test.ts` (`Resources/ai-fixtures`), so the AI UI is screenshot without a server.
+
 ## Deferred / deviations log
 
 Items that are unconnected, need UI or backend work, or depart from `docs/HERMI_SCHEMA.md` / `docs/FRONTEND_IMPLEMENTATION_PLAN.md`. We come back to these after the main flow works.
@@ -237,7 +267,7 @@ Items that are unconnected, need UI or backend work, or depart from `docs/HERMI_
 | D2 | Auth | The JWT is stored in UserDefaults, not Keychain. | Hackathon shortcut. |
 | D3 | Plans | The server caps a plan at 12 stops; the product has no cap. | Backend constraint. The server error is shown as a notice. |
 | D4 | Places | `/places/near` is unused. Each pin uses a bbox query around its circle (category, limit 100) plus a client-side radius cut. | `/near` clamps to 1200 m and 10 results; pins go up to 4 miles. |
-| D5 | AI | Schedule, ghost pins (`/ghosts`), `/plans/:id/ask` and the chips are not surfaced in the UI. | No UI exists for them yet. The APIs exist. |
+| D5 | AI | Ghost pins (`/ghosts`) and the older chips (Add dinner, Rain-proof, Cheaper) are not surfaced; the AI button (Step 13) covers Space it out, Best weather day, Add a stop and chat. | Scope: the three presets the product asked for. The chips still work through chat ("make it cheaper"). |
 | D6 | Sharing | Plan share links, and join/request/approve from Feed plan cards, are display-only. | Needs UI decisions. |
 | D7 | Notifications | Reminders are not delivered, and push is not integrated. | The backend push provider expects Expo tokens; this is a native app. |
 | D8 | Feed | The Friends/Public filter is done on the client (author ∈ friends). | `GET /feed` has no audience parameter. |

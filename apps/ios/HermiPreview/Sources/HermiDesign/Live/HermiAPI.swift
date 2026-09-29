@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking  // URLSession on Linux (LinuxCheck); no-op on Apple platforms
+#endif
 
 /// Server error from the `{"error":{"code","message"}}` envelope, or a transport failure.
 struct HermiAPIError: Error, LocalizedError, Equatable {

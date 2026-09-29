@@ -1,0 +1,292 @@
+{
+  "plan": {
+    "id": "id-12",
+    "name": "Corner café + 2 more",
+    "hostId": "id-2",
+    "isHost": true,
+    "startAt": "2026-10-03T16:00:00.000Z",
+    "endBy": null,
+    "mode": "walk",
+    "visibility": "just_me",
+    "status": "draft",
+    "stops": [
+      {
+        "id": "id-13",
+        "index": 1,
+        "place": {
+          "id": "cafe",
+          "name": "Corner café",
+          "category": "food",
+          "tags": [
+            "coffee"
+          ],
+          "loc": {
+            "lat": 40.8073,
+            "lng": -73.9654
+          },
+          "address": null,
+          "been": 0,
+          "wouldGoAgainPct": null
+        },
+        "slot": null,
+        "label": "Corner café",
+        "stayMin": 60,
+        "staySource": "user",
+        "stayReason": null,
+        "legMode": null,
+        "legMin": null,
+        "legSource": null,
+        "arriveAt": "2026-10-03T16:00:00.000Z",
+        "departAt": "2026-10-03T17:00:00.000Z",
+        "done": false,
+        "checkinId": null
+      },
+      {
+        "id": "id-14",
+        "index": 2,
+        "place": {
+          "id": "gallery",
+          "name": "Little gallery",
+          "category": "culture",
+          "tags": [
+            "gallery",
+            "indoor"
+          ],
+          "loc": {
+            "lat": 40.8077,
+            "lng": -73.9625
+          },
+          "address": null,
+          "been": 0,
+          "wouldGoAgainPct": null
+        },
+        "slot": null,
+        "label": "Little gallery",
+        "stayMin": 60,
+        "staySource": "user",
+        "stayReason": null,
+        "legMode": "walk",
+        "legMin": 4,
+        "legSource": "estimate",
+        "arriveAt": "2026-10-03T17:04:00.000Z",
+        "departAt": "2026-10-03T18:04:00.000Z",
+        "done": false,
+        "checkinId": null
+      },
+      {
+        "id": "id-15",
+        "index": 3,
+        "place": {
+          "id": "garden",
+          "name": "Riverside gardens",
+          "category": "nature",
+          "tags": [
+            "park",
+            "outdoor"
+          ],
+          "loc": {
+            "lat": 40.808,
+            "lng": -73.967
+          },
+          "address": null,
+          "been": 0,
+          "wouldGoAgainPct": null
+        },
+        "slot": null,
+        "label": "Riverside gardens",
+        "stayMin": 30,
+        "staySource": "user",
+        "stayReason": null,
+        "legMode": "walk",
+        "legMin": 6,
+        "legSource": "estimate",
+        "arriveAt": "2026-10-03T18:10:00.000Z",
+        "departAt": "2026-10-03T18:40:00.000Z",
+        "done": false,
+        "checkinId": null
+      }
+    ],
+    "members": [],
+    "totals": {
+      "km": 0.8,
+      "footKm": 0.8,
+      "legMin": 10,
+      "xpPreview": 54,
+      "endsAt": "2026-10-03T18:40:00.000Z"
+    },
+    "issues": [],
+    "ghostChanges": [
+      {
+        "id": "id-16",
+        "kind": "add_stop",
+        "label": "Add Evening jazz",
+        "toIndex": 1,
+        "stop": {
+          "placeId": "music"
+        }
+      }
+    ],
+    "matchCount": null,
+    "shareUrl": "http://localhost:3000/p/share-3",
+    "textGroup": null,
+    "createdAt": "2026-10-02T14:00:00.000Z",
+    "updatedAt": "2026-10-02T14:00:00.000Z"
+  },
+  "preview": {
+    "id": "id-12",
+    "name": "Corner café + 2 more",
+    "hostId": "id-2",
+    "isHost": true,
+    "startAt": "2026-10-03T16:00:00.000Z",
+    "endBy": null,
+    "mode": "walk",
+    "visibility": "just_me",
+    "status": "draft",
+    "stops": [
+      {
+        "id": "id-17",
+        "index": 1,
+        "place": {
+          "id": "music",
+          "name": "Evening jazz",
+          "category": "music",
+          "tags": [
+            "live_jazz"
+          ],
+          "loc": {
+            "lat": 40.8026,
+            "lng": -73.9661
+          },
+          "address": null,
+          "been": 0,
+          "wouldGoAgainPct": null
+        },
+        "slot": null,
+        "label": "Evening jazz",
+        "stayMin": 120,
+        "staySource": "default",
+        "stayReason": null,
+        "legMode": null,
+        "legMin": null,
+        "legSource": null,
+        "arriveAt": "2026-10-03T16:00:00.000Z",
+        "departAt": "2026-10-03T18:00:00.000Z",
+        "done": false,
+        "checkinId": null
+      },
+      {
+        "id": "id-13",
+        "index": 2,
+        "place": {
+          "id": "cafe",
+          "name": "Corner café",
+          "category": "food",
+          "tags": [
+            "coffee"
+          ],
+          "loc": {
+            "lat": 40.8073,
+            "lng": -73.9654
+          },
+          "address": null,
+          "been": 0,
+          "wouldGoAgainPct": null
+        },
+        "slot": null,
+        "label": "Corner café",
+        "stayMin": 60,
+        "staySource": "user",
+        "stayReason": null,
+        "legMode": "walk",
+        "legMin": 9,
+        "legSource": "estimate",
+        "arriveAt": "2026-10-03T18:09:00.000Z",
+        "departAt": "2026-10-03T19:09:00.000Z",
+        "done": false,
+        "checkinId": null
+      },
+      {
+        "id": "id-14",
+        "index": 3,
+        "place": {
+          "id": "gallery",
+          "name": "Little gallery",
+          "category": "culture",
+          "tags": [
+            "gallery",
+            "indoor"
+          ],
+          "loc": {
+            "lat": 40.8077,
+            "lng": -73.9625
+          },
+          "address": null,
+          "been": 0,
+          "wouldGoAgainPct": null
+        },
+        "slot": null,
+        "label": "Little gallery",
+        "stayMin": 60,
+        "staySource": "user",
+        "stayReason": null,
+        "legMode": "walk",
+        "legMin": 4,
+        "legSource": "estimate",
+        "arriveAt": "2026-10-03T19:13:00.000Z",
+        "departAt": "2026-10-03T20:13:00.000Z",
+        "done": false,
+        "checkinId": null
+      },
+      {
+        "id": "id-15",
+        "index": 4,
+        "place": {
+          "id": "garden",
+          "name": "Riverside gardens",
+          "category": "nature",
+          "tags": [
+            "park",
+            "outdoor"
+          ],
+          "loc": {
+            "lat": 40.808,
+            "lng": -73.967
+          },
+          "address": null,
+          "been": 0,
+          "wouldGoAgainPct": null
+        },
+        "slot": null,
+        "label": "Riverside gardens",
+        "stayMin": 30,
+        "staySource": "user",
+        "stayReason": null,
+        "legMode": "walk",
+        "legMin": 6,
+        "legSource": "estimate",
+        "arriveAt": "2026-10-03T20:19:00.000Z",
+        "departAt": "2026-10-03T20:49:00.000Z",
+        "done": false,
+        "checkinId": null
+      }
+    ],
+    "members": [],
+    "totals": {
+      "km": 1.5,
+      "footKm": 1.5,
+      "legMin": 19,
+      "xpPreview": 68,
+      "endsAt": "2026-10-03T20:49:00.000Z"
+    },
+    "issues": [],
+    "ghostChanges": [],
+    "matchCount": null,
+    "shareUrl": "http://localhost:3000/p/share-3",
+    "textGroup": null,
+    "createdAt": "2026-10-02T14:00:00.000Z",
+    "updatedAt": "2026-10-02T14:00:00.000Z"
+  },
+  "message": "Evening jazz fits at the start, 7 min off your route.",
+  "sources": [],
+  "via": "code"
+}

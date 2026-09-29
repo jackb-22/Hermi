@@ -6,6 +6,7 @@ import { checkinRoutes } from './checkins.ts';
 import { devRoutes } from './dev.ts';
 import { feedRoutes } from './feed.ts';
 import { ghostRoutes } from './ghosts.ts';
+import { imessageRoutes } from './imessage.ts';
 import { meRoutes } from './me.ts';
 import { mediaRoutes } from './media.ts';
 import { placesRoutes } from './places.ts';
@@ -25,6 +26,7 @@ export const routes: FastifyPluginAsync[] = [
   authRoutes,
   attestRoutes,
   meRoutes,
+  imessageRoutes,
   tasteRoutes,
   placesRoutes,
   planRoutes,

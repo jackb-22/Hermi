@@ -130,6 +130,81 @@ final class PlanSync {
 
   func reset() { baseline = nil }
 
+  /**
+   Later pulls (app back in front, My Plan opened): take only what changed on the server since this device last
+   synced, e.g. a text to Hermi rewrote the draft, or saved it with friends invited. Everything else, and Undo,
+   stays as it is. Returns whether My Plan changed.
+   */
+  @MainActor
+  @discardableResult
+  func refresh(_ hydration: Hydration, to state: inout MapPreviewState) -> Bool {
+    guard var known = baseline else { return false }
+    if let draft = hydration.draft { PlaceCatalog.shared.upsert(draft.stops.compactMap { $0.place?.place }) }
+    let localDraft = state.activeSavedPlanID == nil ? state.planContents : (state.unsavedPlanContents ?? PlanContents())
+    var changed = false
+
+    // The draft was saved elsewhere (a text that named friends to invite): it opens as the current plan.
+    if let draftServer = serverIDs[PlanSync.draftKey], hydration.draft?.id != draftServer,
+       let promoted = hydration.saved.first(where: { $0.id == draftServer }),
+       !state.library.plans.contains(where: { serverIDs[$0.id.uuidString] == draftServer }) {
+      PlaceCatalog.shared.upsert(promoted.stops.compactMap { $0.place?.place })
+      let saved = PlanSync.savedDraft(from: promoted)
+      state.library.plans.append(saved)
+      serverIDs[saved.id.uuidString] = promoted.id
+      serverIDs[PlanSync.draftKey] = nil
+      let contents = PlanContents(ids: saved.stopIDs, times: saved.times, legs: saved.legs)
+        .keepingLocalDetails(from: localDraft)
+      known[saved.id.uuidString] = PlanSnapshot(name: saved.name, contents: contents)
+      known[PlanSync.draftKey] = nil
+      if state.activeSavedPlanID == nil {
+        state.unsavedPlanContents = PlanContents()
+        state.activeSavedPlanID = saved.id
+        state.planUndoHistory = []
+        state.applyPlanContents(contents, recordUndo: false)
+      }
+      changed = true
+    }
+
+    // The draft's places, stays or start changed on the server (or a new draft appeared there).
+    if let server = hydration.draft {
+      let contents = PlanContents(server: server).keepingLocalDetails(from: localDraft)
+      let theirs = PlanSnapshot(name: nil, contents: contents)
+      if server.id != serverIDs[PlanSync.draftKey] || !(known[PlanSync.draftKey].map { $0.sameCore(as: theirs) } ?? false) {
+        serverIDs[PlanSync.draftKey] = server.id
+        known[PlanSync.draftKey] = theirs
+        // Undo can take it back (which pushes the old plan back to the server).
+        if state.activeSavedPlanID == nil { state.applyPlanContents(contents) } else { state.unsavedPlanContents = contents }
+        changed = true
+      }
+    }
+    if changed {
+      baseline = known
+      saveMapping()
+      notice = "My Plan was updated from Hermi."
+    }
+    return changed
+  }
+
+  /// Waits for queued writes, so the server plan is the one on screen (the AI button asks about it).
+  @MainActor
+  func flush() async { await queue?.value }
+
+  /// The server plan behind My Plan once pending writes have landed; nil in sample mode or before the first sync.
+  @MainActor
+  func readyPlanID(for state: MapPreviewState) async -> String? {
+    await flush()
+    return serverPlanID(for: state)
+  }
+
+  /// Contents the server just produced (AI Apply): the app takes them without pushing them straight back.
+  @MainActor
+  func adopt(_ contents: PlanContents, for state: MapPreviewState) {
+    let key = state.activeSavedPlanID?.uuidString ?? PlanSync.draftKey
+    guard serverIDs[key] != nil, var next = baseline else { return }
+    next[key] = PlanSnapshot(name: next[key]?.name, contents: contents)
+    baseline = next
+  }
+
   // MARK: Push
 
   @MainActor
@@ -182,7 +257,7 @@ final class PlanSync {
         }))
         continue
       }
-      if before?.stops != snap.stops || before?.stays != snap.stays {
+      if before?.stops != snap.stops || before?.stays != snap.stays || before?.modes != snap.modes {
         ops.append(("update plan", { [self] api in
           guard let id = serverIDs[key] else { return }
           let _: PlanDTO = try await api.send("PUT", "/plans/\(id)/stops", body: PutStopsBody(stops: snap.stopInputs))
@@ -247,38 +322,41 @@ final class PlanSync {
     }
   }
 
-  static func contents(from plan: PlanDTO) -> PlanContents {
-    var contents = PlanContents()
-    for stop in plan.stops {
-      guard let id = stop.place?.id, !contents.ids.contains(id) else { continue }
-      contents.ids.append(id)
-      if let arrival = stop.arriveAt { contents.times[id] = PreviewStopTime(arrival: arrival, durationMinutes: stop.stayMin ?? 60) }
-    }
-    return contents
-  }
+  static func contents(from plan: PlanDTO) -> PlanContents { PlanContents(server: plan) }
 
   static func savedDraft(from plan: PlanDTO) -> SavedPlanDraft {
     let contents = contents(from: plan)
     let invited = (plan.members ?? []).filter { $0.status == "invited" || $0.status == "joined" }.map(\.name)
     return SavedPlanDraft(name: plan.name, folderID: nil, visibility: localVisibility(plan.visibility),
-                          friendNames: invited, stopIDs: contents.ids, times: contents.times, isBookmarked: true)
+                          friendNames: invited, stopIDs: contents.ids, times: contents.times, isBookmarked: true,
+                          legs: contents.legs)
   }
 }
 
-/// What the server holds for one plan: ordered places, stay lengths, start time and (saved plans) name.
+/// What the server holds for one plan: ordered places, stay lengths, leg modes, start time and (saved plans) name.
 struct PlanSnapshot: Equatable {
   var name: String?
   var stops: [String]
   var stays: [Int]
+  /// Mode of the leg into each stop while it is still valid (nil: the server's default).
+  var modes: [String?]
   var startAt: Date?
 
-  var stopInputs: [StopInputBody] { zip(stops, stays).map { StopInputBody(placeId: $0, stayMin: $1) } }
+  var stopInputs: [StopInputBody] {
+    stops.indices.map { StopInputBody(placeId: stops[$0], stayMin: stays[$0], legMode: modes[$0]) }
+  }
 
   init(name: String?, contents: PlanContents) {
     self.name = name
     stops = contents.ids
     stays = contents.ids.map { min(240, max(5, contents.times[$0]?.durationMinutes ?? 60)) }
+    modes = contents.ids.map { contents.leg(into: $0)?.mode }
     startAt = contents.ids.first.flatMap { contents.times[$0]?.arrival }
+  }
+
+  /// Same places, stays and start: what a change made elsewhere would alter (leg modes follow from those).
+  func sameCore(as other: PlanSnapshot) -> Bool {
+    stops == other.stops && stays == other.stays && startAt == other.startAt
   }
 
   /// Every live plan in the state: the draft (even while a saved plan is open) and each saved plan.
@@ -287,16 +365,17 @@ struct PlanSnapshot: Equatable {
     let draft = state.activeSavedPlanID == nil ? state.planContents : (state.unsavedPlanContents ?? PlanContents())
     if PlanSync.isLive(draft.ids) { result[PlanSync.draftKey] = PlanSnapshot(name: nil, contents: draft) }
     for plan in state.library.plans where PlanSync.isLive(plan.stopIDs) {
-      let contents = PlanContents(ids: plan.stopIDs, times: plan.times)
+      let contents = PlanContents(ids: plan.stopIDs, times: plan.times, legs: plan.legs)
       result[plan.id.uuidString] = PlanSnapshot(name: plan.name, contents: contents)
     }
     return result
   }
 }
 
-struct StopInputBody: Encodable {
+struct StopInputBody: Encodable, Equatable {
   var placeId: String
   var stayMin: Int
+  var legMode: String?
 }
 
 struct CreatePlanBody: Encodable {

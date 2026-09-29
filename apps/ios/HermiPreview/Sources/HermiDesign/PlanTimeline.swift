@@ -1,11 +1,5 @@
 import Foundation
 
-struct PreviewStopTime: Codable, Equatable {
-  var arrival: Date
-  var durationMinutes: Int = 60
-  var reminderMinutes: Int = 0
-  var isValid: Bool { arrival.timeIntervalSince1970.isFinite && durationMinutes > 0 && [0, 5, 15, 30].contains(reminderMinutes) }
-}
 struct PlanTimingConflict: Equatable {
   let firstID: String
   let nextID: String

@@ -1,0 +1,122 @@
+{
+  "id": "id-24",
+  "name": "Corner café + 2 more",
+  "hostId": "id-2",
+  "isHost": true,
+  "startAt": "2026-10-03T16:00:00.000Z",
+  "endBy": null,
+  "mode": "walk",
+  "visibility": "just_me",
+  "status": "draft",
+  "stops": [
+    {
+      "id": "id-25",
+      "index": 1,
+      "place": {
+        "id": "cafe",
+        "name": "Corner café",
+        "category": "food",
+        "tags": [
+          "coffee"
+        ],
+        "loc": {
+          "lat": 40.8073,
+          "lng": -73.9654
+        },
+        "address": null,
+        "been": 0,
+        "wouldGoAgainPct": null
+      },
+      "slot": null,
+      "label": "Corner café",
+      "stayMin": 60,
+      "staySource": "user",
+      "stayReason": null,
+      "legMode": null,
+      "legMin": null,
+      "legSource": null,
+      "arriveAt": "2026-10-03T16:00:00.000Z",
+      "departAt": "2026-10-03T17:00:00.000Z",
+      "done": false,
+      "checkinId": null
+    },
+    {
+      "id": "id-26",
+      "index": 2,
+      "place": {
+        "id": "gallery",
+        "name": "Little gallery",
+        "category": "culture",
+        "tags": [
+          "gallery",
+          "indoor"
+        ],
+        "loc": {
+          "lat": 40.8077,
+          "lng": -73.9625
+        },
+        "address": null,
+        "been": 0,
+        "wouldGoAgainPct": null
+      },
+      "slot": null,
+      "label": "Little gallery",
+      "stayMin": 60,
+      "staySource": "user",
+      "stayReason": null,
+      "legMode": "walk",
+      "legMin": 4,
+      "legSource": "estimate",
+      "arriveAt": "2026-10-03T17:04:00.000Z",
+      "departAt": "2026-10-03T18:04:00.000Z",
+      "done": false,
+      "checkinId": null
+    },
+    {
+      "id": "id-31",
+      "index": 3,
+      "place": {
+        "id": "tea",
+        "name": "Tea room",
+        "category": "drinks",
+        "tags": [
+          "indoor"
+        ],
+        "loc": {
+          "lat": 40.8101,
+          "lng": -73.962
+        },
+        "address": null,
+        "been": 0,
+        "wouldGoAgainPct": null
+      },
+      "slot": null,
+      "label": "Tea room",
+      "stayMin": 75,
+      "staySource": "default",
+      "stayReason": null,
+      "legMode": "walk",
+      "legMin": 4,
+      "legSource": "estimate",
+      "arriveAt": "2026-10-03T18:08:00.000Z",
+      "departAt": "2026-10-03T19:23:00.000Z",
+      "done": false,
+      "checkinId": null
+    }
+  ],
+  "members": [],
+  "totals": {
+    "km": 0.7,
+    "footKm": 0.7,
+    "legMin": 8,
+    "xpPreview": 53,
+    "endsAt": "2026-10-03T19:23:00.000Z"
+  },
+  "issues": [],
+  "ghostChanges": [],
+  "matchCount": null,
+  "shareUrl": "http://localhost:3000/p/share-5",
+  "textGroup": null,
+  "createdAt": "2026-10-02T14:00:00.000Z",
+  "updatedAt": "2026-10-02T14:00:00.000Z"
+}

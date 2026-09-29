@@ -9,15 +9,16 @@ import {
   TAGS,
   type Tag,
 } from '@itp/shared';
+import { ASK_CHIPS } from '@itp/shared/api';
 import type { Filter } from 'mongodb';
 import type { AppContext } from '../context.ts';
 import type { PlaceDoc } from '../db/placeTypes.ts';
 import type { UserDoc } from '../db/types.ts';
 import { violatesDislikes } from '../domain/taste.ts';
 import { bestDay, isOutdoor, nyLocal, nyLocalToUtc, outdoorShare } from '../domain/weatherDay.ts';
-import type { ToolSpec } from '../providers/backboard.ts';
-import { ensureAssistant, PLANNER_SYSTEM, recentMemories, remember } from './memory.ts';
-import { places, WALK_M_PER_MIN } from './places.ts';
+import type { ToolSpec } from '../providers/llm.ts';
+import { OFF_TOPIC, PLANNER_SYSTEM, recentMemories, remember } from './memory.ts';
+import { placeRank, places, WALK_M_PER_MIN } from './places.ts';
 import {
   type GhostChangeDoc,
   loadPlaces,
@@ -27,11 +28,20 @@ import {
   toSchedStops,
 } from './plans.ts';
 import { applyGhostChange } from './scheduler.ts';
+import { planSpacing, spacingSummary } from './spacing.ts';
 
-export const CHIPS = ['add_dinner', 'rain_proof', 'best_weather_day', 'cheaper'] as const;
+export const CHIPS = ASK_CHIPS;
 export type Chip = (typeof CHIPS)[number];
+/** Chips code answers on its own (the model at most words the reply). */
+type CodeChip = 'best_weather_day' | 'space_stops' | 'suggest_activity';
+export interface AskInput {
+  prompt?: string;
+  chip?: Chip;
+  category?: PinType;
+  history?: { role: 'user' | 'model'; text: string }[];
+}
 
-const CHIP_PROMPTS: Record<Exclude<Chip, 'best_weather_day'>, string> = {
+const CHIP_PROMPTS: Record<Exclude<Chip, CodeChip>, string> = {
   add_dinner:
     'Add dinner: one food stop around dinner time (6 to 8:30 PM) at a sensible point in the plan.',
   rain_proof:
@@ -151,6 +161,21 @@ export const PLANNER_TOOLS: ToolSpec[] = [
     parameters: { type: 'object', properties: {} },
   },
   {
+    name: 'get_plan',
+    description: 'The plan as it stands now: stops with times, modes and tags.',
+    parameters: { type: 'object', properties: {} },
+  },
+  {
+    name: 'place_details',
+    description:
+      'Facts about one stop of the plan: address, opening hours, tags, how many went and would go again, and a summary of verified reviews.',
+    parameters: {
+      type: 'object',
+      properties: { index: { type: 'integer', description: '1-based stop number' } },
+      required: ['index'],
+    },
+  },
+  {
     name: 'ask_maps',
     description:
       'Ask Google Maps about places near a stop, for things local data cannot answer (outdoor seating, open late, vibe). English only.',
@@ -262,6 +287,22 @@ class PlanEditor {
     }));
   }
 
+  get places(): PlacesById {
+    return this.byId;
+  }
+
+  /** Records a change code already built (Space it out) the same way a tool call's change is recorded. */
+  async applyPrepared(change: GhostChangeDoc) {
+    await applyGhostChange(this.ctx, this.work, change);
+    this.byId = await loadPlaces(
+      this.ctx.db,
+      this.work.stops.map((s) => s.placeId),
+    );
+    const { issues } = recompute(this.work, this.byId);
+    this.changes.push(change);
+    return issues;
+  }
+
   private async apply(g: Omit<GhostChangeDoc, 'id' | 'label'>, why: unknown, fallback: string) {
     const label = typeof why === 'string' && why.trim() ? why.trim().slice(0, 90) : fallback;
     const change: GhostChangeDoc = { ...g, id: newId(), label };
@@ -356,6 +397,26 @@ class PlanEditor {
     return { days, outdoorShare: share, best };
   }
 
+  details(a: { index: number }) {
+    const i = this.stopAt(a.index);
+    const s = this.work.stops[i - 1]!;
+    const p = s.placeId ? this.byId.get(s.placeId) : undefined;
+    if (!p) return { name: this.sched[i - 1]!.name, note: 'Not a specific place yet' };
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    return {
+      name: p.name,
+      category: p.category,
+      address: p.address ?? null,
+      tags: p.tags,
+      hours: p.hours?.map((h) => `${days[h.day]} ${h.open}–${h.close}`) ?? 'unknown',
+      been: p.been,
+      wouldGoAgainPct: p.wouldGoAgain.total
+        ? Math.round((100 * p.wouldGoAgain.yes) / p.wouldGoAgain.total)
+        : null,
+      reviews: p.reviewSummary?.text ?? null,
+    };
+  }
+
   async maps(a: { question: string; near_index?: number }) {
     const at = this.sched.length ? this.locNear(a.near_index) : { lat: 40.7831, lng: -73.9712 };
     const r = await this.ctx.providers.llm.askMaps(String(a.question ?? ''), at);
@@ -392,6 +453,10 @@ class PlanEditor {
             best: f.best && { date: f.best.day.date, score: f.best.score },
           });
         }
+        case 'get_plan':
+          return this.state();
+        case 'place_details':
+          return JSON.stringify(this.details(a));
         case 'ask_maps': {
           const r = await this.maps(a);
           return JSON.stringify({ answer: r.text, sources: r.sources.map((s) => s.title) });
@@ -409,8 +474,7 @@ export interface AskResult {
   changes: GhostChangeDoc[];
   message: string;
   sources: { title: string; uri: string }[];
-  via: 'backboard' | 'gemini' | 'code';
-  threadId?: string;
+  via: 'gemini' | 'code';
 }
 
 /** Best weather day: code scores the days and picks one; Gemini only writes the one-line why. */
@@ -446,8 +510,142 @@ async function bestWeatherDay(ctx: AppContext, ed: PlanEditor): Promise<AskResul
   return { changes: ed.changes, message, sources: [], via };
 }
 
+/** Space it out: real ETAs and a mode per leg, so arrivals follow departures plus travel. Code only. */
+async function spaceStops(ctx: AppContext, ed: PlanEditor): Promise<AskResult> {
+  if (ed.work.stops.length < 2)
+    return {
+      changes: [],
+      message: 'Add a second stop, then I can space them out.',
+      sources: [],
+      via: 'code',
+    };
+  const { changes, legs } = await planSpacing(ctx, ed.work, ed.places);
+  let issues: Awaited<ReturnType<PlanEditor['applyPrepared']>> = [];
+  for (const c of changes) issues = await ed.applyPrepared(c);
+  const summary = spacingSummary(ed.work, legs);
+  const warn = issues.length ? ` Heads up: ${issues[0]!.message}` : '';
+  return {
+    changes: ed.changes,
+    message: changes.length
+      ? `Spaced with travel times: ${summary}.${warn}`
+      : `Already spaced right: ${summary}.${warn}`,
+    sources: [],
+    via: 'code',
+  };
+}
+
+const CATEGORY_NOUN: Record<PinType, string> = {
+  food: 'food',
+  shopping: 'shopping',
+  nature: 'outdoors',
+  culture: 'culture',
+  drinks: 'drinks',
+  sports: 'sports',
+  music: 'music',
+};
+
+/**
+ * Add a [category] stop: code finds candidates around every stop and the cheapest place to insert each (least extra
+ * distance), ranks them by popularity × taste × detour, and Gemini picks one of the top five and says why. An id
+ * the model invents falls back to code's first choice.
+ */
+async function suggestActivity(
+  ctx: AppContext,
+  ed: PlanEditor,
+  category: PinType,
+): Promise<AskResult> {
+  const llm = ctx.providers.llm;
+  const noun = CATEGORY_NOUN[category];
+  if (!ed.work.stops.length)
+    return { changes: [], message: 'Add a stop first, then ask again.', sources: [], via: 'code' };
+  if (ed.work.stops.length >= 12)
+    return { changes: [], message: 'A plan has at most 12 stops.', sources: [], via: 'code' };
+
+  const seen = new Map<string, PlaceDoc>();
+  for (let i = 1; i <= ed.work.stops.length; i++)
+    for (const f of await ed.search({ category, near_index: i })) {
+      const p = ed.places.get(f.placeId);
+      if (p) seen.set(p._id, p);
+    }
+  const stops = ed.sched.map((s) => s.loc);
+  const detour = (at: LatLng, pos: number) => {
+    // Inserting at 1-based `pos` puts the place between stops pos-1 and pos.
+    const prev = stops[pos - 2];
+    const next = stops[pos - 1];
+    const d = (a?: LatLng, b?: LatLng) => (a && b ? haversineM(a, b) : 0);
+    return d(prev, at) + d(at, next) - d(prev, next);
+  };
+  const ranked = [...seen.values()]
+    .map((p) => {
+      const at = fromGeoJSONPoint(p.loc);
+      let pos = 1;
+      let extra = Number.POSITIVE_INFINITY;
+      for (let k = 1; k <= stops.length + 1; k++) {
+        const m = detour(at, k);
+        if (m < extra - 1) [pos, extra] = [k, m];
+      }
+      return { p, pos, extraM: extra, score: placeRank(p, ed.user.prefVector, extra) };
+    })
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5);
+  if (!ranked.length)
+    return {
+      changes: [],
+      message: `I couldn't find a ${noun} spot near this plan.`,
+      sources: [],
+      via: 'code',
+    };
+
+  let pick = ranked[0]!;
+  let why = '';
+  let via: AskResult['via'] = 'code';
+  if (llm.name !== 'fake') {
+    try {
+      const where = (pos: number) =>
+        pos === 1 ? 'before the first stop' : `after stop ${pos - 1}`;
+      const r = await llm.json<{ id: string; why: string }>(
+        `Pick the best ${noun} stop to add to this New York outing and say why in one short sentence (under 15 words).
+It is now ${nyTime(ctx.clock.now())}. Plan: ${ed.state()}
+Candidates (already filtered for this person, best first by code): ${JSON.stringify(
+          ranked.map((c) => ({
+            id: c.p._id,
+            name: c.p.name,
+            tags: c.p.tags,
+            goes: where(c.pos),
+            extraWalkMin: Math.round(c.extraM / WALK_M_PER_MIN),
+          })),
+        )}`,
+        {
+          type: 'object',
+          properties: { id: { type: 'string' }, why: { type: 'string' } },
+          required: ['id', 'why'],
+        },
+      );
+      const chosen = ranked.find((c) => c.p._id === r.id);
+      if (chosen) {
+        pick = chosen;
+        why = r.why?.trim().slice(0, 120) ?? '';
+        via = 'gemini';
+      }
+    } catch (e) {
+      console.warn(`[planner] suggest_activity pick failed: ${(e as Error).message}`);
+    }
+  }
+  const extraMin = Math.round(pick.extraM / WALK_M_PER_MIN);
+  const where = pick.pos === 1 ? 'at the start' : `after ${ed.sched[pick.pos - 2]!.name}`;
+  await ed.add({ placeId: pick.p._id, position: pick.pos, why: `Add ${pick.p.name}` });
+  return {
+    changes: ed.changes,
+    message:
+      why ||
+      `${pick.p.name} fits ${where}, ${extraMin ? `${extraMin} min off your route` : 'right on your route'}.`,
+    sources: [],
+    via,
+  };
+}
+
 /** Chips without a model: the same edits, chosen by rules. */
-async function codeChip(ed: PlanEditor, chip: Exclude<Chip, 'best_weather_day'>): Promise<string> {
+async function codeChip(ed: PlanEditor, chip: Exclude<Chip, CodeChip>): Promise<string> {
   const sched = () => ed.sched;
   if (!ed.work.stops.length) return 'Add a stop first, then ask again.';
   const replace = async (i: number, alt: { placeId: string; name: string }, why: string) => {
@@ -517,92 +715,39 @@ async function codeChip(ed: PlanEditor, chip: Exclude<Chip, 'best_weather_day'>)
   }
 }
 
-async function viaBackboard(
-  ctx: AppContext,
-  ed: PlanEditor,
-  plan: PlanDoc,
-  content: string,
-): Promise<{ text: string; threadId: string }> {
-  const bb = ctx.providers.backboard;
-  const assistantId = await ensureAssistant(ctx, ed.user);
-  const first = (threadId?: string) =>
-    bb.send({ assistantId, threadId, content, systemPrompt: PLANNER_SYSTEM, tools: PLANNER_TOOLS });
-  let r = await first(plan.aiThreadId).catch((e) => {
-    if (!plan.aiThreadId) throw e;
-    return first(); // The plan's thread is gone: start a new one.
-  });
-  for (
-    let round = 0;
-    round < 8 && r.status === 'REQUIRES_ACTION' && r.tool_calls?.length;
-    round++
-  ) {
-    const outputs = [];
-    for (const c of r.tool_calls)
-      outputs.push({
-        tool_call_id: c.id,
-        output: await ed.exec(c.function.name, c.function.arguments),
-      });
-    r = await bb.submitToolOutputs({
-      threadId: r.thread_id,
-      runId: r.run_id,
-      outputs,
-      tools: PLANNER_TOOLS,
-    });
-  }
-  if (r.status === 'FAILED' || r.status === 'CANCELLED')
-    throw new Error(`backboard run ${r.status}`);
-  // Backboard's free tier covers memory but not model calls, and says so as the reply; that is not an answer.
-  if (!ed.changes.length && BILLING_NOTICE.test(r.content ?? ''))
-    throw new Error(`backboard cannot run the model: ${(r.content ?? '').slice(0, 120)}`);
-  return { text: r.content ?? '', threadId: r.thread_id };
-}
-
-const BILLING_NOTICE = /free credit|add credits|billing page|subscription/i;
-
 const PREFERENCE =
   /\b(no|not|never|don'?t|hate|avoid|prefer|love|always|allergic|vegetarian|vegan)\b/i;
 
 /**
  * AI button, expanded: a chip or free text becomes a diff of ghost changes on the plan.
- * Backboard (memory Auto, Gemini as the model) → direct Gemini function calling → rules for chips.
+ * Gemini function calling over plan tools → rules for chips.
  */
 export async function askPlanner(
   ctx: AppContext,
   plan: PlanDoc,
   user: UserDoc,
-  body: { prompt?: string; chip?: Chip },
+  body: AskInput,
 ): Promise<AskResult> {
   const { providers } = ctx;
   if (body.chip === 'best_weather_day')
     return bestWeatherDay(ctx, await PlanEditor.create(ctx, plan, user));
+  if (body.chip === 'space_stops') return spaceStops(ctx, await PlanEditor.create(ctx, plan, user));
+  if (body.chip === 'suggest_activity')
+    return suggestActivity(ctx, await PlanEditor.create(ctx, plan, user), body.category!);
 
   const request = body.chip ? CHIP_PROMPTS[body.chip] : body.prompt!;
+  // The request is fenced off from the instructions, which are restated after it (lighter models drift otherwise).
   const content = (ed: PlanEditor) =>
-    `${request}\n\nIt is now ${nyTime(ctx.clock.now())} in New York.\nCurrent plan: ${ed.state()}`;
-  const finish = (
-    ed: PlanEditor,
-    text: string,
-    via: AskResult['via'],
-    threadId?: string,
-  ): AskResult => ({
+    `Request: <<<${request}>>>\n\nIt is now ${nyTime(ctx.clock.now())} in New York.\nCurrent plan: ${ed.state()}\n` +
+    `Only act on the request if it is about this plan; otherwise reply exactly: ${OFF_TOPIC}`;
+  const finish = (ed: PlanEditor, text: string, via: AskResult['via']): AskResult => ({
     changes: ed.changes,
     message:
       text.trim() ||
       (ed.changes.length ? 'Here are my suggestions.' : 'I have no changes to suggest.'),
     sources: ed.sources,
     via,
-    threadId,
   });
-
-  if (providers.backboard.enabled) {
-    const ed = await PlanEditor.create(ctx, plan, user);
-    try {
-      const r = await viaBackboard(ctx, ed, plan, content(ed));
-      return finish(ed, r.text, 'backboard', r.threadId);
-    } catch (e) {
-      console.warn(`[planner] backboard failed, falling back to Gemini: ${(e as Error).message}`);
-    }
-  }
 
   if (providers.llm.name !== 'fake') {
     const ed = await PlanEditor.create(ctx, plan, user);
@@ -616,8 +761,9 @@ export async function askPlanner(
         prompt: content(ed),
         tools: PLANNER_TOOLS,
         exec: ed.exec,
+        history: body.history,
       });
-      // Without Backboard's automatic memory, keep what sounds like a lasting preference.
+      // Keep what sounds like a lasting preference for the next ask.
       if (body.prompt && PREFERENCE.test(body.prompt))
         await remember(ctx, user._id, `Told the planner: "${body.prompt.slice(0, 200)}"`, 'ask');
       return finish(ed, text, 'gemini');

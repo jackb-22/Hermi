@@ -1,0 +1,1 @@
+../../../Tests/HermiDesignTests/TextHermiTests.swift

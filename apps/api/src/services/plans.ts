@@ -54,7 +54,27 @@ export interface GhostChangeDoc {
   mode?: Mode;
   startAt?: string;
   stayMin?: number;
+  /** set_mode from "Space it out": the real ETA for that leg, kept on apply while the leg is unchanged. */
+  legMin?: number;
+  legSource?: StopDoc['legSource'];
+  /** Internal: the leg (from→to:mode) legMin belongs to. */
+  legKey?: string;
   sources?: { title: string; uri: string }[];
+}
+
+/** What a text to Hermi replaced, so "undo" can put it back. */
+export interface TextUndo {
+  at: Date;
+  /** False when the text created the plan (undo then cancels it). */
+  existed: boolean;
+  stops: StopDoc[];
+  startAt: Date;
+  name: string;
+  nameIsDefault: boolean;
+  mode: Mode;
+  status: PlanStatus;
+  visibility: Visibility;
+  members: PlanDoc['members'];
 }
 
 export interface PlanDoc {
@@ -73,8 +93,10 @@ export interface PlanDoc {
   shareToken: string;
   sourcePlanId?: string;
   imessageThreadId?: string;
-  /** Backboard thread of the AI planner for this plan, so follow-up asks keep context. */
+  /** Deprecated: the retired Backboard planner's thread. Never set now; copies still clear it. */
   aiThreadId?: string;
+  /** Set when a text to Hermi rewrote this plan (see services/textPlan.ts). */
+  textUndo?: TextUndo;
   /** iMessage senders who replied "in" in the plan's group thread. */
   imessageRsvps?: string[];
   /** Find someone: students matched by the last match run, and everyone already pushed about it. */
@@ -117,7 +139,10 @@ export function slotLabel(c: PinType): string {
   return `Pick a ${c === 'nature' ? 'nature' : c === 'culture' ? 'culture' : c} spot`;
 }
 
-/** Merge requested stops with existing ones: a stop keeps its AI stay length while its place is unchanged. */
+/**
+ * Merge requested stops with existing ones: a stop keeps its AI stay length and measured leg while its place is
+ * unchanged. Stops are matched by id, or (for clients that only send places, like the app) by place.
+ */
 export function normalizeStops(
   input: z.infer<typeof StopInput>[],
   existing: StopDoc[],
@@ -126,10 +151,21 @@ export function normalizeStops(
   now: Date,
 ): StopDoc[] {
   const prev = new Map(existing.map((s) => [s.id, s]));
+  const byPlace = new Map<string, StopDoc>();
+  for (const s of existing) if (s.placeId && !byPlace.has(s.placeId)) byPlace.set(s.placeId, s);
+  const claimed = new Set(input.flatMap((s) => (s.id && prev.has(s.id) ? [s.id] : [])));
   return input.map((s) => {
     if (s.placeId && !byId.has(s.placeId))
       throw new ApiError(400, 'BAD_REQUEST', `Unknown place ${s.placeId}`);
-    const old = s.id ? prev.get(s.id) : undefined;
+    let found = s.id ? prev.get(s.id) : undefined;
+    if (!found && !s.id && s.placeId) {
+      const same = byPlace.get(s.placeId);
+      if (same && !claimed.has(same.id)) {
+        found = same;
+        claimed.add(same.id);
+      }
+    }
+    const old = found;
     const samePlace = old && old.placeId === s.placeId && !s.slot;
     const category = s.placeId ? byId.get(s.placeId)!.category : s.slot!.category;
     const stay =
@@ -308,7 +344,7 @@ export async function toPlanView(
       endsAt: t.endsAt?.toISOString() ?? null,
     },
     issues,
-    ghostChanges: plan.ghostChanges,
+    ghostChanges: plan.ghostChanges.map(({ legKey: _key, ...g }) => g),
     matchCount:
       plan.visibility === 'find' && plan.hostId === viewerId ? (plan.matchCount ?? 0) : null,
     shareUrl: `${config.PUBLIC_BASE_URL.replace(/\/$/, '')}/p/${plan.shareToken}`,

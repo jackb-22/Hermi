@@ -56,8 +56,6 @@ const Env = z.object({
   /** Retried once when GEMINI_MODEL is overloaded or out of quota; empty to disable. */
   GEMINI_BACKUP_MODEL: z.string().default('gemini-3.7-flash'),
   GOOGLE_MAPS_KEY: optStr,
-  BACKBOARD_API_KEY: optStr,
-  BACKBOARD_BASE_URL: z.string().default('https://app.backboard.io/api'),
   /** Photon Spectrum project (dashboard Settings) and the agent's iMessage number people add to the plan's group. */
   SPECTRUM_PROJECT_ID: optStr,
   SPECTRUM_PROJECT_SECRET: optStr,

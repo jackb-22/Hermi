@@ -7,7 +7,26 @@ struct PlanPreviewPage: View {
   var go: () -> Void
   /// Start a friend's plan I've joined: (server plan ID, stop place IDs).
   var goJoined: ((String, [String]) -> Void)? = nil
-  private var times: [String: PreviewStopTime] { state.stopTimes ?? [:] }
+  /// The AI button's state: while it holds a suggestion, the timeline shows the plan as it would be after Apply.
+  var assistant: PlanAssistant? = nil
+  var applySuggestion: () -> Void = {}
+  var dismissSuggestion: () -> Void = {}
+  private var times: [String: PreviewStopTime] { shown.times }
+  private var suggestion: AskResponseDTO? { saved ? nil : assistant?.suggestion }
+  /// The plan after Apply, while a suggestion waits; otherwise the plan itself.
+  private var shown: PlanContents { suggestion?.preview.map(PlanContents.init(server:)) ?? state.planContents }
+  private var removedBySuggestion: [MapSamplePlace] {
+    guard suggestion != nil else { return [] }
+    return state.planIDs.filter { !shown.ids.contains($0) }.compactMap(MapSamplePlace.find)
+  }
+  private enum RowMark { case none, added, retimed }
+  private func mark(_ id: String) -> RowMark {
+    guard suggestion != nil else { return .none }
+    if !state.planIDs.contains(id) { return .added }
+    let before = state.stopTimes?[id]
+    return before?.arrival != shown.times[id]?.arrival || before?.durationMinutes != shown.times[id]?.durationMinutes
+      ? .retimed : .none
+  }
   @State private var editor: MapSamplePlace?
   @State private var participants: MapSamplePlace?
   @State private var help = false
@@ -101,22 +120,39 @@ struct PlanPreviewPage: View {
               HermitBrandMark().frame(width: 56, height: 63)
               Text("Add a place from Map, Feed or Saved.").font(.subheadline).padding(24)
             }
-            ForEach(state.planIDs, id: \.self) { id in
-              if let place = MapSamplePlace.find(id) { stopRow(place) }
+            ForEach(Array(shown.ids.enumerated()), id: \.element) { index, id in
+              if let place = MapSamplePlace.find(id) {
+                if index > 0, suggestion != nil || !(shown.legs ?? [:]).isEmpty {
+                  LegRow(leg: shown.leg(into: id),
+                         changed: suggestion != nil && shown.leg(into: id) != state.planContents.leg(into: id))
+                }
+                stopRow(place)
+              }
+            }
+            if !removedBySuggestion.isEmpty {
+              Text("Removes " + removedBySuggestion.map(\.name).joined(separator: ", "))
+                .font(.caption).strikethrough().foregroundStyle(HermiPalette.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
           }.padding(.horizontal, 18).padding(.vertical, 8)
         }
-        if warning {
+        if let suggestion {
+          SuggestionBar(suggestion: suggestion, applying: assistant?.phase == .applying,
+                        apply: applySuggestion, dismiss: dismissSuggestion)
+            .padding(.horizontal, 18)
+        } else if warning {
           Text("Some stops overlap or run backwards. Edit their times or continue with Go!")
             .font(.caption).foregroundStyle(HermiPalette.ink).padding(12)
             .background(HermiPalette.coral.opacity(0.25), in: PixelPanel(corner: 6)).padding(.horizontal, 18)
         }
+        if suggestion == nil {
         Button { if state.canStartPlan { go() } } label: {
           Text("Go!").font(.title2.bold()).frame(width: 130, height: 62)
             .background(HermiPalette.lime, in: PixelPanel(corner: 18))
         }.disabled(!state.canStartPlan).opacity(state.canStartPlan ? 1 : 0.45)
           .accessibilityHint("Opens Action preview. No real trip, tracking or notifications begin")
           .controlHelp(!state.canStartPlan ? "Add at least one place before Go" : "Enter Action preview: Directions and Camera")
+        }
         Text("Local plan preview · reminders and invitations are not sent")
           .font(.caption2).foregroundStyle(HermiPalette.secondary).padding(.horizontal, 18)
       }
@@ -160,7 +196,7 @@ struct PlanPreviewPage: View {
         var library = state.library
         let didSave = library.savePlan(name: name, folderID: folderID, newFolder: newFolder,
                                        visibility: visibility, friends: friends, stops: state.planIDs,
-                                       times: state.stopTimes ?? [:])
+                                       times: state.stopTimes ?? [:], legs: state.stopLegs)
         if didSave {
           state.library = library
           if let id = library.plans.last?.id { state.bindNewSavedPlan(id) }
@@ -214,12 +250,14 @@ struct PlanPreviewPage: View {
   }
 
   private func stopRow(_ place: MapSamplePlace) -> some View {
-    HStack(spacing: 10) {
+    let mark = mark(place.id)
+    return HStack(spacing: 10) {
       Button { editor = place } label: {
         VStack(spacing: 5) {
           if let time = times[place.id] {
             Text(time.arrival, format: .dateTime.month(.abbreviated).day()).font(.system(size: 9))
             Text(time.arrival, style: .time).font(.caption.bold())
+              .foregroundStyle(mark == .none ? HermiPalette.ink : HermiPalette.green)
             Text("\(time.durationMinutes)m" + (time.reminderMinutes > 0 ? " · \(time.reminderMinutes)m before" : "")).font(.system(size: 9)).lineLimit(2)
           } else { Text("Set time").font(.caption) }
         }.frame(width: 64, height: 58)
@@ -234,6 +272,14 @@ struct PlanPreviewPage: View {
           .accessibilityLabel("Who's going to \(place.name)")
           .controlHelp("View attendees and choose existing friends to invite")
       }.padding(.leading, 12).background(HermiPalette.category(place.category).opacity(0.32), in: PixelPanel(corner: 8))
+        .overlay(alignment: .topTrailing) {
+          if mark == .added {
+            Text("NEW").font(.system(size: 9, design: .monospaced).bold()).padding(.horizontal, 5).padding(.vertical, 2)
+              .background(HermiPalette.lime, in: PixelPanel(corner: 2)).padding(4)
+          }
+        }
+        .overlay(PixelPanel(corner: 8).stroke(HermiPalette.green, lineWidth: mark == .added ? 2 : 0).allowsHitTesting(false))
+        .accessibilityValue(mark == .added ? "Suggested new stop" : mark == .retimed ? "Suggested new time" : "")
         .draggable(place.id) { Text("Move \(place.name)").padding(12).background(HermiPalette.category(place.category)) }
         .dropDestination(for: String.self) { ids, point in
           guard let id = ids.first, state.planIDs.contains(id) else { return false }

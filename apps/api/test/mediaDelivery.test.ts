@@ -79,7 +79,12 @@ describe('GET /media/* (MEDIA_DELIVERY=api)', () => {
     const ok = await get(path(signed));
     expect(ok.statusCode).toBe(200);
     expect(ok.headers['cache-control']).toBe('private, max-age=300');
-    expect((await get(path(signed).replace(/sig=./, 'sig=x'))).statusCode).toBe(403);
+    // Change the signature's first character (to a different one: 'x' → 'y', anything else → 'x').
+    const tampered = path(signed).replace(
+      /sig=(.)/,
+      (_m, c: string) => `sig=${c === 'x' ? 'y' : 'x'}`,
+    );
+    expect((await get(tampered)).statusCode).toBe(403);
     const expired = signMediaUrl(BASE, t.ctx.config.JWT_SECRET, orig, -10);
     expect((await get(path(expired))).statusCode).toBe(403);
     // A signature for one key does not open another.

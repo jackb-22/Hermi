@@ -26,6 +26,7 @@ struct SavedPlanDraft: Codable, Equatable, Identifiable {
   var times: [String: PreviewStopTime]
   var inviteDrafts: [String: Set<String>]?
   var isBookmarked: Bool? // Older saved plans are bookmarked by default.
+  var legs: [String: PreviewLeg]?
 }
 
 struct SavedLibrary: Codable, Equatable {
@@ -46,7 +47,8 @@ struct SavedLibrary: Codable, Equatable {
   }
 
   mutating func savePlan(name: String, folderID: UUID?, newFolder: String?, visibility: SavedVisibility,
-                         friends: Set<String>, stops: [String], times: [String: PreviewStopTime]) -> Bool {
+                         friends: Set<String>, stops: [String], times: [String: PreviewStopTime],
+                         legs: [String: PreviewLeg]? = nil) -> Bool {
     let cleanName = name.trimmingCharacters(in: .whitespacesAndNewlines)
     let cleanFolder = newFolder?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
     guard !cleanName.isEmpty, cleanName.count <= 80, !stops.isEmpty,
@@ -64,7 +66,8 @@ struct SavedLibrary: Codable, Equatable {
     }
     let plan = SavedPlanDraft(name: cleanName, folderID: destination, visibility: visibility,
                               friendNames: visibility == .friends ? friends.sorted() : [], stopIDs: stops,
-                              times: times.filter { stops.contains($0.key) })
+                              times: times.filter { stops.contains($0.key) },
+                              legs: legs?.filter { stops.contains($0.key) })
     plans.append(plan)
     if let destination, let index = folders.firstIndex(where: { $0.id == destination }) {
       folders[index].items.append(.init(kind: .plan, refID: plan.id.uuidString))

@@ -1,0 +1,1 @@
+../../../Tests/HermiDesignTests/AssistantModelTests.swift
