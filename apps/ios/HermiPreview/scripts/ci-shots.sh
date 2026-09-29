@@ -7,20 +7,34 @@ cd "$(dirname "$0")/.."
 OUT="$1"; ONLY="${2:-.}"
 mkdir -p "$OUT" .build
 
+# The narrowest phone (375 pt) catches clipping; add an iPhone SE on the newest runtime when the image has none.
+RUNTIME=$(xcrun simctl list runtimes available -j | python3 -c '
+import sys, json
+rs = [r for r in json.load(sys.stdin)["runtimes"] if r["platform"] == "iOS"]
+print(max(rs, key=lambda r: [int(x) for x in r["version"].split(".")])["identifier"])
+')
+echo "runtime $RUNTIME"
+if ! xcrun simctl list devices available -j | python3 -c "
+import sys, json
+sys.exit(0 if any('SE' in d['name'] for d in json.load(sys.stdin)['devices'].get('$RUNTIME', [])) else 1)"; then
+  xcrun simctl create "iPhone SE (3rd generation)" com.apple.CoreSimulator.SimDeviceType.iPhone-SE-3rd-generation "$RUNTIME" \
+    > /dev/null 2>&1 || echo "  (could not add an iPhone SE on $RUNTIME)"
+fi
+# Only the newest runtime: the app links Swift overlays of the SDK (e.g. libswiftWebKit) that older runtimes lack.
 DEVICES=$(xcrun simctl list devices available -j | python3 -c '
 import sys, json, re
-ds = [d for g, group in json.load(sys.stdin)["devices"].items() if "iOS" in g for d in group if d["name"].startswith("iPhone")]
+ds = [d for d in json.load(sys.stdin)["devices"].get(sys.argv[1], []) if d["name"].startswith("iPhone")]
 def pick(pred):
     for d in ds:
         if pred(d["name"]): return d
-se = pick(lambda n: "SE" in n) or pick(lambda n: re.search(r"iPhone \d+e?$", n))
+small = pick(lambda n: "SE" in n) or pick(lambda n: "mini" in n) or pick(lambda n: re.fullmatch(r"iPhone \d+e", n))
 std = pick(lambda n: re.fullmatch(r"iPhone \d+", n) is not None)
-big = pick(lambda n: "Pro Max" in n) or pick(lambda n: "Plus" in n)
+big = pick(lambda n: "Pro Max" in n) or pick(lambda n: "Plus" in n or "Air" in n)
 seen = []
-for d in (se, std, big):
+for d in (small, std, big):
     if d and d["udid"] not in [s["udid"] for s in seen]: seen.append(d)
 print("\n".join(d["udid"] + "|" + d["name"].replace(" ", "-").replace("(", "").replace(")", "") for d in seen))
-')
+' "$RUNTIME")
 echo "devices:"; echo "$DEVICES"
 FIRST=$(echo "$DEVICES" | head -1 | cut -d"|" -f1)
 
