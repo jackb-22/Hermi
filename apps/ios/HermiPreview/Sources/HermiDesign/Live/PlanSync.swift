@@ -130,6 +130,25 @@ final class PlanSync {
 
   func reset() { baseline = nil }
 
+  /// Waits for queued writes, so the server plan is the one on screen (the AI button asks about it).
+  @MainActor
+  func flush() async { await queue?.value }
+
+  /// The server plan behind My Plan once pending writes have landed; nil in sample mode or before the first sync.
+  @MainActor
+  func readyPlanID(for state: MapPreviewState) async -> String? {
+    await flush()
+    return serverPlanID(for: state)
+  }
+
+  /// Contents the server just produced (AI Apply): the app takes them without pushing them straight back.
+  @MainActor
+  func adopt(_ contents: PlanContents, for state: MapPreviewState) {
+    let key = state.activeSavedPlanID?.uuidString ?? PlanSync.draftKey
+    guard serverIDs[key] != nil, baseline != nil else { return }
+    baseline?[key] = PlanSnapshot(name: baseline?[key]?.name, contents: contents)
+  }
+
   // MARK: Push
 
   @MainActor
