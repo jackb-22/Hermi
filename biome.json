@@ -6,7 +6,7 @@
       "!**/dist",
       "!apps/mobile",
       "!apps/api/src/data",
-      "!apps/ios/HermiPreview/Sources/HermiDesign/Resources/ai-fixtures",
+      "!apps/ios",
       "!**/.build",
       "!.ci-shots"
     ]
