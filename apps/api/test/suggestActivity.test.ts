@@ -70,7 +70,7 @@ describe('POST /plans/:id/ask {chip: suggest_activity}', () => {
         stop: { placeId: id['Midway Hall'] },
       }),
     ]);
-    expect(body.message).toBe('Midway Hall fits after stop 1, right on your route.');
+    expect(body.message).toBe('Midway Hall fits after Cafe, right on your route.');
     // Only a suggestion until applied.
     expect(body.plan.stops).toHaveLength(2);
   });

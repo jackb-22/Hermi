@@ -1,0 +1,6 @@
+{
+  "error": {
+    "code": "INTERNAL",
+    "message": "Response serialization failed"
+  }
+}

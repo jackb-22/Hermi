@@ -1,0 +1,123 @@
+{
+  "id": "id-17",
+  "name": "Corner café + 2 more",
+  "hostId": "id-2",
+  "isHost": true,
+  "startAt": "2026-10-04T16:00:00.000Z",
+  "endBy": null,
+  "mode": "walk",
+  "visibility": "just_me",
+  "status": "draft",
+  "stops": [
+    {
+      "id": "id-18",
+      "index": 1,
+      "place": {
+        "id": "cafe",
+        "name": "Corner café",
+        "category": "food",
+        "tags": [
+          "coffee"
+        ],
+        "loc": {
+          "lat": 40.8073,
+          "lng": -73.9654
+        },
+        "address": null,
+        "been": 0,
+        "wouldGoAgainPct": null
+      },
+      "slot": null,
+      "label": "Corner café",
+      "stayMin": 60,
+      "staySource": "user",
+      "stayReason": null,
+      "legMode": null,
+      "legMin": null,
+      "legSource": null,
+      "arriveAt": "2026-10-04T16:00:00.000Z",
+      "departAt": "2026-10-04T17:00:00.000Z",
+      "done": false,
+      "checkinId": null
+    },
+    {
+      "id": "id-19",
+      "index": 2,
+      "place": {
+        "id": "gallery",
+        "name": "Little gallery",
+        "category": "culture",
+        "tags": [
+          "gallery",
+          "indoor"
+        ],
+        "loc": {
+          "lat": 40.8077,
+          "lng": -73.9625
+        },
+        "address": null,
+        "been": 0,
+        "wouldGoAgainPct": null
+      },
+      "slot": null,
+      "label": "Little gallery",
+      "stayMin": 60,
+      "staySource": "user",
+      "stayReason": null,
+      "legMode": "walk",
+      "legMin": 4,
+      "legSource": "estimate",
+      "arriveAt": "2026-10-04T17:04:00.000Z",
+      "departAt": "2026-10-04T18:04:00.000Z",
+      "done": false,
+      "checkinId": null
+    },
+    {
+      "id": "id-20",
+      "index": 3,
+      "place": {
+        "id": "garden",
+        "name": "Riverside gardens",
+        "category": "nature",
+        "tags": [
+          "park",
+          "outdoor"
+        ],
+        "loc": {
+          "lat": 40.808,
+          "lng": -73.967
+        },
+        "address": null,
+        "been": 0,
+        "wouldGoAgainPct": null
+      },
+      "slot": null,
+      "label": "Riverside gardens",
+      "stayMin": 30,
+      "staySource": "user",
+      "stayReason": null,
+      "legMode": "walk",
+      "legMin": 6,
+      "legSource": "estimate",
+      "arriveAt": "2026-10-04T18:10:00.000Z",
+      "departAt": "2026-10-04T18:40:00.000Z",
+      "done": false,
+      "checkinId": null
+    }
+  ],
+  "members": [],
+  "totals": {
+    "km": 0.8,
+    "footKm": 0.8,
+    "legMin": 10,
+    "xpPreview": 54,
+    "endsAt": "2026-10-04T18:40:00.000Z"
+  },
+  "issues": [],
+  "ghostChanges": [],
+  "matchCount": null,
+  "shareUrl": "http://localhost:3000/p/share-4",
+  "textGroup": null,
+  "createdAt": "2026-10-02T14:00:00.000Z",
+  "updatedAt": "2026-10-02T14:00:00.000Z"
+}

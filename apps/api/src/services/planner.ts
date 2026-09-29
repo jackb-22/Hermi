@@ -632,8 +632,8 @@ Candidates (already filtered for this person, best first by code): ${JSON.string
     }
   }
   const extraMin = Math.round(pick.extraM / WALK_M_PER_MIN);
+  const where = pick.pos === 1 ? 'at the start' : `after ${ed.sched[pick.pos - 2]!.name}`;
   await ed.add({ placeId: pick.p._id, position: pick.pos, why: `Add ${pick.p.name}` });
-  const where = pick.pos === 1 ? 'first' : `after stop ${pick.pos - 1}`;
   return {
     changes: ed.changes,
     message:
