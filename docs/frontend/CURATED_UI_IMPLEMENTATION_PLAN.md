@@ -1,8 +1,8 @@
 # Hermi curated UI implementation plan
 
-2026-10-12 · Status: increment 7 implemented and reviewed in the iPhone 16e simulator; awaiting user review. Large-caption fixture verification remains pending.
+2026-10-12 · Status: increment 8 implemented and desktop-preview verified; awaiting user review. Native iPhone and live outing checks remain pending.
 
-User review gate: after every increment, open a preview for hands-on testing, give specific test instructions and expected results, and wait for explicit approval before beginning the next increment. The user approved increments 1–6 by continuing. Review [increment 5](design-reference/2026-10-12-curated-ui/05-saved/REVIEW.md), [increment 6](design-reference/2026-10-12-curated-ui/06-assistant/REVIEW.md), and [increment 7](design-reference/2026-10-12-curated-ui/07-feed-profile/REVIEW.md). Native accessibility-size and VoiceOver checks remain pending.
+User review gate: after every increment, open a preview for hands-on testing, give specific test instructions and expected results, and wait for explicit approval before beginning the next increment. The user approved increments 1–7 by continuing. Review [increment 6](design-reference/2026-10-12-curated-ui/06-assistant/REVIEW.md), [increment 7](design-reference/2026-10-12-curated-ui/07-feed-profile/REVIEW.md), and [increment 8](design-reference/2026-10-12-curated-ui/08-action-recap/REVIEW.md). Native iPhone and live-account checks remain pending.
 
 ## Objective and authority
 

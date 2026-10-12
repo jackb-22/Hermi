@@ -44,7 +44,7 @@ struct LiveActionView: View {
       VStack {
         HStack {
           TimelineView(.periodic(from: .now, by: 1)) { context in
-            Text("OUTING · \(elapsed(at: context.date))").font(.system(.caption, design: .monospaced))
+            Text("OUTING · \(elapsed(at: context.date))").font(.system(.footnote, design: .monospaced).weight(.semibold))
           }.padding(10).background(HermiPalette.controlSurface, in: PixelPanel(corner: 5))
           Spacer()
           Button("End") { confirmingEnd = true }.frame(minWidth: 44, minHeight: 44)
@@ -68,28 +68,29 @@ struct LiveActionView: View {
         if let next = nextStop {
           HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: 3) {
-              Text("NEXT STOP").font(.system(size: 10, design: .monospaced))
-              Text(next.name).font(.headline)
-              Text(distanceText(to: next)).font(.caption)
+              Text("NEXT STOP").font(.system(.footnote, design: .monospaced).weight(.semibold))
+              Text(next.name).font(HermiTypography.heading).fixedSize(horizontal: false, vertical: true)
+              Text(distanceText(to: next)).font(HermiTypography.metadata).fixedSize(horizontal: false, vertical: true)
             }
             Spacer()
             Button("Open in Maps") {
               if let url = URL(string: "http://maps.apple.com/?daddr=\(next.latitude),\(next.longitude)&dirflg=w") { openURL(url) }
-            }.font(.caption.bold()).padding(.horizontal, 10).frame(minHeight: 36)
+            }.font(HermiTypography.metadata.weight(.semibold)).padding(.horizontal, 10).frame(minHeight: 44)
               .background(.white, in: PixelPanel(corner: 5))
           }
         } else {
-          Text("Every stop checked in. End the outing for your recap.").font(.headline)
+          Text("Every stop checked in. End the outing for your recap.").font(HermiTypography.heading).fixedSize(horizontal: false, vertical: true)
         }
         ScrollView {
           VStack(spacing: 8) {
             ForEach(Array(places.enumerated()), id: \.element.id) { index, place in stopRow(place, number: index + 1) }
           }
         }.frame(maxHeight: 200)
-        if let notice = outing.notice { Text(notice).font(.caption.bold()).foregroundStyle(HermiPalette.green) }
+        if let notice = outing.notice { Text(notice).font(HermiTypography.metadata.weight(.semibold)).foregroundStyle(HermiPalette.green).fixedSize(horizontal: false, vertical: true) }
         Text("You have to be there: Tap tag only works within 150 m of the stop, like tapping the venue’s NFC tag.")
-          .font(.caption2).foregroundStyle(HermiPalette.secondary)
-        if outing.locationDenied { Text("Location is off. Turn it on to check in (Settings → Privacy → Location).").font(.caption2).foregroundStyle(HermiPalette.error) }
+          .font(HermiTypography.metadata).foregroundStyle(HermiPalette.secondary).fixedSize(horizontal: false, vertical: true)
+        if outing.locationDenied { Text("Location is off. Turn it on to check in (Settings → Privacy → Location).")
+          .font(HermiTypography.metadata).foregroundStyle(HermiPalette.error).fixedSize(horizontal: false, vertical: true) }
       }
       .padding(16).background(HermiPalette.controlSurface, in: PixelPanel(corner: 10))
       .padding(.horizontal, 14).padding(.bottom, 92)
@@ -98,23 +99,23 @@ struct LiveActionView: View {
 
   private func stopRow(_ place: MapSamplePlace, number: Int) -> some View {
     HStack(spacing: 10) {
-      Text("\(number)").font(.caption.bold()).frame(width: 22, height: 22)
+      Text("\(number)").font(HermiTypography.metadata.weight(.bold)).frame(width: 24, height: 24)
         .background(HermiPalette.category(place.category), in: PixelPanel(corner: 3))
       VStack(alignment: .leading, spacing: 1) {
-        Text(place.name).font(.subheadline).lineLimit(1)
-        if outing.checkins[place.id] == nil, let away = distanceShort(to: place) { Text(away).font(.caption2).foregroundStyle(HermiPalette.secondary) }
+        Text(place.name).font(HermiTypography.label).lineLimit(2).fixedSize(horizontal: false, vertical: true)
+        if outing.checkins[place.id] == nil, let away = distanceShort(to: place) { Text(away).font(HermiTypography.metadata).foregroundStyle(HermiPalette.secondary) }
       }
       Spacer()
       if let result = outing.checkins[place.id] {
-        Text("✓ +\(result.xp.total) XP").font(.caption.bold()).foregroundStyle(HermiPalette.green)
+        Text("✓ +\(result.xp.total) XP").font(HermiTypography.metadata.weight(.semibold)).foregroundStyle(HermiPalette.green)
       } else {
         Button {
           Task { await outing.checkIn(at: place) }
         } label: {
           HStack(spacing: 4) {
             if outing.checkingIn == place.id { ProgressView().controlSize(.small) }
-            Text("Tap tag").font(.caption.bold())
-          }.padding(.horizontal, 10).frame(minHeight: 34).background(HermiPalette.lime, in: PixelPanel(corner: 5))
+            Text("Tap tag").font(HermiTypography.metadata.weight(.semibold))
+          }.padding(.horizontal, 10).frame(minHeight: 44).background(HermiPalette.lime, in: PixelPanel(corner: 5))
         }.disabled(outing.checkingIn != nil)
           .accessibilityLabel("Check in at \(place.name) with the tag stand-in")
       }
@@ -129,22 +130,22 @@ struct LiveActionView: View {
       VStack(spacing: 18) {
         Spacer()
         Text(outing.latestCheckinID == nil ? "Check in at a stop to capture" : "Photos attach to your latest check-in")
-          .font(.subheadline).foregroundStyle(HermiPalette.paper)
+          .font(HermiTypography.body).foregroundStyle(HermiPalette.paper).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
         Button { shutter() } label: {
           Circle().fill(HermiPalette.paper).frame(width: 82, height: 82)
             .overlay(Circle().stroke(HermiPalette.lime, lineWidth: 6).padding(-8))
         }.disabled(outing.latestCheckinID == nil).opacity(outing.latestCheckinID == nil ? 0.4 : 1)
           .accessibilityLabel("Take photo")
         if !cameraAvailable {
-          Text("Simulator: uses a labelled sample photo").font(.caption2).foregroundStyle(HermiPalette.paper.opacity(0.7))
+          Text("Simulator: uses a labelled sample photo").font(HermiTypography.metadata).foregroundStyle(HermiPalette.paper.opacity(0.8)).multilineTextAlignment(.center)
         }
-        if let notice = outing.notice { Text(notice).font(.caption).foregroundStyle(HermiPalette.lime).padding(.horizontal, 24) }
+        if let notice = outing.notice { Text(notice).font(HermiTypography.metadata).foregroundStyle(HermiPalette.lime).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true).padding(.horizontal, 24) }
         ScrollView(.horizontal) {
           HStack(spacing: 10) {
             ForEach(outing.captures) { capture in
               VStack(spacing: 4) {
                 captureImage(capture).frame(width: 84, height: 104).clipShape(PixelPanel(corner: 6))
-                Text(capture.status).font(.caption2.bold())
+                Text(capture.status).font(HermiTypography.metadata.weight(.semibold))
                   .foregroundStyle(capture.status == "Verified" ? HermiPalette.lime : HermiPalette.paper)
               }
             }
@@ -211,15 +212,15 @@ struct LiveActionView: View {
     VStack(spacing: 16) {
       HermitBrandMark().frame(width: 60, height: 68)
       if spinner { ProgressView() }
-      Text(text).font(.headline)
+      Text(text).font(HermiTypography.heading)
     }.frame(maxWidth: .infinity, maxHeight: .infinity).background(HermiPalette.paper.ignoresSafeArea())
   }
 
   /// Local Action with no server session (e.g. the session ended elsewhere): start fresh or leave.
   private var notRunning: some View {
     VStack(spacing: 16) {
-      Text("This outing isn’t running").font(.title2.bold())
-      Text("Start it again to check in and capture, or go back to the map.").font(.subheadline)
+      Text("This outing isn’t running").font(HermiTypography.title)
+      Text("Start it again to check in and capture, or go back to the map.").font(HermiTypography.body).fixedSize(horizontal: false, vertical: true)
         .multilineTextAlignment(.center).padding(.horizontal, 30)
       Button("Start outing") { Task { await outing.start(planID: nil) } }
         .padding(12).background(HermiPalette.lime, in: PixelPanel(corner: 6))
@@ -229,8 +230,8 @@ struct LiveActionView: View {
 
   private func failure(_ message: String) -> some View {
     VStack(spacing: 16) {
-      Text("Outing problem").font(.title2.bold())
-      Text(message).font(.subheadline).multilineTextAlignment(.center).padding(.horizontal, 30)
+      Text("Outing problem").font(HermiTypography.title)
+      Text(message).font(HermiTypography.body).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true).padding(.horizontal, 30)
       if outing.sessionID != nil {
         Button("Try ending again") { Task { await outing.end() } }.padding(12).background(HermiPalette.lime, in: PixelPanel(corner: 6))
       }
@@ -240,8 +241,8 @@ struct LiveActionView: View {
 
   private func modeButton(_ label: String, icon: String, mode: ActionPreviewSession.Mode) -> some View {
     Button { selectMode(mode) } label: {
-      VStack(spacing: 4) { PixelIcon(name: icon).frame(width: 24, height: 24); Text(label).font(.caption) }
-        .frame(width: 95, height: 48).background(session.mode == mode ? HermiPalette.lime : .clear, in: Capsule())
+      VStack(spacing: 4) { PixelIcon(name: icon).frame(width: 24, height: 24); Text(label).font(HermiTypography.metadata) }
+        .frame(minWidth: 95, minHeight: 52).background(session.mode == mode ? HermiPalette.lime : .clear, in: Capsule())
         .contentShape(Rectangle())
     }.accessibilityLabel(label).accessibilityAddTraits(session.mode == mode ? .isSelected : [])
   }
@@ -262,25 +263,30 @@ private struct RecapView: View {
     ScrollView {
       if let recap = outing.recap {
         VStack(alignment: .leading, spacing: 18) {
-          Text(recap.planName ?? "Outing recap").font(.largeTitle.bold())
+          Text(recap.planName ?? "Outing recap").font(.system(.largeTitle, design: .rounded).weight(.bold))
+            .fixedSize(horizontal: false, vertical: true)
           HStack(spacing: 18) {
             fact("\(recap.durationMin ?? 0) min", "out")
             fact(String(format: "%.1f km", recap.footKm ?? 0), "on foot")
             fact("\(recap.newTiles.count)", "new tiles")
           }
-          if recap.fullParty == true { Text("Full party bonus: everyone checked in together").font(.subheadline.bold()).foregroundStyle(HermiPalette.green) }
+          if recap.fullParty == true { Text("Full party bonus: everyone checked in together").font(HermiTypography.body.weight(.semibold)).foregroundStyle(HermiPalette.green).fixedSize(horizontal: false, vertical: true) }
 
-          Text("+\(recap.xp.total) XP").font(.system(size: 40, weight: .bold, design: .monospaced))
+          Text("+\(recap.xp.total) XP").font(.system(.largeTitle, design: .monospaced).weight(.bold))
           ForEach(Array(recap.xp.items.enumerated()), id: \.offset) { _, item in
-            HStack { Text(item.label).font(.subheadline); Spacer(); Text("+\(item.xp)").font(.system(.subheadline, design: .monospaced)) }
+            HStack(alignment: .firstTextBaseline) {
+              Text(item.label).font(HermiTypography.body).fixedSize(horizontal: false, vertical: true)
+              Spacer(minLength: 12)
+              Text("+\(item.xp)").font(.system(.body, design: .monospaced).weight(.medium))
+            }
           }
 
-          Text("Stops").font(.headline)
-          if recap.stops.isEmpty { Text("No verified check-ins this time.").font(.subheadline) }
+          Text("Stops").font(HermiTypography.heading)
+          if recap.stops.isEmpty { Text("No verified check-ins this time.").font(HermiTypography.body) }
           ForEach(recap.stops, id: \.checkinId) { stop in reviewRow(stop) }
 
           postComposer(recap)
-          Button("Done") { done() }.font(.headline).padding(16).frame(maxWidth: .infinity)
+          Button("Done") { done() }.font(HermiTypography.body.weight(.semibold)).padding(16).frame(maxWidth: .infinity, minHeight: 52)
             .background(HermiPalette.controlSurface, in: PixelPanel(corner: 8))
             .overlay(PixelPanel(corner: 8).stroke(HermiPalette.ink, lineWidth: 2))
         }.padding(24)
@@ -292,28 +298,28 @@ private struct RecapView: View {
 
   private func fact(_ value: String, _ label: String) -> some View {
     VStack(alignment: .leading, spacing: 2) {
-      Text(value).font(.system(.title3, design: .monospaced).bold())
-      Text(label).font(.caption2).foregroundStyle(HermiPalette.secondary)
-    }
+      Text(value).font(.system(.title3, design: .monospaced).weight(.bold)).fixedSize(horizontal: false, vertical: true)
+      Text(label).font(HermiTypography.metadata).foregroundStyle(HermiPalette.secondary).fixedSize(horizontal: false, vertical: true)
+    }.frame(maxWidth: .infinity, alignment: .leading)
   }
 
   private func reviewRow(_ stop: RecapDTO.Stop) -> some View {
     VStack(alignment: .leading, spacing: 6) {
       HStack {
-        Text(stop.placeName).font(.subheadline.bold())
+        Text(stop.placeName).font(HermiTypography.label).fixedSize(horizontal: false, vertical: true)
         Spacer()
-        Text(stop.tier == "tag" ? "TAG" : "GPS").font(.system(size: 10, design: .monospaced))
-        if stop.firstVisit == true { Text("FIRST").font(.system(size: 10, design: .monospaced)).foregroundStyle(HermiPalette.green) }
+        Text(stop.tier == "tag" ? "TAG" : "GPS").font(.system(.footnote, design: .monospaced).weight(.semibold))
+        if stop.firstVisit == true { Text("FIRST").font(.system(.footnote, design: .monospaced).weight(.semibold)).foregroundStyle(HermiPalette.green) }
       }
       if let answer = reviewed[stop.checkinId] {
-        Text(answer ? "You’d go again ✓" : "Not again ✓").font(.caption)
+        Text(answer ? "You’d go again ✓" : "Not again ✓").font(HermiTypography.metadata)
       } else if stop.reviewed != true {
         HStack {
-          Text("Would you go again?").font(.caption)
+          Text("Would you go again?").font(HermiTypography.metadata)
           Spacer()
-          Button("Yes") { review(stop, again: true) }.font(.caption.bold()).padding(.horizontal, 12).frame(minHeight: 32)
+          Button("Yes") { review(stop, again: true) }.font(HermiTypography.metadata.weight(.semibold)).padding(.horizontal, 12).frame(minHeight: 44)
             .background(HermiPalette.lime, in: PixelPanel(corner: 5))
-          Button("No") { review(stop, again: false) }.font(.caption.bold()).padding(.horizontal, 12).frame(minHeight: 32)
+          Button("No") { review(stop, again: false) }.font(HermiTypography.metadata.weight(.semibold)).padding(.horizontal, 12).frame(minHeight: 44)
             .background(.white, in: PixelPanel(corner: 5))
         }
       }
@@ -322,9 +328,9 @@ private struct RecapView: View {
 
   @ViewBuilder
   private func postComposer(_ recap: RecapDTO) -> some View {
-    Text("Post this outing").font(.headline)
+    Text("Post this outing").font(HermiTypography.heading)
     if outing.captures.isEmpty {
-      Text("No photos this time: you can still post the route card.").font(.caption)
+      Text("No photos this time: you can still post the route card.").font(HermiTypography.metadata).fixedSize(horizontal: false, vertical: true)
     } else {
       ScrollView(.horizontal) {
         HStack(spacing: 8) {
@@ -346,13 +352,13 @@ private struct RecapView: View {
       }
     }
     Toggle("Include route card", isOn: $includeRoute).tint(HermiPalette.green)
-    TextField("Caption (optional)", text: $caption).padding(10).background(.white, in: PixelPanel(corner: 5))
-    if let postMessage { Text(postMessage).font(.caption.bold()).foregroundStyle(HermiPalette.green) }
+    TextField("Caption (optional)", text: $caption).font(HermiTypography.body).padding(10).background(.white, in: PixelPanel(corner: 5))
+    if let postMessage { Text(postMessage).font(HermiTypography.metadata.weight(.semibold)).foregroundStyle(HermiPalette.green).fixedSize(horizontal: false, vertical: true) }
     Button {
       Task { await post(recap) }
     } label: {
       HStack { if posting { ProgressView() }; Text(recap.posted == true || postMessage?.hasPrefix("Posted") == true ? "Posted ✓" : "Post") }
-        .font(.headline).frame(maxWidth: .infinity, minHeight: 50).background(HermiPalette.lime, in: PixelPanel(corner: 8))
+        .font(HermiTypography.body.weight(.semibold)).frame(maxWidth: .infinity, minHeight: 52).background(HermiPalette.lime, in: PixelPanel(corner: 8))
     }.disabled(posting || postMessage?.hasPrefix("Posted") == true || (selected.isEmpty && !includeRoute))
   }
 

@@ -4,11 +4,17 @@ Updated: 2026-10-12. Branch: design/curated-ui-refresh. Earlier frontend history
 
 ## Current checkpoint
 
+### 2026-10-12 — curated UI increment 8, ready for user review
+
+Directions/Camera and Recap surfaces now share rounded semantic text roles, wrapping explanations and stop names, and larger mode/check-in/review actions. Recap facts retain monospaced values but scale with system text. Motion audit found no custom task animations in these views; existing native sheet transitions remain under the parent Reduce Motion preference. No check-in, capture, End, server status, verification, XP or plan lifecycle behavior changed. The [increment 8 review](design-reference/2026-10-12-curated-ui/08-action-recap/REVIEW.md) records the local preview and screenshots.
+
+macOS preview build and all 118 Swift tests pass; `git diff --check` passes. In the compact desktop preview, inspected Camera, Directions’ planned-stop panel, End confirmation and Recap; the local recap explicitly says the plan is unchanged and no outing was recorded. The desktop map remained at its Loading map placeholder. iPhone simulator rebuilds failed because CoreSimulatorService disconnected and its user-library log/cache were inaccessible. Native iPhone layout, accessibility text, VoiceOver, and live Action states remain pending. Wait for review before increment 9.
+
 ### 2026-10-12 — curated UI increment 7, ready for user review
 
 Feed pages now use the established rounded type roles across sample and live presentation, allow titles and status text to wrap, and offer a scrollable “Read full caption/description” sheet for long text. Profile identity, metric labels and the Adventures/Posts switch use the same hierarchy; both tabs now show their names beside the existing pixel icons. Navigation, feed filters, Save/Add semantics, profile metrics and privacy remain intact. A local long-caption review fixture is available through `--hermi-feed-review --hermi-feed-long-review`; it never loads account data. The [increment 7 review](design-reference/2026-10-12-curated-ui/07-feed-profile/REVIEW.md) has simulator captures and the test checklist.
 
-The macOS preview build and all 118 Swift tests pass; `git diff --check` passes. Interactively inspected Feed plus Adventures/Posts on iPhone 16e, iOS 26.3 at default text size. Repeated tab switching did not navigate away or open content. The simulator service became unavailable during the follow-up build for the long-caption fixture, so that fixture and sheet still need interactive review; large Dynamic Type, live-account data, and VoiceOver remain pending. Wait for review before increment 8.
+The macOS preview build and all 118 Swift tests pass; `git diff --check` passes. Interactively inspected Feed plus Adventures/Posts on iPhone 16e, iOS 26.3 at default text size. Repeated tab switching did not navigate away or open content. The simulator service became unavailable during the follow-up build for the long-caption fixture, so that fixture and sheet still need interactive review; large Dynamic Type, live-account data, and VoiceOver remain pending. The user approved increment 7 on 2026-10-12; increment 8 is now ready for review.
 
 ### 2026-10-12 — curated UI increment 6, ready for user review
 
