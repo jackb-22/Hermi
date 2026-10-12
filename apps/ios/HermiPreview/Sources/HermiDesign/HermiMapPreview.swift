@@ -698,7 +698,10 @@ public struct HermiMapPreview: View {
       }.scrollIndicators(.hidden).id(sheet)
       Color.clear.frame(height: 82)
     }
-    .frame(height: panelLevel.height(viewport: height, safeTop: safeTop))
+    .frame(height: panelLevel.height(viewport: height, safeTop: safeTop, isPlace: {
+      if case .place = sheet { return true }
+      return false
+    }()))
     .animation(reduceMotion ? nil : .interactiveSpring(response: 0.3, dampingFraction: 0.9), value: panelLevel)
     .frame(maxWidth: .infinity)
     .background(HermiPalette.paper, in: UnevenRoundedRectangle(topLeadingRadius: 24, topTrailingRadius: 24))
