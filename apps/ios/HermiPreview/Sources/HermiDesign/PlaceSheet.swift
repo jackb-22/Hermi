@@ -103,7 +103,7 @@ struct PlaceDetailHeader: View {
 
         Button(action: togglePlan) {
           Label {
-            Text(isPlanned ? "In My Plan" : "Add to Plan")
+            Text(isPlanned ? "Remove from Plan" : "Add to Plan")
           } icon: {
             PixelIcon(name: isPlanned ? "check" : "plus").frame(width: 17, height: 17)
           }
