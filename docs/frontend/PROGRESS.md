@@ -1,8 +1,14 @@
 # Hermi frontend progress
 
-Updated: 2026-09-27. Branch: frontend. Earlier 47-commit history pushed with user authorization; subsequent branding work is local for review.
+Updated: 2026-10-12. Branch: design/curated-ui-refresh. Earlier frontend history and subsequent branding work are documented below; this curated UI series is local and committed by increment.
 
 ## Current checkpoint
+
+### 2026-10-12 — curated UI increment 2, committed for user review
+
+Refined the Map category selector with a clearer selected-state chip; grouped permanent Social and My Plan actions on one shared control surface; retained the category pin's adjustable action and hold/slide/drop gesture. Nearby now gives its title and pin/filter summary separate hierarchy and allows place names to wrap. Feed retains its own audience/content filters; Profile retains Settings/Saved. Map gestures and attribution positioning remain covered by the map bridge suite. Fixed the desktop preview launcher to resolve SwiftPM's active architecture-specific build directory.
+
+Desktop build and 116 Swift tests passed; all map bridge scenarios passed. Opened the 375 × 667-point compact desktop review, exercised the category filter, Social toggle, and Plan navigation, and inspected both compact and expanded Nearby states. Screenshots and the focused user checklist are in [increment 2 review](design-reference/2026-10-12-curated-ui/02-map-discovery/REVIEW.md). Simulator/physical iPhone gesture, VoiceOver, and haptic checks remain pending. Preview is open with Food citywide active and Nearby visible; wait for user approval before increment 3.
 
 ### 2026-10-12 — curated UI increment 1, implemented for user review
 

@@ -22,7 +22,7 @@ import SwiftUI
           NSApp.setActivationPolicy(.regular)
           NSApp.activate(ignoringOtherApps: true)
           #if DEBUG
-          if ProcessInfo.processInfo.arguments.contains("--hermi-plan-review") {
+          if ProcessInfo.processInfo.arguments.contains("--hermi-plan-review") || ProcessInfo.processInfo.arguments.contains("--hermi-pin-review") {
             // Review launches must not inherit a maximized or offscreen window.
             DispatchQueue.main.async {
               if let window = NSApp.windows.first(where: { $0.contentView != nil && $0.canBecomeMain }) {

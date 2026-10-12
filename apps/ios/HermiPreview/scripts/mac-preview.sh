@@ -4,9 +4,10 @@ cd "$(dirname "$0")/.."
 export DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}"
 xcrun swift build --product HermiDesktop --disable-sandbox
 APP="$PWD/.preview/Hermi Preview.app"
+BUILD_DIR="$(xcrun swift build --show-bin-path --disable-sandbox)"
 mkdir -p "$APP/Contents/MacOS"
-cp .build/debug/HermiDesktop "$APP/Contents/MacOS/HermiDesktop"
-cp -R .build/debug/HermiPreview_HermiDesign.bundle "$APP/Contents/"
+cp "$BUILD_DIR/HermiDesktop" "$APP/Contents/MacOS/HermiDesktop"
+cp -R "$BUILD_DIR/HermiPreview_HermiDesign.bundle" "$APP/Contents/"
 cat > "$APP/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <plist version="1.0"><dict>

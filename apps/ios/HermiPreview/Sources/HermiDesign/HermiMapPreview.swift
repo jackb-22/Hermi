@@ -341,8 +341,8 @@ public struct HermiMapPreview: View {
           mapCommand = MapCommand(action: "drop", point: normalized)
           panelLevel = .compact
         }, onDragBegan: { state.sheet = nil; editingPinID = nil; pinNotice = nil })
-      }
-      if state.panel == .profile {
+        mapSocialAndPlanControls
+      } else if state.panel == .profile {
         Button { settings = true } label: {
           PixelIcon(name: "settings").frame(width: 26, height: 26).frame(width: 34, height: 34)
             .background(HermiPalette.controlSurface, in: PixelPanel(corner: 8)).frame(width: 44, height: 44)
@@ -352,26 +352,45 @@ public struct HermiMapPreview: View {
             .background(HermiPalette.controlSurface, in: PixelPanel(corner: 8)).frame(width: 44, height: 44)
         }.accessibilityLabel("Open Saved folders").controlHelp("Browse saved places, posts and plans")
       } else {
-      Button {
-        if state.panel == .feed { state.toggleFeedAudience() }
-        else { state.social.toggle() }
-      } label: {
-        PixelIcon(name: "social").frame(width: 26, height: 26).frame(width: 34, height: 34)
-          .background((state.panel == .feed ? state.feedOptions.audience == .friends : state.social) ? HermiPalette.lime : HermiPalette.controlSurface, in: PixelPanel(corner: 8))
-        .frame(width: 44, height: 44).contentShape(Rectangle())
-      }.accessibilityLabel(state.panel == .feed ? (state.feedOptions.audience == .friends ? "Friends feed. Show general" : "General feed. Show friends") : (state.social ? "Social map. Switch to Solo" : "Solo map. Switch to Social"))
-        .controlHelp(state.panel == .feed ? "Switch the Feed between General and Friends" : "Toggle Solo and Social map")
-      Button {
-        if state.panel == .feed { state.toggleFeedContent() }
-        else { state.sheet = .plan; panelLevel = .full }
-      } label: {
-        PixelIcon(name: "plan").frame(width: 26, height: 26).frame(width: 34, height: 34)
-          .background(state.panel == .feed ? state.feedOptions.content.tint : HermiPalette.controlSurface, in: PixelPanel(corner: 8))
-        .frame(width: 44, height: 44).contentShape(Rectangle())
-      }.accessibilityLabel(state.panel == .feed ? "Feed shows \(state.feedOptions.content.label). Change filter" : "My Plan, \(state.planIDs.count) places")
-        .controlHelp(state.panel == .feed ? "Filter the Feed: everything, posts only or plans only" : "Open My Plan. Saved is inside its bookmark button")
+        feedControls
       }
     }.buttonStyle(.plain)
+  }
+
+  /// Keep the two permanent Map actions on one shared surface; their tap targets
+  /// remain separate 44-point controls with a quiet divider between them.
+  private var mapSocialAndPlanControls: some View {
+    VStack(spacing: 0) {
+      Button { state.social.toggle() } label: {
+        PixelIcon(name: "social").frame(width: 26, height: 26).frame(width: 44, height: 44).contentShape(Rectangle())
+          .background(state.social ? HermiPalette.lime : .clear, in: PixelPanel(corner: 7))
+      }.accessibilityLabel(state.social ? "Social map. Switch to Solo" : "Solo map. Switch to Social")
+        .controlHelp("Show or hide friends on the map")
+      Rectangle().fill(HermiPalette.line).frame(width: 24, height: 1).accessibilityHidden(true)
+      Button { state.sheet = .plan; panelLevel = .full } label: {
+        PixelIcon(name: "plan").frame(width: 26, height: 26).frame(width: 44, height: 44).contentShape(Rectangle())
+      }.accessibilityLabel("My Plan")
+        .controlHelp("Open your planned stops")
+    }
+    .padding(4)
+    .background(HermiPalette.controlSurface.opacity(0.96), in: PixelPanel(corner: 8))
+    .overlay(PixelPanel(corner: 8).stroke(HermiPalette.line, lineWidth: 1))
+    .accessibilityElement(children: .contain)
+  }
+
+  @ViewBuilder private var feedControls: some View {
+    Button { state.toggleFeedAudience() } label: {
+      PixelIcon(name: "social").frame(width: 26, height: 26).frame(width: 34, height: 34)
+        .background(state.feedOptions.audience == .friends ? HermiPalette.lime : HermiPalette.controlSurface, in: PixelPanel(corner: 8))
+        .frame(width: 44, height: 44).contentShape(Rectangle())
+    }.accessibilityLabel(state.feedOptions.audience == .friends ? "Friends feed. Show general" : "General feed. Show friends")
+      .controlHelp("Switch the Feed between General and Friends")
+    Button { state.toggleFeedContent() } label: {
+      PixelIcon(name: "plan").frame(width: 26, height: 26).frame(width: 34, height: 34)
+        .background(state.feedOptions.content.tint, in: PixelPanel(corner: 8))
+        .frame(width: 44, height: 44).contentShape(Rectangle())
+    }.accessibilityLabel("Feed shows \(state.feedOptions.content.label). Change filter")
+      .controlHelp("Filter the Feed: everything, posts only or plans only")
   }
 
   private func map(in size: CGSize) -> some View {
@@ -634,10 +653,15 @@ public struct HermiMapPreview: View {
   private var nearbyContent: some View {
     // Only the selected pin's places (nearest first); all current matches when no pin is selected.
     let places = state.nearbyPlaces(for: editingPinID)
-    return VStack(alignment: .leading, spacing: 12) {
-      HStack { Text("Nearby").font(.headline); Spacer(); Text(discoverySummary).font(.caption).foregroundStyle(HermiPalette.secondary) }
+    return VStack(alignment: .leading, spacing: HermiSpacing.medium) {
+      VStack(alignment: .leading, spacing: HermiSpacing.tight) {
+        Text("Nearby").font(HermiTypography.heading)
+        if !discoverySummary.isEmpty {
+          Text(discoverySummary).font(HermiTypography.metadata).foregroundStyle(HermiPalette.secondary)
+        }
+      }
       if places.isEmpty {
-        Text(LiveSession.shared.isLive ? (PlaceCatalog.shared.loading ? "Loading places…" : "No places match these filters here.") : "No sample places match these filters.").font(.subheadline)
+        Text(LiveSession.shared.isLive ? (PlaceCatalog.shared.loading ? "Loading places…" : "No places match these filters here.") : "No sample places match these filters.").font(HermiTypography.body)
       }
       ScrollView(.horizontal) {
         LazyHStack(spacing: 12) {
@@ -645,7 +669,7 @@ public struct HermiMapPreview: View {
             Button { state.selectPlace(place.id) } label: {
               VStack(alignment: .leading, spacing: 6) {
                 mediaTile(place.category).frame(width: 124, height: 76)
-                Text(place.name).font(.caption.weight(.medium)).lineLimit(1)
+                Text(place.name).font(HermiTypography.label).fixedSize(horizontal: false, vertical: true)
               }.frame(width: 124, alignment: .leading)
             }.buttonStyle(.plain)
           }

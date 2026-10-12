@@ -115,8 +115,12 @@ struct CategoryPinControl: View {
           .simultaneousGesture(TapGesture().onEnded { if !dropping { onFilter() } })
         PixelIcon(name: "right").frame(width: 8, height: 12).allowsHitTesting(false)
       }
-      Text(category.rawValue).font(.caption2.weight(.semibold)).fixedSize()
-        .underline(filterActive, color: HermiPalette.green)
+      Text(category.rawValue).font(HermiTypography.label).fixedSize()
+        .padding(.horizontal, HermiSpacing.small).padding(.vertical, HermiSpacing.tight)
+        .background(filterActive ? HermiPalette.green.opacity(0.12) : HermiPalette.controlSurface.opacity(0.96),
+                    in: PixelPanel(corner: 5))
+        .overlay(PixelPanel(corner: 5).stroke(filterActive ? HermiPalette.green : HermiPalette.line, lineWidth: 1))
+        .accessibilityHidden(true)
     }
       .onChange(of: touching) { _, active in
         if !active { showing = false; dropping = false; dragging = .zero }
