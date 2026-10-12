@@ -1,6 +1,6 @@
 # Hermi UI round 2 — implementation handoff
 
-2026-10-12 · Source implementation pass complete where environment and supplied assets allowed; rendered/device acceptance remains open.
+2026-10-12 · Snapshot of the source implementation pass before the Apple account was signed into Xcode. The later iPhone/simulator verification and two visual fixes are recorded in [the device review](../10-device-review/REVIEW.md); use it for current acceptance status.
 
 ## Implemented commits
 

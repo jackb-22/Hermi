@@ -1,6 +1,6 @@
 # Hermi UI round 2 implementation plan
 
-2026-10-12 · Implementation pass recorded; 15 increments total (R2.00–R2.14). R2.01 and later source changes are committed; visual/device acceptance remains incomplete.
+2026-10-12 · Implementation pass recorded; 15 increments total (R2.00–R2.14). Source changes are committed through R2.14, with two post-pass visual corrections committed after iPhone/simulator review. Acceptance is partial; current evidence and remaining limits are in [device review](design-reference/2026-10-12-curated-ui-round-2/10-device-review/REVIEW.md).
 
 ## Scope and authority
 
@@ -12,21 +12,22 @@ This plan responds to the second-round critique. The user has authorized impleme
 
 ## Evidence and priorities
 
-The critique reviewed recent source and recorded October 12 renders. Fresh current-build interaction acceptance remains incomplete: the open desktop app came from Cairn; the Hermi macOS target built, but Launch Services failed and direct execution failed during the review. An existing Simulator Plan was inspected without establishing its exact revision; later UI calls timed out. Round 1 test results and screenshots remain historical evidence.
+The original critique reviewed source and October 12 renders. Since the account was signed into Xcode, the current app was opened on an iPhone 17 Pro and reviewed in Map, Feed and Profile; then current HEAD was rebuilt and exercised in an iPhone 16e simulator. The simulator confirmed the Profile notice collision and the disabled Plan label issue; both are now fixed in separate commits. The physical phone showed the map-first pixel-art direction, but iPhone Mirroring now requires the Mac login to reconnect, so the two post-review fixes have simulator evidence only. Round 1 test results and screenshots remain historical evidence.
 
 | Finding | Evidence class | Priority |
 | --- | --- | --- |
-| Feed line limits can hide text below the 150-character disclosure threshold | Confirmed source logic; missing rendered reproduction | P1 |
+| Feed line limits can hide text below the 150-character disclosure threshold | Full-caption control and sheet exercised on iPhone 16e; dynamic type remains open | P1, implementation verified at default size |
 | Plan devotes separate regions to disabled Undo and reorder instructions | Recorded compact render and source | P1 |
 | Compact Place shows incomplete post content below its larger header | Recorded long-title render | P1 |
 | Saved large-text cards remain in two columns | Source-supported risk; populated render pending | P1 verification, P2 correction |
 | Saved repeats its page title | Recorded empty render and source | P2 |
 | Expanded Nearby retains a small horizontal carousel | Recorded render and source; sparse fixtures contribute | P2 |
-| Profile has fixed top overhead and a notice overlapping map info | Recorded render and source | P2 |
+| Profile has fixed top overhead and a notice overlapping map info | Current simulator reproduced the notice collision; fixed by moving the chip to the map's upper-left | P2, notice correction verified |
 | Plan-shaped control opens Plan on Map but filters Feed | Confirmed role ambiguity; user impact unmeasured | P2 |
 | In My Plan toggle does not visibly explain removal | Contextual tradeoff; user impact unmeasured | P2 |
-| Assistant category choices show rounded outer chrome around pixel surfaces | Confirmed macOS appearance; iPhone unverified | P3 conditional |
-| Place/Feed/Profile imagery is dominated by placeholders | Observed fixture limitation; engagement unverified | P1 evidence |
+| Assistant category choices show rounded outer chrome around pixel surfaces | Checked in the iPhone 16e simulator; choices use consistent pixel panels and readable labels | P3, closed without a change |
+| Empty Plan's disabled “Go!” label loses contrast | Current iPhone 16e render showed a faded label on pale lime; dark ink on a quiet gray surface is now used | P2, corrected state verified |
+| Place/Feed/Profile imagery is dominated by placeholders | Confirmed on physical iPhone and simulator; sample states are labeled, but no reusable/provenance-cleared photos were found | P1 evidence; asset decision remains open |
 
 P1 resolves content access or acceptance gaps. P2 improves task clarity and composition. P3 proceeds only after reproducing the issue on the target platform. Predicted engagement and retention benefits require user evidence.
 
@@ -161,6 +162,8 @@ Inspect native iPhone first. If rounded/shaded outer controls compete with pixel
 **Acceptance:** seven distinct readable choices, 44-point targets, visible pressed feedback, sensible VoiceOver order; no category-request or provisional-apply changes.
 
 **Commit if needed:** `style: unify Assistant category button surfaces`.
+
+**Review result (2026-10-12):** Closed without a source change. On iPhone 16e Simulator (iOS 26.3), the seven options use square pixel panels, distinct muted category colors and readable labels; the 56-point option rows exceed the 44-point target. Accessibility order is exposed as seven named buttons. See [device review](design-reference/2026-10-12-curated-ui-round-2/10-device-review/REVIEW.md).
 
 ### R2.12 — Review realistic imagery and media failure states
 

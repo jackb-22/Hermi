@@ -1,10 +1,12 @@
 # Hermi frontend progress
 
-### 2026-10-12 — round 2 implementation pass committed; acceptance pending
+### 2026-10-12 — round 2 implementation and iPhone visual pass
 
 Implemented the authorized source changes in separate commits from `725e3ec` through `22eb6ec`, following deterministic fixture commit `53a1e35`. Feed full text is accessible at every text length; Place compact space preserves its identity/action group; Plan utilities and Saved hierarchy are condensed; Saved responds to text size and width; expanded Nearby uses a vertical list; Feed filtering has its own glyph; Profile spacing and map notices account for safe areas; planned-place reversal is explicit; remote media reports loading/failure; Feed full-text actions have 44-point targets. Commit list and limitations: [round 2 implementation handoff](design-reference/2026-10-12-curated-ui-round-2/02-14-implementation/REVIEW.md).
 
-The latest macOS HermiDesktop build passes, `git diff --check` passed, and the full Swift suite passes (**120 tests, 0 failures**). R2.01's Saved fixture states were rendered in the current macOS app. Later changes have build evidence only. Reopening Xcode and Simulator did not restore CoreSimulatorService; iPhone build/boot and subsequent visual/interaction, VoiceOver, Dynamic Type and reduced-motion checks remain pending. R2.00 is partial, R2.11 was not changed without iPhone evidence, and representative image provenance was insufficient to add new media. `test.md` now points to the active handoff.
+The Xcode-signed app launched on the user's iPhone 17 Pro. Map, Feed and Profile were inspected. The latest code was then rebuilt and exercised on iPhone 16e Simulator (iOS 26.3). That render reproduced and verified two corrections: Profile's sample-route chip moved away from MapLibre attribution (`3f10751`), and the disabled Plan “Go!” action now uses a readable dark label on a gray surface (`7e574a6`). Assistant category choices matched the pixel-panel reference, so R2.11 closed without a change. Feed caption access and its sheet were exercised. See the [iPhone visual review](design-reference/2026-10-12-curated-ui-round-2/10-device-review/REVIEW.md).
+
+The Swift suite passes (**120 tests, 0 failures**); the map bridge checks pass. A later attempt to launch the large-text Saved fixture failed before app launch because CoreSimulatorService disconnected and Xcode could not write its user-level SwiftPM diagnostic cache. Large-text Saved, VoiceOver speech, actual Dynamic Type, reduced motion, keyboard avoidance, additional target widths, and representative real media remain unverified. The media provenance gap remains open; no asset was fabricated or added. The preview app was closed after review.
 
 ### 2026-10-12 — round 2 increment 1, macOS render verified; user review pending
 
