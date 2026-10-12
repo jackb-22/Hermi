@@ -69,6 +69,7 @@ struct FeedPager: View {
             if !post.caption.isEmpty {
               Button("Read full caption") { fullCaption = FeedCaption(title: post.author, text: post.caption) }
                 .font(HermiTypography.metadata.weight(.semibold))
+                .frame(minHeight: 44, alignment: .leading)
                 .accessibilityHint("Opens the complete caption in a scrollable view")
             }
           }

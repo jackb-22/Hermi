@@ -69,6 +69,7 @@ struct LiveFeedPager: View {
                                           text: card.title)
               }
               .font(HermiTypography.metadata.weight(.semibold))
+              .frame(minHeight: 44, alignment: .leading)
               .accessibilityHint("Opens the complete text in a scrollable view")
             }
             if let again = card.again { Text(again ? "Would go again" : "Wouldn’t go again").font(HermiTypography.metadata.weight(.semibold)) }
