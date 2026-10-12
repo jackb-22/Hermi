@@ -29,6 +29,7 @@ struct PixelIcon: View {
     case "info": return ["   III   ","         ","   III   ","    II   ","    II   ","    II   ","  IIIIII "]
     case "social": return ["  III  III ","  III  III ","           "," IIIII IIII"," IIIII IIII"," IIIII IIII","  I I  I I ","  I I  I I "]
     case "plan": return ["   IIIIIIIIII", "  I         I", " I          I", "I           I", " I          I", "  I         I", "   IIIIIIIIII"]
+    case "filter": return ["IIIIIIIIIII", "    III    ", "    III    ", " IIIIIIIII ", "    III    ", "     I     ", "   IIIII   "]
     case "settings": return ["    III    "," II III II "," IIIIIIIII ","  II   II  ","III I I III","III I I III","  II   II  "," IIIIIIIII "," II III II ","    III    "]
     case "clock": return ["   IIIII   "," II     II "," I   I   I ","I    I    I","I    III  I","I         I"," I       I "," II     II ","   IIIII   "]
     case "camera": return ["   IIIII   ","IIIIIIIIIII","I         I","I   III   I","I  I   I  I","I   III   I","I         I","IIIIIIIIIII"]

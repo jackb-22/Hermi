@@ -453,10 +453,10 @@ public struct HermiMapPreview: View {
     }.accessibilityLabel(state.feedOptions.audience == .friends ? "Friends feed. Show general" : "General feed. Show friends")
       .controlHelp("Switch the Feed between General and Friends")
     Button { state.toggleFeedContent() } label: {
-      PixelIcon(name: "plan").frame(width: 26, height: 26).frame(width: 34, height: 34)
+      PixelIcon(name: "filter").frame(width: 26, height: 26).frame(width: 34, height: 34)
         .background(state.feedOptions.content.tint, in: PixelPanel(corner: 8))
         .frame(width: 44, height: 44).contentShape(Rectangle())
-    }.accessibilityLabel("Feed shows \(state.feedOptions.content.label). Change filter")
+    }.accessibilityLabel("Feed content: \(state.feedOptions.content.label). Change content filter")
       .controlHelp("Filter the Feed: everything, posts only or plans only")
   }
 
