@@ -4,6 +4,12 @@ Updated: 2026-10-12. Branch: design/curated-ui-refresh. Earlier frontend history
 
 ## Current checkpoint
 
+### 2026-10-12 — curated UI increment 5, ready for user review
+
+Saved now has a clear page title/count, larger New folder target, wrapping mixed-item and folder names, readable secondary descriptors, and category/type cues. The saved row within My Plan uses the same rounded type scale and wraps item labels. Folder navigation and item context-menu behavior are unchanged; Saved remains separate from plan insertion. Added local long-title, empty, and mixed-content fixtures. The [increment 5 review](design-reference/2026-10-12-curated-ui/05-saved/REVIEW.md) includes launch commands and the checklist.
+
+Desktop build and 118 Swift tests pass; `git diff --check` passes. The empty Saved composition rendered, but fixture data was cleared by the active preview state during review, so populated folder content and context actions still need user verification in the preview. Native iPhone text scaling and VoiceOver remain pending. Wait for review before increment 6.
+
 ### 2026-10-12 — curated UI increment 4, ready for user review
 
 My Plan no longer spends a status row on “Current draft” and device-sync text. Undo remains accessible and is grouped with editing. Saved-plan name and “My draft” return action stay together when editing an existing plan. Reorder help appears only when there are stops. The empty plan now gives one direct next step in a quiet framed message; the existing crab is not repeated. Warning copy and Go eligibility are unchanged. DEBUG fixtures cover a one-stop plan and overlapping times. The [increment 4 review](design-reference/2026-10-12-curated-ui/04-plan-reading/REVIEW.md) has the preview command and test checklist.

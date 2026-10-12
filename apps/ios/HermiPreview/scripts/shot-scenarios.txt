@@ -8,6 +8,8 @@ plan-type-empty|--hermi-plan-review --hermi-type-review=empty
 plan-warning|--hermi-plan-review --hermi-type-review=warning
 plan-type-xxxl|--hermi-plan-review --content-size=accessibility-extra-extra-extra-large
 saved|--hermi-saved-review
+saved-empty|--hermi-saved-review=empty
+saved-long|--hermi-saved-review=long
 map|--hermi-pin-review
 place-long|--hermi-pin-review --hermi-place-review=long
 ai-closed|--hermi-plan-review --hermi-ai-review=closed

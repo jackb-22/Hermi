@@ -191,7 +191,7 @@ public struct HermiMapPreview: View {
           return
         }
         #endif
-        if ProcessInfo.processInfo.arguments.contains(where: { $0 == "--hermi-plan-review" || $0.hasPrefix("--hermi-plan-review=") }) || ProcessInfo.processInfo.arguments.contains("--hermi-saved-review") {
+        if ProcessInfo.processInfo.arguments.contains(where: { $0 == "--hermi-plan-review" || $0.hasPrefix("--hermi-plan-review=") }) || ProcessInfo.processInfo.arguments.contains(where: { $0 == "--hermi-saved-review" || $0.hasPrefix("--hermi-saved-review=") }) {
           state.planIDs = ["cafe", "gallery", "garden"]
           state.stopTimes = [:]; state.stopInviteDrafts = [:]
           let start = Calendar.current.startOfDay(for: Date()).addingTimeInterval(12 * 3600)
@@ -203,20 +203,54 @@ public struct HermiMapPreview: View {
             state.stopTimes = ["cafe": PreviewStopTime(arrival: start, durationMinutes: 60, reminderMinutes: 15)]
             state.stopInviteDrafts = ["cafe": []]
           }
-          if ProcessInfo.processInfo.arguments.contains("--hermi-saved-review") {
-            state.toggleSave("books"); state.toggleSave("tea")
+          if ProcessInfo.processInfo.arguments.contains(where: { $0 == "--hermi-saved-review" || $0.hasPrefix("--hermi-saved-review=") }) {
             var library = SavedLibrary()
-            _ = library.savePost("cafe-alex")
+            if !ProcessInfo.processInfo.arguments.contains("--hermi-saved-review=empty") {
+              state.toggleSave("books"); state.toggleSave("tea")
+              _ = library.savePost("cafe-alex")
+              _ = library.savePost("garden-sam")
+            }
             _ = library.savePlan(name: "Saturday loop", folderID: nil, newFolder: "Weekend ideas",
                                  visibility: .solo, friends: [], stops: ["cafe", "garden"],
                                  times: state.stopTimes ?? [:])
-            if let index = library.folders.indices.first {
+            if !ProcessInfo.processInfo.arguments.contains("--hermi-saved-review=empty"), let plan = library.plans.first {
+              library.plans.append(SavedPlanDraft(name: "Afternoon through the neighborhood gardens",
+                folderID: nil, visibility: .solo, friendNames: [], stopIDs: ["garden", "cafe", "gallery"], times: [:]))
+              _ = library.put(.init(kind: .plan, refID: plan.id.uuidString), in: library.folders.first!.id)
+            }
+            if !ProcessInfo.processInfo.arguments.contains("--hermi-saved-review=empty"), let index = library.folders.indices.first {
               library.folders[index].items.append(.init(kind: .post, refID: "cafe-alex"))
+              library.folders[index].items.append(.init(kind: .place, refID: "books"))
             }
             state.library = library
+            if ProcessInfo.processInfo.arguments.contains("--hermi-saved-review=empty") {
+              state.savedIDs = []; state.library = SavedLibrary()
+            }
+            if ProcessInfo.processInfo.arguments.contains("--hermi-saved-review=long") {
+              PlaceCatalog.shared.upsert([
+                MapSamplePlace(id: "books", name: "The neighborhood's very long independent bookshop name",
+                               category: .culture, latitude: 40.8078, longitude: -73.9658)
+              ])
+              state.toggleSave("books")
+              var folders = state.library.folders
+              if let index = folders.indices.first {
+                folders[index].name = "Saturday walks, little bookshops, and neighborhood gardens"
+                state.library.folders = folders
+              }
+              var posts = state.library.posts
+              if posts.count > 1 {
+                posts[1].refID = "cafe-alex"
+                state.library.posts = posts
+              }
+            }
           }
           state.planUndoHistory = [] // Fixture setup is not a user edit.
-          state.sheet = .plan
+          if ProcessInfo.processInfo.arguments.contains(where: { $0 == "--hermi-saved-review" || $0.hasPrefix("--hermi-saved-review=") }) {
+            state.sheet = .saved
+            state.switchPanel(.profile)
+          } else {
+            state.sheet = .plan
+          }
           #if DEBUG
           if ProcessInfo.processInfo.arguments.contains("--hermi-type-review=empty") {
             state.planIDs = []; state.stopTimes = [:]; state.stopInviteDrafts = [:]

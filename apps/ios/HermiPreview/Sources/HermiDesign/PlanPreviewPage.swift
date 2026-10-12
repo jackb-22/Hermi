@@ -352,9 +352,10 @@ struct PlanPreviewPage: View {
         LazyHStack(spacing: 10) {
           ForEach(state.savedReferences) { reference in
             VStack(alignment: .leading, spacing: 10) {
-              Text(reference.kind.rawValue.uppercased()).font(.system(size: 10, design: .monospaced))
+              Text(reference.kind.rawValue.capitalized).font(HermiTypography.metadata).foregroundStyle(HermiPalette.secondary)
               Button { openSaved(reference) } label: {
-                Text(savedTitle(reference)).font(.subheadline.bold()).lineLimit(2).frame(maxWidth: .infinity, alignment: .leading)
+                Text(savedTitle(reference)).font(HermiTypography.label).fixedSize(horizontal: false, vertical: true)
+                  .frame(maxWidth: .infinity, alignment: .leading)
               }
                 .controlHelp(reference.kind == .plan ? "Open this saved plan for editing; preserve your current draft" : "Open place details")
               Spacer(minLength: 0)
@@ -363,7 +364,7 @@ struct PlanPreviewPage: View {
                   .background(HermiPalette.lime, in: PixelPanel(corner: 5))
               }.accessibilityLabel("Add \(savedTitle(reference)) to current plan")
                 .controlHelp("Append explicit places; existing stops are skipped")
-            }.padding(10).frame(width: 138, height: 128)
+            }.padding(HermiSpacing.medium).frame(width: 158, alignment: .leading).frame(minHeight: 140)
               .background(HermiPalette.category(MapSamplePlace.find(reference.refID)?.category ?? .culture).opacity(0.3), in: PixelPanel(corner: 6))
           }
           if state.savedReferences.isEmpty { Text("Nothing saved yet").font(.caption).frame(height: 90) }
