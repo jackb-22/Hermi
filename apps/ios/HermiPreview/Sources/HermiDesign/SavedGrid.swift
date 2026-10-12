@@ -5,6 +5,7 @@ import SwiftUI
 /// move to folder and remove are in each box's press-and-hold menu.
 struct SavedGrid: View {
   @Binding var state: MapPreviewState
+  @Environment(\.dynamicTypeSize) private var dynamicTypeSize
   var feedback: String?
   var append: (SavedReference) -> Void
   var openPlan: (String) -> Void
@@ -13,7 +14,9 @@ struct SavedGrid: View {
   @State private var openPlace: SavedReference?
   @State private var creatingFolder = false
   @State private var folderName = ""
-  private let columns = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
+  private var columns: [GridItem] {
+    dynamicTypeSize.isAccessibilitySize ? [GridItem(.flexible())] : [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
+  }
 
   private var folder: SavedFolder? { state.library.folders.first { $0.id == folderID } }
   private var items: [SavedReference] {
@@ -104,13 +107,21 @@ struct SavedGrid: View {
   // MARK: Tiles
 
   private func tile(_ reference: SavedReference) -> some View {
-    VStack(alignment: .leading, spacing: HermiSpacing.small) {
-      SavedThumbnail(state: state, reference: reference)
-        .aspectRatio(1, contentMode: .fit).clipShape(PixelPanel(corner: 8))
-        .overlay(alignment: .topLeading) { badge(reference.kind.rawValue.uppercased(), fill: itemAccent(reference)) }
-      VStack(alignment: .leading, spacing: HermiSpacing.tight) {
-        Text(state.savedTitle(reference)).font(HermiTypography.label).fixedSize(horizontal: false, vertical: true)
-        Text(itemDescriptor(reference)).font(HermiTypography.metadata).foregroundStyle(HermiPalette.secondary)
+    Group {
+      if dynamicTypeSize.isAccessibilitySize {
+        HStack(alignment: .top, spacing: HermiSpacing.medium) {
+          SavedThumbnail(state: state, reference: reference)
+            .frame(width: 92, height: 92).clipShape(PixelPanel(corner: 8))
+            .overlay(alignment: .topLeading) { badge(reference.kind.rawValue.uppercased(), fill: itemAccent(reference)) }
+          itemText(reference).frame(maxWidth: .infinity, alignment: .leading)
+        }
+      } else {
+        VStack(alignment: .leading, spacing: HermiSpacing.small) {
+          SavedThumbnail(state: state, reference: reference)
+            .aspectRatio(1, contentMode: .fit).clipShape(PixelPanel(corner: 8))
+            .overlay(alignment: .topLeading) { badge(reference.kind.rawValue.uppercased(), fill: itemAccent(reference)) }
+          itemText(reference)
+        }
       }
     }
     .frame(maxWidth: .infinity, alignment: .leading)
@@ -118,26 +129,50 @@ struct SavedGrid: View {
     .accessibilityLabel("\(reference.kind.rawValue.capitalized), \(state.savedTitle(reference)), \(itemDescriptor(reference))")
   }
 
+  private func itemText(_ reference: SavedReference) -> some View {
+    VStack(alignment: .leading, spacing: HermiSpacing.tight) {
+      Text(state.savedTitle(reference)).font(HermiTypography.label).fixedSize(horizontal: false, vertical: true)
+      Text(itemDescriptor(reference)).font(HermiTypography.metadata).foregroundStyle(HermiPalette.secondary)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+  }
+
   private func folderTile(_ folder: SavedFolder) -> some View {
-    VStack(alignment: .leading, spacing: 6) {
-      let previews = Array(folder.items.prefix(4))
-      LazyVGrid(columns: [GridItem(.flexible(), spacing: 3), GridItem(.flexible(), spacing: 3)], spacing: 3) {
-        ForEach(0..<4, id: \.self) { index in
-          Group {
-            if index < previews.count { SavedThumbnail(state: state, reference: previews[index]) }
-            else { HermiPalette.line.opacity(0.5) }
-          }.aspectRatio(1, contentMode: .fit).clipped()
+    let previews = Array(folder.items.prefix(4))
+    return Group {
+      if dynamicTypeSize.isAccessibilitySize {
+        HStack(alignment: .top, spacing: HermiSpacing.medium) {
+          folderPreview(previews).frame(width: 92, height: 92)
+          VStack(alignment: .leading, spacing: HermiSpacing.tight) {
+            Text(folder.name).font(HermiTypography.label).fixedSize(horizontal: false, vertical: true)
+            Text("\(folder.items.count) items").font(HermiTypography.metadata).foregroundStyle(HermiPalette.secondary)
+          }
+        }
+      } else {
+        VStack(alignment: .leading, spacing: 6) {
+          folderPreview(previews)
+          Text(folder.name).font(HermiTypography.label).fixedSize(horizontal: false, vertical: true)
+          Text("\(folder.items.count) items").font(HermiTypography.metadata).foregroundStyle(HermiPalette.secondary)
         }
       }
-      .padding(4).background(HermiPalette.controlSurface, in: PixelPanel(corner: 8))
-      .overlay(PixelPanel(corner: 8).stroke(HermiPalette.ink, lineWidth: 2))
-      .overlay(alignment: .topLeading) { badge("FOLDER") }
-      Text(folder.name).font(HermiTypography.label).fixedSize(horizontal: false, vertical: true)
-      Text("\(folder.items.count) items").font(HermiTypography.metadata).foregroundStyle(HermiPalette.secondary)
     }
     .frame(maxWidth: .infinity, alignment: .leading)
     .accessibilityElement(children: .ignore)
     .accessibilityLabel("Folder \(folder.name), \(folder.items.count) items")
+  }
+
+  private func folderPreview(_ previews: [SavedReference]) -> some View {
+    LazyVGrid(columns: [GridItem(.flexible(), spacing: 3), GridItem(.flexible(), spacing: 3)], spacing: 3) {
+      ForEach(0..<4, id: \.self) { index in
+        Group {
+          if index < previews.count { SavedThumbnail(state: state, reference: previews[index]) }
+          else { HermiPalette.line.opacity(0.5) }
+        }.aspectRatio(1, contentMode: .fit).clipped()
+      }
+    }
+    .padding(4).background(HermiPalette.controlSurface, in: PixelPanel(corner: 8))
+    .overlay(PixelPanel(corner: 8).stroke(HermiPalette.ink, lineWidth: 2))
+    .overlay(alignment: .topLeading) { badge("FOLDER") }
   }
 
   private func badge(_ text: String, fill: Color = HermiPalette.controlSurface) -> some View {
