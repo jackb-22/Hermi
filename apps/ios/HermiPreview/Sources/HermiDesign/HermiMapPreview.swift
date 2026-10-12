@@ -732,25 +732,40 @@ public struct HermiMapPreview: View {
       if places.isEmpty {
         Text(LiveSession.shared.isLive ? (PlaceCatalog.shared.loading ? "Loading places…" : "No places match these filters here.") : "No sample places match these filters.").font(HermiTypography.body)
       }
-      ScrollView(.horizontal) {
-        LazyHStack(spacing: 12) {
-          ForEach(places) { place in
-            Button { state.selectPlace(place.id) } label: {
-              VStack(alignment: .leading, spacing: HermiSpacing.small) {
-                mediaTile(place.category).frame(width: 124, height: 76)
-                VStack(alignment: .leading, spacing: HermiSpacing.tight) {
-                  Text(place.name).font(HermiTypography.label).fixedSize(horizontal: false, vertical: true)
-                  Text(place.category.rawValue).font(HermiTypography.metadata).foregroundStyle(HermiPalette.secondary)
-                }
-              }.frame(width: 124, alignment: .leading)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("\(place.name), \(place.category.rawValue)")
-            .accessibilityHint("Open place details")
+      if panelLevel == .compact {
+        ScrollView(.horizontal) {
+          LazyHStack(spacing: 12) { ForEach(places) { nearbyCard($0) } }
+        }.scrollIndicators(.hidden)
+      } else {
+        LazyVStack(spacing: HermiSpacing.medium) { ForEach(places) { nearbyCard($0) } }
+      }
+    }
+  }
+
+  private func nearbyCard(_ place: MapSamplePlace) -> some View {
+    Button { state.selectPlace(place.id) } label: {
+      Group {
+        if panelLevel == .compact {
+          VStack(alignment: .leading, spacing: HermiSpacing.small) {
+            mediaTile(place.category).frame(width: 124, height: 76)
+            Text(place.name).font(HermiTypography.label).fixedSize(horizontal: false, vertical: true)
+            Text(place.category.rawValue).font(HermiTypography.metadata).foregroundStyle(HermiPalette.secondary)
+          }
+        } else {
+          HStack(alignment: .top, spacing: HermiSpacing.medium) {
+            mediaTile(place.category).frame(width: 96, height: 72)
+            VStack(alignment: .leading, spacing: HermiSpacing.tight) {
+              Text(place.name).font(HermiTypography.label).fixedSize(horizontal: false, vertical: true)
+              Text(place.category.rawValue).font(HermiTypography.metadata).foregroundStyle(HermiPalette.secondary)
+            }.frame(maxWidth: .infinity, alignment: .leading)
           }
         }
-      }.scrollIndicators(.hidden)
+      }
+      .frame(maxWidth: panelLevel == .compact ? 124 : .infinity, alignment: .leading)
     }
+    .buttonStyle(.plain)
+    .accessibilityLabel("\(place.name), \(place.category.rawValue)")
+    .accessibilityHint("Open place details")
   }
 
   private func placeContent(_ place: MapSamplePlace) -> some View {
