@@ -22,19 +22,20 @@ struct PlaceSheet: View {
 
   var body: some View {
     let place = MapSamplePlace.find(placeID)
-    VStack(alignment: .leading, spacing: 10) {
-      HStack(spacing: 6) {
-        CloseButton(label: "Close place", action: close)
-        Text(place?.name ?? "Place unavailable").font(.headline).lineLimit(1)
-        Spacer(minLength: 4)
-        if let place {
-          Button { state.toggleSave(place.id) } label: {
-            PixelIcon(name: state.savedIDs.contains(place.id) ? "saved" : "save").frame(width: 20, height: 24).frame(width: 44, height: 44)
-          }.buttonStyle(.plain).accessibilityLabel(state.savedIDs.contains(place.id) ? "Unsave place" : "Save place")
-          Button { state.togglePlan(place.id) } label: {
-            PixelIcon(name: state.planIDs.contains(place.id) ? "minus" : "plus").frame(width: 20, height: 20).frame(width: 32, height: 32)
-              .background(HermiPalette.lime, in: PixelPanel(corner: 6)).frame(width: 44, height: 44)
-          }.buttonStyle(.plain).accessibilityLabel(state.planIDs.contains(place.id) ? "Remove from plan" : "Add to plan")
+    VStack(alignment: .leading, spacing: HermiSpacing.medium) {
+      if let place {
+        PlaceDetailHeader(
+          place: place,
+          isSaved: state.savedIDs.contains(place.id),
+          isPlanned: state.planIDs.contains(place.id),
+          close: close,
+          toggleSave: { state.toggleSave(place.id) },
+          togglePlan: { state.togglePlan(place.id) }
+        )
+      } else {
+        HStack(alignment: .top, spacing: HermiSpacing.small) {
+          CloseButton(label: "Close place", action: close)
+          Text("Place unavailable").font(HermiTypography.title).fixedSize(horizontal: false, vertical: true)
         }
       }
       ScrollView {
@@ -52,6 +53,71 @@ struct PlaceSheet: View {
     .presentationDetents([.medium, .large])
     .coverScreen(item: $viewingPost) { reference in
       SavedViewer(state: $state, reference: reference, close: { viewingPost = nil }, openPlan: { _ in viewingPost = nil }, append: { _ = state.appendSaved($0) })
+    }
+  }
+}
+
+/// Shared place identity and actions keep Map, Plan and Saved details consistent.
+struct PlaceDetailHeader: View {
+  let place: MapSamplePlace
+  let isSaved: Bool
+  let isPlanned: Bool
+  var close: (() -> Void)? = nil
+  let toggleSave: () -> Void
+  let togglePlan: () -> Void
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: HermiSpacing.medium) {
+      HStack(alignment: .top, spacing: HermiSpacing.small) {
+        if let close { CloseButton(label: "Close place", action: close) }
+        VStack(alignment: .leading, spacing: HermiSpacing.tight) {
+          Text(place.name)
+            .font(HermiTypography.title)
+            .fixedSize(horizontal: false, vertical: true)
+            .accessibilityAddTraits(.isHeader)
+          Text(place.category.rawValue)
+            .font(HermiTypography.metadata)
+            .foregroundStyle(HermiPalette.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+      }
+
+      HStack(spacing: HermiSpacing.small) {
+        Button(action: toggleSave) {
+          Label {
+            Text(isSaved ? "Saved" : "Save")
+          } icon: {
+            PixelIcon(name: isSaved ? "saved" : "save").frame(width: 17, height: 20)
+          }
+          .font(HermiTypography.label)
+          .frame(maxWidth: .infinity, minHeight: 44)
+          .foregroundStyle(HermiPalette.ink)
+          .background(HermiPalette.controlSurface, in: PixelPanel(corner: 6))
+          .overlay(PixelPanel(corner: 6).stroke(HermiPalette.line, lineWidth: 1))
+          .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(isSaved ? "Unsave \(place.name)" : "Save \(place.name)")
+        .accessibilityValue(isSaved ? "Saved" : "Not saved")
+        .controlHelp("Save this place independently of My Plan")
+
+        Button(action: togglePlan) {
+          Label {
+            Text(isPlanned ? "In My Plan" : "Add to Plan")
+          } icon: {
+            PixelIcon(name: isPlanned ? "check" : "plus").frame(width: 17, height: 17)
+          }
+          .font(HermiTypography.label)
+          .frame(maxWidth: .infinity, minHeight: 44)
+          .foregroundStyle(HermiPalette.ink)
+          .background(HermiPalette.lime, in: PixelPanel(corner: 6))
+          .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(isPlanned ? "Remove \(place.name) from My Plan" : "Add \(place.name) to My Plan")
+        .accessibilityValue(isPlanned ? "In My Plan" : "Not in My Plan")
+        .controlHelp("Add this explicit place to My Plan. This does not save it.")
+      }
     }
   }
 }

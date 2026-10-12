@@ -180,6 +180,17 @@ public struct HermiMapPreview: View {
           state.category = .food
         }
         editingPinID = state.discoveryPins.first?.id
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--hermi-place-review=long") {
+          // A local-only long-title sample resolves through the ordinary place flow.
+          PlaceCatalog.shared.upsert([
+            MapSamplePlace(id: "cafe", name: "Corner café and community kitchen on Broadway",
+                           category: .food, latitude: 40.8073, longitude: -73.9654)
+          ])
+          state.selectPlace("cafe")
+          return
+        }
+        #endif
         if ProcessInfo.processInfo.arguments.contains("--hermi-plan-review") || ProcessInfo.processInfo.arguments.contains("--hermi-saved-review") {
           state.planIDs = ["cafe", "gallery", "garden"]
           state.stopTimes = [:]; state.stopInviteDrafts = [:]
@@ -643,8 +654,7 @@ public struct HermiMapPreview: View {
     .background(HermiPalette.paper, in: UnevenRoundedRectangle(topLeadingRadius: 24, topTrailingRadius: 24))
     .overlay(alignment: .topLeading) {
       CloseButton(label: "Close details") {
-        if state.returnSheet == .plan || state.returnSheet == .saved { state.goBack() }
-        else { state.sheet = nil; state.returnSheet = nil }
+        state.goBack()
         panelLevel = .compact
       }.padding(.leading, 10).padding(.top, 2)
     }
@@ -673,11 +683,17 @@ public struct HermiMapPreview: View {
         LazyHStack(spacing: 12) {
           ForEach(places) { place in
             Button { state.selectPlace(place.id) } label: {
-              VStack(alignment: .leading, spacing: 6) {
+              VStack(alignment: .leading, spacing: HermiSpacing.small) {
                 mediaTile(place.category).frame(width: 124, height: 76)
-                Text(place.name).font(HermiTypography.label).fixedSize(horizontal: false, vertical: true)
+                VStack(alignment: .leading, spacing: HermiSpacing.tight) {
+                  Text(place.name).font(HermiTypography.label).fixedSize(horizontal: false, vertical: true)
+                  Text(place.category.rawValue).font(HermiTypography.metadata).foregroundStyle(HermiPalette.secondary)
+                }
               }.frame(width: 124, alignment: .leading)
-            }.buttonStyle(.plain)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("\(place.name), \(place.category.rawValue)")
+            .accessibilityHint("Open place details")
           }
         }
       }.scrollIndicators(.hidden)
@@ -685,22 +701,14 @@ public struct HermiMapPreview: View {
   }
 
   private func placeContent(_ place: MapSamplePlace) -> some View {
-    VStack(alignment: .leading, spacing: 12) {
-      HStack {
-        Text(place.name).font(.headline).lineLimit(1)
-        Spacer(minLength: 4)
-        Button { state.toggleSave(place.id) } label: {
-          PixelIcon(name: state.savedIDs.contains(place.id) ? "saved" : "save").frame(width: 20, height: 24).frame(width: 44, height: 44)
-        }.buttonStyle(.plain).accessibilityLabel(state.savedIDs.contains(place.id) ? "Unsave place" : "Save place").controlHelp("Toggle this place in Saved, independently of My Plan")
-        Button { state.togglePlan(place.id) } label: {
-          PixelIcon(name: state.planIDs.contains(place.id) ? "minus" : "plus")
-            .frame(width: 20, height: 20).frame(width: 32, height: 32)
-            .background(HermiPalette.lime, in: PixelPanel(corner: 6))
-            .frame(width: 44, height: 44).contentShape(Rectangle())
-        }.buttonStyle(.plain)
-          .accessibilityLabel(state.planIDs.contains(place.id) ? "Remove from plan" : "Add to plan")
-          .controlHelp("Toggle this place in My Plan without changing Saved")
-      }
+    VStack(alignment: .leading, spacing: HermiSpacing.medium) {
+      PlaceDetailHeader(
+        place: place,
+        isSaved: state.savedIDs.contains(place.id),
+        isPlanned: state.planIDs.contains(place.id),
+        toggleSave: { state.toggleSave(place.id) },
+        togglePlan: { state.togglePlan(place.id) }
+      )
       PlaceFeedContent(place: place, savedPostIDs: Set(state.library.posts.map(\.refID)), togglePostSave: { state.togglePostBookmark($0) },
                        openPost: { mapPost = SavedReference(kind: .post, refID: $0) })
         .id(place.id)

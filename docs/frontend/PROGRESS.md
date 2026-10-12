@@ -4,6 +4,12 @@ Updated: 2026-10-12. Branch: design/curated-ui-refresh. Earlier frontend history
 
 ## Current checkpoint
 
+### 2026-10-12 — curated UI increment 3, ready for user review
+
+Place details now share a wrapping title/category header and two explicit, separate actions. Save reflects Saved membership; Add reflects My Plan membership, with accessible labels and values. Secondary place facts use a quiet framed group and the existing rounded typography. Closing a place returns to its recorded source, including Nearby. A local DEBUG long-name fixture exercises the actual selected-place flow. The [increment 3 review](design-reference/2026-10-12-curated-ui/03-place-details/REVIEW.md) has the preview command, review steps, and captured screen.
+
+Desktop build and 117 Swift tests passed; all map bridge checks passed. Interactively verified the long title wraps, Add and Save update independently, and Close restores Nearby with the café result. Live metadata/failure responses and native iPhone/VoiceOver checks remain pending. The **Hermi Preview** window is open on the clean long-name place detail. Wait for user review before increment 4.
+
 ### 2026-10-12 — unified-truth correction to increment 2
 
 The user caught a behavior mismatch: the category pin’s quick tap had been made to open Nearby. The unified schema defines this gesture as toggling the citywide category filter only. Removed the unintended route/sheet mutation, added a focused state regression test, and verified in the compact desktop preview that Food becomes selected while Map stays open and Nearby remains closed. Updated the [increment 2 review](design-reference/2026-10-12-curated-ui/02-map-discovery/REVIEW.md) with the contract and corrected screenshot. 117 Swift tests and all map bridge checks pass. This fixes the checkpoint before user review; no work on increment 3 until approval.

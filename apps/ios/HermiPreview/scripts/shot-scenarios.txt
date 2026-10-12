@@ -7,6 +7,7 @@ plan-type-empty|--hermi-plan-review --hermi-type-review=empty
 plan-type-xxxl|--hermi-plan-review --content-size=accessibility-extra-extra-extra-large
 saved|--hermi-saved-review
 map|--hermi-pin-review
+place-long|--hermi-pin-review --hermi-place-review=long
 ai-closed|--hermi-plan-review --hermi-ai-review=closed
 ai-menu|--hermi-plan-review --hermi-ai-review=menu
 ai-category|--hermi-plan-review --hermi-ai-review=category
