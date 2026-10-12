@@ -6,7 +6,7 @@ public struct HermiMapPreview: View {
   @State private var showingIntro = BrandIntroPolicy.shouldShow(
     seen: UserDefaults.standard.bool(forKey: BrandIntroPolicy.key),
     demo: ProcessInfo.processInfo.arguments.contains("--hermi-demo"),
-    fixture: ProcessInfo.processInfo.arguments.contains { $0.hasPrefix("--hermi-") && $0.hasSuffix("-review") },
+    fixture: PreviewReviewArguments.isFixture(ProcessInfo.processInfo.arguments),
     existingPreview: UserDefaults.standard.data(forKey: "hermi.preview.map-composition.v1") != nil)
   @State private var state = MapPreviewState()
   @State private var moving = false
@@ -31,9 +31,9 @@ public struct HermiMapPreview: View {
   @State private var aiDebugBackend: AssistantBackend?
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @Environment(\.scenePhase) private var scenePhase
-  private var pinReviewFixture: Bool {
+  private var isReviewFixture: Bool {
     #if DEBUG
-    ProcessInfo.processInfo.arguments.contains("--hermi-pin-review") || ProcessInfo.processInfo.arguments.contains("--hermi-multipin-review") || ProcessInfo.processInfo.arguments.contains("--hermi-plan-review") || ProcessInfo.processInfo.arguments.contains("--hermi-saved-review") || ProcessInfo.processInfo.arguments.contains("--hermi-feed-review") || ProcessInfo.processInfo.arguments.contains("--hermi-feed-long-review")
+    PreviewReviewArguments.isFixture(ProcessInfo.processInfo.arguments)
     #else
     false
     #endif
@@ -163,8 +163,8 @@ public struct HermiMapPreview: View {
       }.frame(minWidth: 340, minHeight: 600)
     }
     .onAppear {
-      if !pinReviewFixture { introSeen = true }
-      if pinReviewFixture {
+      if !isReviewFixture { introSeen = true }
+      if isReviewFixture {
         state = MapPreviewState()
         if ProcessInfo.processInfo.arguments.contains("--hermi-feed-review") || ProcessInfo.processInfo.arguments.contains("--hermi-feed-long-review") {
           state.switchPanel(.feed)
@@ -303,16 +303,20 @@ public struct HermiMapPreview: View {
         .presentationDragIndicator(.visible)
     }
     .onChange(of: state) { _, value in
-      guard !pinReviewFixture else { return }
+      guard !isReviewFixture else { return }
       if let data = try? JSONEncoder().encode(value) { UserDefaults.standard.set(data, forKey: storageKey) }
       PlaceCatalog.shared.persist(referenced: value.referencedPlaceIDs)
       SavedSync.shared.push(value)
       PlanSync.shared.push(value)
     }
     .task { _ = await Task.detached { NYCLandMask.shared.available }.value }
-    .task { await LiveSession.shared.restore() }
+    .task {
+      guard !isReviewFixture else { return }
+      await LiveSession.shared.restore()
+    }
     .task(id: state.discoveryQuery) { PlaceCatalog.shared.discoveryChanged(state.discoveryQuery) }
     .onChange(of: LiveSession.shared.isLive) { _, live in
+      guard !isReviewFixture else { return }
       // Connecting (or restoring) swaps fixtures for the live places in the current map area.
       if live {
         PlaceCatalog.shared.refresh()
@@ -347,7 +351,7 @@ public struct HermiMapPreview: View {
       if let notice { pinNotice = notice }
     }
     .onChange(of: scenePhase) { _, phase in
-      if phase == .active { Task { await LiveSession.shared.restore(); await refreshPlans() } }
+      if phase == .active && !isReviewFixture { Task { await LiveSession.shared.restore(); await refreshPlans() } }
     }
     .task(id: pinNotice) {
       guard pinNotice != nil else { return }

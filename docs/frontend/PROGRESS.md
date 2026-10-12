@@ -1,5 +1,11 @@
 # Hermi frontend progress
 
+### 2026-10-12 — round 2 increment 1, implementation complete; rendered review pending
+
+Fixed review-mode parsing so valued scenarios such as `--hermi-saved-review=populated` enter the DEBUG fixture path. Fixture launches now skip saved-state restoration, state persistence, and live-session restore/foreground reconnect. Added focused parser coverage. The source/build and isolation behavior are recorded in [R2.01 review](design-reference/2026-10-12-curated-ui-round-2/01-fixtures/REVIEW.md).
+
+All 120 Swift tests pass and the macOS target builds. Current simulator launch still fails because CoreSimulatorService disconnects and cannot write its user-level logs/cache. Opening the rebuilt stable macOS bundle failed with launchd error 162. Therefore no post-change Saved render or repeated launch was observed, and increment 1 is not accepted for further work yet. `test.md` contains the pending fixture check. No `.DS_Store` files were included.
+
 Updated: 2026-10-12. Branch: design/curated-ui-refresh. Earlier frontend history and subsequent branding work are documented below; this curated UI series is local and committed by increment.
 
 ## Current checkpoint

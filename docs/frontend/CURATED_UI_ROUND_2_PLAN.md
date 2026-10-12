@@ -1,6 +1,6 @@
 # Hermi UI round 2 implementation plan
 
-2026-10-12 · Draft for review · Implementation has not started.
+2026-10-12 · Active · R2.01 implemented; rendered acceptance pending preview relaunch.
 
 ## Scope and authority
 
@@ -8,7 +8,7 @@ Refine the recent implementation on `design/curated-ui-refresh`, starting from `
 
 Follow `HERMI_SCHEMA.md`, its latest amendments, and explicit user instructions. Preserve map-first composition, ordinary tap navigation, fixed right-hand controls, native rounded reading typography, pixel artwork, independent Save/Add semantics, stable plan identity, advisory warnings, provisional AI edits, privacy boundaries and truthful preview states. Reuse the currently approved shared crab exactly as implemented. Do not resolve conflicting historical mascot descriptions by changing its artwork.
 
-This plan responds to the second-round critique. It authorizes no backend expansion, publishing, push, merge, external messages, new dependencies or product implementation by itself. Current request is to draft the plan.
+This plan responds to the second-round critique. The user has authorized implementation one increment at a time. No backend expansion, publishing, push, merge, external messages or new dependencies are authorized.
 
 ## Evidence and priorities
 
