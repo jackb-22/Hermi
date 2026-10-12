@@ -4,6 +4,12 @@ Updated: 2026-10-12. Branch: design/curated-ui-refresh. Earlier frontend history
 
 ## Current checkpoint
 
+### 2026-10-12 — curated UI increment 9, final review ready
+
+Completed the final local visual/journey acceptance pass and added the [increment 9 evidence record](design-reference/2026-10-12-curated-ui/09-final-acceptance/REVIEW.md) with a compact Plan capture. The current interactive desktop preview is open on the populated Plan fixture. Full run: 118 Swift tests pass, every map bridge scenario passes, the macOS target builds, and `git diff --check` passes. Source increments 1–8 remain individually committed; increment 9 changes documentation/evidence only.
+
+Review the compact Plan’s title, stop rows, advisory timing warning, local-only notice and Go action; Go then opens the local Action preview for Directions/Camera/End/Recap checks. Increment 8’s Camera and Recap captures remain linked from its review note. Native simulator relaunch failed through LaunchServices despite a valid copied executable bundle, while direct open succeeded; the preview window is therefore available interactively but may not be attachable to the accessibility inspector in this launch. Earlier desktop interaction evidence is recorded per increment. Native iPhone matrix, Dynamic Type/VoiceOver/device haptics, real service states and live outing integration remain pending. Wait for final user review before publishing the branch.
+
 ### 2026-10-12 — curated UI increment 8, ready for user review
 
 Directions/Camera and Recap surfaces now share rounded semantic text roles, wrapping explanations and stop names, and larger mode/check-in/review actions. Recap facts retain monospaced values but scale with system text. Motion audit found no custom task animations in these views; existing native sheet transitions remain under the parent Reduce Motion preference. No check-in, capture, End, server status, verification, XP or plan lifecycle behavior changed. The [increment 8 review](design-reference/2026-10-12-curated-ui/08-action-recap/REVIEW.md) records the local preview and screenshots.

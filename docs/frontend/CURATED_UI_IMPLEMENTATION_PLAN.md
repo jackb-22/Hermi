@@ -1,8 +1,8 @@
 # Hermi curated UI implementation plan
 
-2026-10-12 · Status: increment 8 implemented and desktop-preview verified; awaiting user review. Native iPhone and live outing checks remain pending.
+2026-10-12 · Status: increments 1–8 implemented; increment 9 acceptance evidence recorded and ready for final review. Native iPhone, accessibility-device, and live outing checks remain pending.
 
-User review gate: after every increment, open a preview for hands-on testing, give specific test instructions and expected results, and wait for explicit approval before beginning the next increment. The user approved increments 1–7 by continuing. Review [increment 6](design-reference/2026-10-12-curated-ui/06-assistant/REVIEW.md), [increment 7](design-reference/2026-10-12-curated-ui/07-feed-profile/REVIEW.md), and [increment 8](design-reference/2026-10-12-curated-ui/08-action-recap/REVIEW.md). Native iPhone and live-account checks remain pending.
+User review gate: after every increment, open a preview for hands-on testing, give specific test instructions and expected results, and wait for explicit approval before beginning the next increment. Increments 1–7 were approved for progression; increment 8 is included in the final user review. See [increment 8](design-reference/2026-10-12-curated-ui/08-action-recap/REVIEW.md) and [final acceptance](design-reference/2026-10-12-curated-ui/09-final-acceptance/REVIEW.md). Native iPhone, device accessibility, and live-account checks remain pending.
 
 ## Objective and authority
 
@@ -155,7 +155,7 @@ Run the full matrix below, fix remaining regressions in small commits, and updat
 
 Gate: no unresolved task-blocking behavior, clipping, inaccessible primary controls, misleading data, or brand regression. All required tests/builds pass. Aesthetic review alone cannot establish integration acceptance.
 
-Commit: `docs: record curated UI verification and remaining dependencies`.
+Commit: `docs: record curated UI verification and remaining dependencies`. Acceptance evidence is recorded in [increment 9 review](design-reference/2026-10-12-curated-ui/09-final-acceptance/REVIEW.md); user approval remains pending.
 
 ## Interaction and motion contract
 
