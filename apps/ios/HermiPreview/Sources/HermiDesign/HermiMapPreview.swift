@@ -57,15 +57,15 @@ public struct HermiMapPreview: View {
         switch state.panel {
         case .map: map(in: geometry.size).ignoresSafeArea()
         case .feed: FeedPager(state: $state, size: geometry.size, onMoving: beginMapGesture, onStopped: endMapGesture).ignoresSafeArea()
-        case .profile: profile
+        case .profile: profile(safeTop: safeGeometry.safeAreaInsets.top, safeBottom: safeGeometry.safeAreaInsets.bottom)
         }
         }.accessibilityHidden(mapCovered).allowsHitTesting(!mapCovered)
         if let pinNotice, state.panel == .map {
-          VStack { Text(pinNotice).font(.caption).padding(12)
+          VStack { Spacer()
+            Text(pinNotice).font(.caption).fixedSize(horizontal: false, vertical: true).padding(12)
               .background(HermiPalette.controlSurface, in: PixelPanel(corner: 6))
-              .padding(.top, safeGeometry.safeAreaInsets.top + 8)
-            Spacer()
-          }.padding(.leading, 16).padding(.trailing, 100).allowsHitTesting(false)
+          }.padding(.leading, 16).padding(.trailing, 92)
+            .padding(.bottom, safeGeometry.safeAreaInsets.bottom + 88).allowsHitTesting(false)
         }
         VStack {
           if !mapCovered { topBar(in: geometry.size) }
@@ -792,7 +792,7 @@ public struct HermiMapPreview: View {
       .accessibilityLabel(variant == 2 ? "Video placement" : "Photo placement")
   }
 
-  private var profile: some View {
+  private func profile(safeTop: CGFloat, safeBottom: CGFloat) -> some View {
     ScrollView {
       VStack(spacing: 14) {
         HStack(spacing: 12) {
@@ -852,7 +852,7 @@ public struct HermiMapPreview: View {
           Text("Sample media placements").font(HermiTypography.metadata)
           }
         }
-      }.padding(.top, 135).padding(.bottom, 130)
+      }.padding(.top, safeTop + 58).padding(.bottom, safeBottom + 88)
     }.background(HermiPalette.paper).ignoresSafeArea()
       .refreshable { await LiveProfile.shared.load(force: true) }
       .task { await LiveProfile.shared.load() }
