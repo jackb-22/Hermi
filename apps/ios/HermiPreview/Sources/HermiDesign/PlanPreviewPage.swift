@@ -39,7 +39,7 @@ struct PlanPreviewPage: View {
   @State private var viewingPost: SavedReference?
   @State private var openPlace: SavedReference?
   @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-  @ScaledMetric(relativeTo: .footnote) private var timeColumnWidth: CGFloat = 84
+  @ScaledMetric(relativeTo: .footnote) private var timeColumnWidth: CGFloat = 112
   private var warning: Bool { !state.timingConflicts.isEmpty }
   var body: some View {
     VStack(spacing: HermiSpacing.standard) {
@@ -285,7 +285,7 @@ struct PlanPreviewPage: View {
     // Keep the schedule as a stable left-hand column at large text sizes. A
     // bounded scaled width gives the stop card most of the row while allowing
     // time details to wrap inside their own column when necessary.
-    let readableTimeWidth = min(max(timeColumnWidth, 104), 132)
+    let readableTimeWidth = min(max(timeColumnWidth, 128), 152)
     let layout = AnyLayout(HStackLayout(
       alignment: isAccessibilityLayout ? .top : .center,
       spacing: HermiSpacing.medium
