@@ -1,6 +1,6 @@
 # Hermi UI round 2 implementation plan
 
-2026-10-12 · Active · R2.01 implemented; rendered acceptance pending preview relaunch.
+2026-10-12 · Active · 15 increments (R2.00–R2.14); R2.01 rendered on macOS, awaiting user review. iPhone verification remains unavailable.
 
 ## Scope and authority
 

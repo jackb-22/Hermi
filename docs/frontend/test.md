@@ -2,14 +2,14 @@
 
 ## Current review: round 2 increment 1 — deterministic review fixtures
 
-Implementation and focused automated checks are complete; hands-on acceptance is pending because the current preview could not be relaunched after the build. See the [R2.01 evidence and limitations](design-reference/2026-10-12-curated-ui-round-2/01-fixtures/REVIEW.md). Once the Hermi preview is running with the changed build:
+Implementation and macOS fixture rendering are complete; user review is pending. See the [R2.01 evidence and limitations](design-reference/2026-10-12-curated-ui-round-2/01-fixtures/REVIEW.md). The populated, folder and empty states have been inspected in the current build. To repeat the checks:
 
 1. Launch `--hermi-saved-review=populated --hermi-review-compact` twice. Both launches should show the same mixed Saved content and the “Weekend ideas” folder, including its place, post and plan items.
 2. Launch `--hermi-saved-review=empty --hermi-review-compact`. Saved should show its empty state.
-3. Remove all `--hermi-…-review` flags and launch normally. Existing local plan and Saved data should remain unchanged.
+3. Remove all `--hermi-…-review` flags and launch normally. Existing local plan and Saved data should remain unchanged; preservation of nonempty local data has not yet been verified.
 4. If the app has saved live credentials, confirm review-mode launch stays in sample data and does not restore or connect the account.
 
-These checks require a preview built from the current checkout; older running Hermi windows do not count. Do not continue to R2.02 until this fixture increment is reviewed and approved.
+The macOS preview script may report `kLSNoExecutableErr` even after preparing the current app bundle. In that case, run `open -a "/private/tmp/hermi-preview-PID.app" --args --hermi-saved-review=populated --hermi-review-compact` in a separate shell, substituting the reported PID and desired fixture flags. iPhone rendering and authenticated-account isolation remain unverified. Do not continue to R2.02 until this fixture increment is reviewed and approved.
 
 > Merge handoff, 2026-09-27: development is paused here. Incoming server settings replace the Replay intro demo button referenced in earlier checklists. Committed branding is retained; the unfinished expressive-crab revision is backed up outside the repository. Use `--hermi-demo` for branding playback. Merge validation: 62 frontend tests and unsigned iPhone build pass; backend/runtime integration acceptance remains pending.
 

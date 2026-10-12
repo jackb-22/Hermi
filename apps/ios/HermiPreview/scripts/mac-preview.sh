@@ -23,8 +23,20 @@ PLIST
 if [ "${1:-}" != "--build-only" ]; then
   PREVIEW_APP="/private/tmp/hermi-preview-$$.app"
   cp -R "$APP" "$PREVIEW_APP"
-  if ! open -na "$PREVIEW_APP" --args "$@" 2>/dev/null; then
+  # The workspace file provider can reattach Finder metadata after writes. Sign
+  # the isolated copy only after its executable and resources are assembled.
+  xattr -cr "$PREVIEW_APP"
+  codesign --force --deep --sign - "$PREVIEW_APP"
+  codesign --verify --deep --strict "$PREVIEW_APP"
+  # Do not leak Xcode's build selection into Launch Services.
+  unset DEVELOPER_DIR
+  if ! open -a "$PREVIEW_APP" --args "$@" 2>/dev/null; then
     sleep 1
-    open -na "$PREVIEW_APP" --args "$@"
+    if ! open -a "$PREVIEW_APP" --args "$@" 2>/dev/null; then
+      sleep 1
+      if ! open -a "$PREVIEW_APP" --args "$@" 2>/dev/null; then
+        printf 'Preview bundle prepared at %s, but Launch Services did not activate it. Open that bundle with `open -a` in a separate shell, keeping the same --hermi flags.\n' "$PREVIEW_APP"
+      fi
+    fi
   fi
 fi

@@ -246,8 +246,8 @@ public struct HermiMapPreview: View {
           }
           state.planUndoHistory = [] // Fixture setup is not a user edit.
           if ProcessInfo.processInfo.arguments.contains(where: { $0 == "--hermi-saved-review" || $0.hasPrefix("--hermi-saved-review=") }) {
-            state.sheet = .saved
             state.switchPanel(.profile)
+            state.sheet = .saved
           } else {
             state.sheet = .plan
           }

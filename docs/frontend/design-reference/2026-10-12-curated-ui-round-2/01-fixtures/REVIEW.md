@@ -1,6 +1,6 @@
 # R2.01 — deterministic review fixtures
 
-2026-10-12 · Implemented; rendered acceptance pending.
+2026-10-12 · Implemented and rendered on the macOS preview; user review pending.
 
 ## Change
 
@@ -8,19 +8,26 @@
 
 The same parsed boundary now suppresses normal saved-state reads/writes and live-session restore or foreground reconnect during review fixtures. This keeps fixture scenarios repeatable and prevents a stored account token from replacing their sample state. No product data, network contract, or normal-launch state migration changed.
 
+The Saved fixture setup also selected Profile after setting the Saved sheet; `switchPanel` clears the active sheet, so the seeded collection was hidden. Reordering those two operations now opens the intended Saved screen on launch.
+
 ## Verification
 
 - Added tests for valued Saved/Plan/Place/Type review flags, combined Plan + AI scenario flags, and non-fixture demo/layout flags.
 - `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swift test --disable-sandbox`: **120 tests passed** on arm64 macOS 14.0 host.
-- `sh scripts/mac-preview.sh --build-only`: passed; built `HermiDesktop` from the changed source.
-- `git diff --check`: passed.
+- `sh scripts/mac-preview.sh --hermi-saved-review=populated --hermi-review-compact`: built and signed the current `HermiDesktop` bundle. Launch Services returned `kLSNoExecutableErr` inside the script; opening the prepared app from a separate shell displayed the changed build. See the launch limitation below.
+- The accessibility tree showed **6 items** in populated Saved. Opening “Weekend ideas” showed its plan, post and place (**3 items**).
+- `--hermi-saved-review=empty` opened with **0 items** and the intended empty-state copy/mascot.
+- A no-flag launch opened Map; Profile → Saved remained at **0 items**. The earlier baseline also showed 0 items, so this confirms fixture launches did not introduce data in this clean preview domain, not preservation of an existing nonempty user library.
+- `git diff --check`: passed before the follow-up patch; rerun before commit.
+
+Captures use the macOS preview at a 375 × 667 logical content frame, ordinary text size, local sample account: [populated Saved](populated-saved.png), [populated folder](populated-folder.png), [empty Saved](empty-saved.png).
 
 ## Render and interaction status
 
-No changed-build render was obtained. The iPhone 16e preview script failed before building because CoreSimulatorService disconnected and Xcode/SwiftPM could not write its user-level cache/log files. The macOS app bundle built successfully, but reopening the rebuilt stable bundle failed with launchd error 162 (`Launchd job spawn failed`). The older open window is not evidence for the changed fixture behavior. No repeat-launch, normal-state preservation, populated Saved or folder interaction is claimed.
+The iPhone 16e preview script still fails before building because CoreSimulatorService disconnects and Xcode/SwiftPM cannot write user-level cache/log files. The macOS build's generated app is correctly signed in `/private/tmp`, but Launch Services sometimes rejects its first several opens with `kLSNoExecutableErr`; the same prepared bundle opens when the command is retried from a separate shell. The launcher now reports the prepared path and fallback instead of hiding this condition. It does not claim a fully automatic launch on every attempt.
 
-The implementation is source-complete but this increment remains **pending user review**. The next reviewer should follow the current checklist in `docs/frontend/test.md`. Do not advance to R2.02 until the current build opens and those fixture checks pass.
+The fixture states and folder interaction are **verified on the macOS preview**. The nonempty-user-data preservation case and iPhone rendering are still unverified. Follow the current checklist in `docs/frontend/test.md` and provide review before R2.02.
 
 ## Limitations
 
-This verifies argument classification and compiles the code paths that isolate review launches. It does not prove view lifecycle ordering, actual fixture content, normal persisted-state preservation, account isolation in a launched app, visual layout, or iPhone behavior. Those checks require a current runnable preview.
+This verifies the fixture content and launch presentation in the macOS preview. It does not prove preservation of pre-existing nonempty data, account isolation with actual stored credentials, physical iPhone layout, Dynamic Type, VoiceOver or network behavior. The account restore guards were verified in source and compilation; an authenticated launch was not available.

@@ -1,10 +1,10 @@
 # Hermi frontend progress
 
-### 2026-10-12 — round 2 increment 1, implementation complete; rendered review pending
+### 2026-10-12 — round 2 increment 1, macOS render verified; user review pending
 
-Fixed review-mode parsing so valued scenarios such as `--hermi-saved-review=populated` enter the DEBUG fixture path. Fixture launches now skip saved-state restoration, state persistence, and live-session restore/foreground reconnect. Added focused parser coverage. The source/build and isolation behavior are recorded in [R2.01 review](design-reference/2026-10-12-curated-ui-round-2/01-fixtures/REVIEW.md).
+Fixed review-mode parsing so valued scenarios such as `--hermi-saved-review=populated` enter the DEBUG fixture path. Fixture launches now skip saved-state restoration, state persistence, and live-session restore/foreground reconnect. Corrected Saved fixture initialization order so its seeded content is visible at launch. Added focused parser coverage. The source/build and render evidence are recorded in [R2.01 review](design-reference/2026-10-12-curated-ui-round-2/01-fixtures/REVIEW.md).
 
-All 120 Swift tests pass and the macOS target builds. Current simulator launch still fails because CoreSimulatorService disconnects and cannot write its user-level logs/cache. Opening the rebuilt stable macOS bundle failed with launchd error 162. Therefore no post-change Saved render or repeated launch was observed, and increment 1 is not accepted for further work yet. `test.md` contains the pending fixture check. No `.DS_Store` files were included.
+The macOS preview showed 6 populated Saved items, the 3-item “Weekend ideas” folder, and the 0-item empty state. A normal launch remained empty as it had at baseline; preservation of arbitrary pre-existing nonempty user data is still unverified. The preview script builds and signs a temporary app but Launch Services can reject automated activation with `kLSNoExecutableErr`; opening the prepared bundle from a separate shell succeeded. The iPhone simulator still fails before build because CoreSimulatorService disconnects and cannot write user-level logs/cache. Repeat-launch and authenticated-account isolation remain pending. No `.DS_Store` files were included.
 
 Updated: 2026-10-12. Branch: design/curated-ui-refresh. Earlier frontend history and subsequent branding work are documented below; this curated UI series is local and committed by increment.
 
