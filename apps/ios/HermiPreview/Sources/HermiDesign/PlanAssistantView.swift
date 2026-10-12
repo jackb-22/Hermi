@@ -30,18 +30,18 @@ struct AssistantMenuCard: View {
   /// The screen's width and height, so the card fits a small phone and large text.
   var room: CGSize = CGSize(width: 390, height: 800)
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
   var body: some View {
     ScrollView {
       content
     }
     .scrollBounceBehavior(.basedOnSize)
-    .frame(width: min(340, room.width - 20))
-    .frame(maxHeight: room.height * 0.62)
-    .fixedSize(horizontal: false, vertical: true)
+    .frame(width: min(340, max(260, room.width - 20)))
+    .frame(maxHeight: room.height * 0.62, alignment: .top)
+    .fixedSize(horizontal: false, vertical: !dynamicTypeSize.isAccessibilitySize)
     .background(HermiPalette.controlSurface, in: PixelPanel(corner: 10))
     .overlay(PixelPanel(corner: 10).stroke(HermiPalette.ink.opacity(0.2)).allowsHitTesting(false))
-    .dynamicTypeSize(...DynamicTypeSize.accessibility1)
     .animation(reduceMotion ? nil : .easeOut(duration: 0.15), value: assistant.phase)
   }
 
@@ -50,8 +50,8 @@ struct AssistantMenuCard: View {
       HStack(spacing: 8) {
         CloseButton(label: "Close Hermi AI") { assistant.close() }
         VStack(alignment: .leading, spacing: 1) {
-          Text("Hermi AI").font(.headline)
-          Text("Suggests changes to this plan").font(.caption2).foregroundStyle(HermiPalette.secondary)
+          Text("Hermi AI").font(HermiTypography.heading).accessibilityAddTraits(.isHeader)
+          Text("Suggests changes to this plan").font(HermiTypography.metadata).foregroundStyle(HermiPalette.secondary)
         }
         Spacer(minLength: 0)
       }
@@ -59,8 +59,8 @@ struct AssistantMenuCard: View {
         HStack(spacing: 12) {
           HermitBrandMark(emergence: 1, stride: 0).frame(width: 30, height: 34)
           VStack(alignment: .leading, spacing: 2) {
-            Text(title).font(.subheadline.bold())
-            Text("Checking travel times, hours and weather…").font(.caption).foregroundStyle(HermiPalette.secondary)
+            Text(title).font(HermiTypography.label)
+            Text("Checking travel times, hours and weather…").font(HermiTypography.metadata).foregroundStyle(HermiPalette.secondary)
           }
         }.frame(maxWidth: .infinity, minHeight: 64, alignment: .leading)
           .accessibilityElement(children: .combine)
@@ -77,29 +77,31 @@ struct AssistantMenuCard: View {
           .accessibilityIdentifier("ai-chat")
       }
       if let notice = assistant.notice {
-        Text(notice).font(.caption).padding(10).frame(maxWidth: .infinity, alignment: .leading)
+        Label(notice, systemImage: "exclamationmark.circle")
+          .font(HermiTypography.body).fixedSize(horizontal: false, vertical: true)
+          .padding(HermiSpacing.medium).frame(maxWidth: .infinity, alignment: .leading)
           .background(HermiPalette.coral.opacity(0.22), in: PixelPanel(corner: 5))
           .accessibilityAddTraits(.updatesFrequently)
       }
     }
-    .padding(12)
+    .padding(HermiSpacing.medium)
   }
 
   private var categoryPicker: some View {
-    VStack(alignment: .leading, spacing: 8) {
+    VStack(alignment: .leading, spacing: HermiSpacing.small) {
       HStack {
         Button { assistant.back() } label: {
           PixelIcon(name: "back").frame(width: 14, height: 10).frame(width: 44, height: 36)
         }.accessibilityLabel("Back to presets")
-        Text("Add a stop").font(.subheadline.bold())
+        Text("Add a stop").font(HermiTypography.label).accessibilityAddTraits(.isHeader)
       }
-      LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 4), spacing: 6) {
+      LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: HermiSpacing.small), count: dynamicTypeSize.isAccessibilitySize ? 2 : 4), spacing: HermiSpacing.small) {
         ForEach(HermiCategory.allCases, id: \.self) { category in
           Button { ask(.add(category)) } label: {
-            VStack(spacing: 4) {
+            VStack(spacing: HermiSpacing.tight) {
               CategorySprite(category: category).frame(width: 18, height: 18)
-              Text(category.rawValue).font(.system(size: 10, weight: .medium)).lineLimit(1).minimumScaleFactor(0.8)
-            }.frame(maxWidth: .infinity, minHeight: 52)
+              Text(category.rawValue).font(HermiTypography.metadata).fixedSize(horizontal: false, vertical: true)
+            }.frame(maxWidth: .infinity, minHeight: 56)
               .background(HermiPalette.category(category).opacity(0.35), in: PixelPanel(corner: 5))
           }.accessibilityLabel("Add a \(category.rawValue.lowercased()) stop")
             .accessibilityIdentifier("ai-add-\(category.serverName)")
@@ -110,15 +112,15 @@ struct AssistantMenuCard: View {
 
   private func row(icon: String, title: String, detail: String, action: @escaping () -> Void) -> some View {
     Button(action: action) {
-      HStack(spacing: 12) {
+      HStack(spacing: HermiSpacing.medium) {
         PixelIcon(name: icon).frame(width: 18, height: 16).frame(width: 34, height: 34)
           .background(HermiPalette.lime.opacity(0.55), in: PixelPanel(corner: 5))
-        VStack(alignment: .leading, spacing: 1) {
-          Text(title).font(.subheadline.bold()).fixedSize(horizontal: false, vertical: true)
-          Text(detail).font(.caption).foregroundStyle(HermiPalette.secondary).fixedSize(horizontal: false, vertical: true)
+        VStack(alignment: .leading, spacing: HermiSpacing.tight) {
+          Text(title).font(HermiTypography.label).fixedSize(horizontal: false, vertical: true)
+          Text(detail).font(HermiTypography.metadata).foregroundStyle(HermiPalette.secondary).fixedSize(horizontal: false, vertical: true)
         }
         Spacer(minLength: 0)
-      }.frame(minHeight: 48).contentShape(Rectangle())
+      }.frame(minHeight: 56).contentShape(Rectangle())
     }.buttonStyle(.plain).disabled(assistant.isBusy)
   }
 }
@@ -132,12 +134,12 @@ struct SuggestionBar: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 8) {
-      HStack(alignment: .top, spacing: 8) {
+      HStack(alignment: .top, spacing: HermiSpacing.small) {
         PixelSprite(rows: AssistantButton.spark, colors: ["I": HermiPalette.green]).frame(width: 18, height: 12).padding(.top, 3)
-        Text(suggestion.message).font(.subheadline).fixedSize(horizontal: false, vertical: true)
+        Text(suggestion.message).font(HermiTypography.body).fixedSize(horizontal: false, vertical: true)
       }
       ForEach(suggestion.plan.ghostChanges ?? []) { change in
-        Text("· " + change.label).font(.caption).foregroundStyle(HermiPalette.secondary)
+        Text("· " + change.label).font(HermiTypography.metadata).foregroundStyle(HermiPalette.secondary)
       }
       SourceLinks(sources: suggestion.sources)
       // Side by side; stacked (Apply first) when large text would clip them.
@@ -151,12 +153,11 @@ struct SuggestionBar: View {
     .overlay(PixelPanel(corner: 8).stroke(HermiPalette.green.opacity(0.5)))
     .accessibilityElement(children: .contain)
     .accessibilityLabel("Suggested changes")
-    .dynamicTypeSize(...DynamicTypeSize.accessibility1)
   }
 
   private var dismissButton: some View {
     Button(action: dismiss) {
-      Text("Dismiss").font(.subheadline.bold()).lineLimit(1).fixedSize()
+      Text("Dismiss").font(HermiTypography.label).fixedSize(horizontal: false, vertical: true)
         .frame(maxWidth: .infinity, minHeight: 48)
         .background(HermiPalette.controlSurface, in: PixelPanel(corner: 8))
         .overlay(PixelPanel(corner: 8).stroke(HermiPalette.ink.opacity(0.2)))
@@ -164,7 +165,7 @@ struct SuggestionBar: View {
   }
   private var applyButton: some View {
     Button(action: apply) {
-      Text(applying ? "Applying…" : "Apply").font(.subheadline.bold()).lineLimit(1).fixedSize()
+      Text(applying ? "Applying…" : "Apply").font(HermiTypography.label).fixedSize(horizontal: false, vertical: true)
         .frame(maxWidth: .infinity, minHeight: 48)
         .background(HermiPalette.lime, in: PixelPanel(corner: 8))
     }.accessibilityIdentifier("ai-apply").disabled(applying)
@@ -178,8 +179,10 @@ struct SourceLinks: View {
     ForEach(sources, id: \.uri) { source in
       if let url = URL(string: source.uri) {
         Link(destination: url) {
-          Text("↗ \(source.title) · Google Maps").font(.caption2.bold()).foregroundStyle(HermiPalette.green)
-        }.frame(minHeight: 28)
+          Text("↗ \(source.title) · Google Maps").font(HermiTypography.metadata.weight(.semibold))
+            .fixedSize(horizontal: false, vertical: true).foregroundStyle(HermiPalette.green)
+        }.frame(minHeight: 44, alignment: .leading)
+          .accessibilityLabel("Source: \(source.title), Google Maps")
       }
     }
   }
@@ -198,7 +201,7 @@ struct LegRow: View {
           .font(.caption2.bold())
           .foregroundStyle(changed ? HermiPalette.green : HermiPalette.secondary)
       } else {
-        Text("travel time unknown").font(.caption2).foregroundStyle(HermiPalette.secondary.opacity(0.7))
+        Text("travel time unknown").font(HermiTypography.metadata).foregroundStyle(HermiPalette.secondary)
       }
       Spacer()
     }
@@ -233,13 +236,13 @@ struct AssistantChatSheet: View {
           LazyVStack(alignment: .leading, spacing: 10) {
             if assistant.lines.isEmpty {
               Text("Ask about your stops, or ask for a change: “make it cheaper”, “somewhere to eat after the gallery”, “is the café open then?”")
-                .font(.caption).foregroundStyle(HermiPalette.secondary).padding(.vertical, 8)
+                .font(HermiTypography.body).foregroundStyle(HermiPalette.secondary).padding(.vertical, HermiSpacing.small)
             }
             ForEach(assistant.lines) { line in bubble(line).id(line.id) }
             if case .asking = assistant.phase {
               HStack(spacing: 8) {
                 HermitBrandMark(emergence: 1, stride: 0).frame(width: 22, height: 25)
-                Text("Thinking…").font(.caption).foregroundStyle(HermiPalette.secondary)
+                Text("Thinking…").font(HermiTypography.metadata).foregroundStyle(HermiPalette.secondary)
               }.id("thinking")
             }
             if let suggestion = assistant.suggestion {
@@ -247,22 +250,27 @@ struct AssistantChatSheet: View {
                             apply: apply, dismiss: dismissSuggestion).id("suggestion")
             }
             if let notice = assistant.notice {
-              Text(notice).font(.caption).padding(10)
+              Label(notice, systemImage: "exclamationmark.circle")
+                .font(HermiTypography.body).fixedSize(horizontal: false, vertical: true).padding(HermiSpacing.medium)
                 .background(HermiPalette.coral.opacity(0.22), in: PixelPanel(corner: 5))
+                .accessibilityAddTraits(.updatesFrequently)
             }
           }.padding(12)
         }
         .onChange(of: assistant.lines.count) { _, _ in
           if let last = assistant.lines.last { scroller.scrollTo(last.id, anchor: .bottom) }
         }
+        .scrollDismissesKeyboard(.interactively)
       }
-      HStack(spacing: 8) {
+      HStack(alignment: .bottom, spacing: HermiSpacing.small) {
         TextField("Ask about this plan", text: Binding(get: { assistant.draft }, set: { assistant.draft = String($0.prefix(300)) }),
                   axis: .vertical)
           .lineLimit(1...4).focused($focused).submitLabel(.send).onSubmit(send)
           .padding(10).background(HermiPalette.controlSurface, in: PixelPanel(corner: 7))
           .overlay(PixelPanel(corner: 7).stroke(HermiPalette.ink.opacity(0.2)))
           .accessibilityIdentifier("ai-chat-field")
+          .accessibilityLabel("Ask about this plan")
+          .accessibilityHint("Enter a question or suggested plan change, up to 300 characters")
         Button(action: send) {
           PixelIcon(name: "send").frame(width: 12, height: 14).frame(width: 44, height: 44)
             .background(HermiPalette.lime, in: PixelPanel(corner: 7))
@@ -276,7 +284,7 @@ struct AssistantChatSheet: View {
 
   private func bubble(_ line: AssistantLine) -> some View {
     VStack(alignment: line.role == .user ? .trailing : .leading, spacing: 4) {
-      Text(line.text).font(.subheadline).padding(10)
+      Text(line.text).font(HermiTypography.body).fixedSize(horizontal: false, vertical: true).padding(HermiSpacing.medium)
         .background(line.role == .user ? HermiPalette.lake.opacity(0.28) : HermiPalette.controlSurface, in: PixelPanel(corner: 6))
       SourceLinks(sources: line.sources)
     }.frame(maxWidth: .infinity, alignment: line.role == .user ? .trailing : .leading)

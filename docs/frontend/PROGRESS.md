@@ -4,6 +4,12 @@ Updated: 2026-10-12. Branch: design/curated-ui-refresh. Earlier frontend history
 
 ## Current checkpoint
 
+### 2026-10-12 — curated UI increment 6, ready for user review
+
+Plan Assistant menu, category picker, suggestion bar and chat now use Hermi’s shared rounded reading roles without an accessibility-size cap. Menu options and status messages wrap, large-text categories switch to two columns, source links have larger targets and explicit labels, and chat can scroll-dismiss the keyboard. Apply and Dismiss stay separate, suggestions stay provisional, and errors remain visible with readable status text. The menu now measures to content at standard sizes instead of stretching to the available height. The [increment 6 review](design-reference/2026-10-12-curated-ui/06-assistant/REVIEW.md) records the visible fixture, commands and exact checks.
+
+Desktop build and 118 Swift tests pass. Interactively inspected the menu and category picker; category choices stay distinct and the menu no longer has the previous large blank area. Actual AI calls and recorded response rendering were not verified in this macOS process; signed-out chat correctly requires an account, and live Apply still requires the account API. Native iPhone accessibility text sizing, keyboard presentation, VoiceOver and request failure interaction remain pending. Wait for review before increment 7.
+
 ### 2026-10-12 — curated UI increment 5, ready for user review
 
 Saved now has a clear page title/count, larger New folder target, wrapping mixed-item and folder names, readable secondary descriptors, and category/type cues. The saved row within My Plan uses the same rounded type scale and wraps item labels. Folder navigation and item context-menu behavior are unchanged; Saved remains separate from plan insertion. Added local long-title, empty, and mixed-content fixtures. The [increment 5 review](design-reference/2026-10-12-curated-ui/05-saved/REVIEW.md) includes launch commands and the checklist.
