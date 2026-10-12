@@ -282,10 +282,10 @@ struct PlanPreviewPage: View {
   private func stopRow(_ place: MapSamplePlace) -> some View {
     let mark = mark(place.id)
     let isAccessibilityLayout = dynamicTypeSize.isAccessibilitySize
-    // Keep the schedule as a stable left-hand column at large text sizes. A
-    // bounded scaled width gives the stop card most of the row while allowing
-    // time details to wrap inside their own column when necessary.
-    let readableTimeWidth = min(max(timeColumnWidth, 128), 152)
+    // Keep the complete schedule on the left at large text sizes. The earlier
+    // narrow bound let Dynamic Type split “12:00 PM” and the reminder into a
+    // tall stack, so reserve a wider column and let the stop title wrap at right.
+    let readableTimeWidth = min(max(timeColumnWidth, 184), 208)
     let layout = AnyLayout(HStackLayout(
       alignment: isAccessibilityLayout ? .top : .center,
       spacing: HermiSpacing.medium
@@ -296,13 +296,10 @@ struct PlanPreviewPage: View {
           if let time = times[place.id] {
             Text(time.arrival, format: .dateTime.month(.abbreviated).day())
               .font(HermiTypography.metadata).foregroundStyle(HermiPalette.secondary)
-            Text(time.arrival, format: .dateTime.hour(.defaultDigits(amPM: .omitted)).minute())
+            Text(time.arrival, format: .dateTime.hour().minute())
               .font(HermiTypography.label).monospacedDigit()
-              .lineLimit(1).minimumScaleFactor(0.68).allowsTightening(true)
+              .lineLimit(1).minimumScaleFactor(isAccessibilityLayout ? 0.55 : 0.68).allowsTightening(true)
               .foregroundStyle(mark == .none ? HermiPalette.ink : HermiPalette.green)
-            if let period = localizedDayPeriod(for: time.arrival) {
-              Text(period).font(HermiTypography.metadata).foregroundStyle(HermiPalette.secondary)
-            }
             if isAccessibilityLayout {
               Text("\(time.durationMinutes)m").font(HermiTypography.metadata).foregroundStyle(HermiPalette.secondary)
               if time.reminderMinutes > 0 {
@@ -350,15 +347,6 @@ struct PlanPreviewPage: View {
           }
         }
     }
-  }
-
-  private func localizedDayPeriod(for date: Date) -> String? {
-    let locale = Locale.autoupdatingCurrent
-    guard locale.hourCycle == .oneToTwelve else { return nil }
-    let formatter = DateFormatter()
-    formatter.locale = locale
-    formatter.setLocalizedDateFormatFromTemplate("a")
-    return formatter.string(from: date)
   }
 
   private var savedDrawer: some View {
