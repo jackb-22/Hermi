@@ -1,5 +1,11 @@
 # Hermi frontend progress
 
+### 2026-10-12 — round 2 implementation pass committed; acceptance pending
+
+Implemented the authorized source changes in separate commits from `725e3ec` through `22eb6ec`, following deterministic fixture commit `53a1e35`. Feed full text is accessible at every text length; Place compact space preserves its identity/action group; Plan utilities and Saved hierarchy are condensed; Saved responds to text size and width; expanded Nearby uses a vertical list; Feed filtering has its own glyph; Profile spacing and map notices account for safe areas; planned-place reversal is explicit; remote media reports loading/failure; Feed full-text actions have 44-point targets. Commit list and limitations: [round 2 implementation handoff](design-reference/2026-10-12-curated-ui-round-2/02-14-implementation/REVIEW.md).
+
+The latest macOS HermiDesktop build passes, `git diff --check` passed, and the full Swift suite passes (**120 tests, 0 failures**). R2.01's Saved fixture states were rendered in the current macOS app. Later changes have build evidence only. Reopening Xcode and Simulator did not restore CoreSimulatorService; iPhone build/boot and subsequent visual/interaction, VoiceOver, Dynamic Type and reduced-motion checks remain pending. R2.00 is partial, R2.11 was not changed without iPhone evidence, and representative image provenance was insufficient to add new media. `test.md` now points to the active handoff.
+
 ### 2026-10-12 — round 2 increment 1, macOS render verified; user review pending
 
 Fixed review-mode parsing so valued scenarios such as `--hermi-saved-review=populated` enter the DEBUG fixture path. Fixture launches now skip saved-state restoration, state persistence, and live-session restore/foreground reconnect. Corrected Saved fixture initialization order so its seeded content is visible at launch. Added focused parser coverage. The source/build and render evidence are recorded in [R2.01 review](design-reference/2026-10-12-curated-ui-round-2/01-fixtures/REVIEW.md).

@@ -1,6 +1,6 @@
 # Hermi UI round 2 implementation plan
 
-2026-10-12 · Active · 15 increments (R2.00–R2.14); R2.01 rendered on macOS, awaiting user review. iPhone verification remains unavailable.
+2026-10-12 · Implementation pass recorded; 15 increments total (R2.00–R2.14). R2.01 and later source changes are committed; visual/device acceptance remains incomplete.
 
 ## Scope and authority
 
@@ -32,11 +32,11 @@ P1 resolves content access or acceptance gaps. P2 improves task clarity and comp
 
 ## Execution and commit rules
 
-Work on one increment at a time. Each implementation commit must build, have scoped verification, and be independently reviewable. Commit only named files for that increment; exclude unrelated `.DS_Store` files. Never use broad staging, reset, clean or discard to obtain a clean tree.
+Work on one increment at a time. The user has authorized continuing through the implementation sequence without pausing for preview review after each increment. Each implementation commit must build, have scoped verification, and be independently reviewable. Commit only named files for that increment; exclude unrelated `.DS_Store` files. Never use broad staging, reset, clean or discard to obtain a clean tree.
 
 For each increment: capture before, make the smallest coherent change, run appropriate checks, render and exercise it, then commit with evidence. Record requirement IDs, commit, exact viewport/platform/text size, preview/live mode, results and limitations in the existing `PROGRESS.md` and a per-increment `REVIEW.md`. Store round 2 evidence under `docs/frontend/design-reference/2026-10-12-curated-ui-round-2/` when execution begins. Update `test.md` to point to the active handoff.
 
-Open a runnable preview and give concrete test steps after each increment. The existing project workflow requires explicit user approval before starting the next increment. A fix to the active increment can be a separate commit before re-review. Silence is not approval. A unavailable rendering environment permits preparatory work but cannot close a visual gate; do not advance merely because a build passes.
+Open a runnable preview and give concrete test steps after each increment when the environment permits. The user's later instruction to continue through implementations authorizes proceeding without a per-increment approval pause. A fix to an increment can be a separate commit. An unavailable rendering environment permits source/build work but cannot close a visual gate; label those checks as pending.
 
 Suggested commit messages below are boundaries, not a requirement to produce empty commits. Split a genuine regression correction from unrelated styling. Evidence may accompany its code commit; use a separate docs commit when capture arrives later. Do not add tests that merely assert styling constants.
 

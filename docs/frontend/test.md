@@ -1,15 +1,10 @@
 # Hermi user testing
 
-## Current review: round 2 increment 1 — deterministic review fixtures
+## Current review: curated UI round 2 implementation handoff
 
-Implementation and macOS fixture rendering are complete; user review is pending. See the [R2.01 evidence and limitations](design-reference/2026-10-12-curated-ui-round-2/01-fixtures/REVIEW.md). The populated, folder and empty states have been inspected in the current build. To repeat the checks:
+The implementation pass spans R2.00–R2.14 and is recorded in [the round 2 handoff](design-reference/2026-10-12-curated-ui-round-2/02-14-implementation/REVIEW.md). The source changes are committed in small increments, and all 120 Swift tests pass. Only R2.01 has current-build rendered evidence. Later changes have macOS build checks but still need visual and interaction review; iPhone Simulator could not be booted because CoreSimulatorService disconnects and Xcode cannot write its user-level cache/log paths.
 
-1. Launch `--hermi-saved-review=populated --hermi-review-compact` twice. Both launches should show the same mixed Saved content and the “Weekend ideas” folder, including its place, post and plan items.
-2. Launch `--hermi-saved-review=empty --hermi-review-compact`. Saved should show its empty state.
-3. Remove all `--hermi-…-review` flags and launch normally. Existing local plan and Saved data should remain unchanged; preservation of nonempty local data has not yet been verified.
-4. If the app has saved live credentials, confirm review-mode launch stays in sample data and does not restore or connect the account.
-
-The macOS preview script may report `kLSNoExecutableErr` even after preparing the current app bundle. In that case, run `open -a "/private/tmp/hermi-preview-PID.app" --args --hermi-saved-review=populated --hermi-review-compact` in a separate shell, substituting the reported PID and desired fixture flags. iPhone rendering and authenticated-account isolation remain unverified. Do not continue to R2.02 until this fixture increment is reviewed and approved.
+For source-level results and limitations, see the handoff. When the preview environment is available, inspect Feed full-text actions/sheet, compact and expanded Place, empty/one/many-stop Plan, Saved at standard and large text/narrow width, expanded Nearby, map filter versus Plan controls, Profile on a compact phone, remote media loading/failure, VoiceOver, and Reduce Motion. Check that source navigation returns correctly and that Save/Add/removal remain independent. R2.00 baseline, R2.11 category-picker styling, authenticated-account isolation, preservation of nonempty user data, and physical-device checks remain open.
 
 > Merge handoff, 2026-09-27: development is paused here. Incoming server settings replace the Replay intro demo button referenced in earlier checklists. Committed branding is retained; the unfinished expressive-crab revision is backed up outside the repository. Use `--hermi-demo` for branding playback. Merge validation: 62 frontend tests and unsigned iPhone build pass; backend/runtime integration acceptance remains pending.
 
