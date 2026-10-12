@@ -1,5 +1,7 @@
 # Hermi curated UI implementation plan
 
+Round 2 critique follow-up: [incremental draft plan](CURATED_UI_ROUND_2_PLAN.md). Round 1 history below is retained; round 2 implementation has not started.
+
 2026-10-12 · Status: increments 1–8 implemented; increment 9 acceptance evidence recorded and ready for final review. Native iPhone, accessibility-device, and live outing checks remain pending.
 
 User review gate: after every increment, open a preview for hands-on testing, give specific test instructions and expected results, and wait for explicit approval before beginning the next increment. Increments 1–7 were approved for progression; increment 8 is included in the final user review. See [increment 8](design-reference/2026-10-12-curated-ui/08-action-recap/REVIEW.md) and [final acceptance](design-reference/2026-10-12-curated-ui/09-final-acceptance/REVIEW.md). Native iPhone, device accessibility, and live-account checks remain pending.

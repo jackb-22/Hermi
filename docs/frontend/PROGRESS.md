@@ -4,6 +4,10 @@ Updated: 2026-10-12. Branch: design/curated-ui-refresh. Earlier frontend history
 
 ## Current checkpoint
 
+### 2026-10-12 — round 2 incremental plan drafted
+
+Added [the round 2 plan](CURATED_UI_ROUND_2_PLAN.md) with single-purpose commit boundaries, source/render evidence distinctions, dependencies, conditional design choices and per-increment review criteria. Starts with current-checkout launch and deterministic fixtures, then content access, primary-flow composition, collections and secondary surfaces. Implementation remains paused; no product code changed and no new runtime acceptance is claimed.
+
 ### 2026-10-12 — curated UI increment 9, final review ready
 
 Completed the final local visual/journey acceptance pass and added the [increment 9 evidence record](design-reference/2026-10-12-curated-ui/09-final-acceptance/REVIEW.md) with a compact Plan capture. The current interactive desktop preview is open on the populated Plan fixture. Full run: 118 Swift tests pass, every map bridge scenario passes, the macOS target builds, and `git diff --check` passes. Source increments 1–8 remain individually committed; increment 9 changes documentation/evidence only.
