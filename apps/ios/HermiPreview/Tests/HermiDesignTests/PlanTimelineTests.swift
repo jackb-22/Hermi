@@ -2,6 +2,20 @@ import XCTest
 @testable import HermiDesign
 
 final class PlanTimelineTests: XCTestCase {
+  func testEmptyPlanCannotStartAndTimingConflictIsAdvisory() throws {
+    var state = MapPreviewState()
+    XCTAssertFalse(state.canStartPlan)
+
+    state.addPlace("cafe")
+    state.addPlace("gallery")
+    let start = Date(timeIntervalSince1970: 1_800_000_000)
+    state.setStopTime(.init(arrival: start, durationMinutes: 120), for: "cafe")
+    state.setStopTime(.init(arrival: start.addingTimeInterval(30 * 60), durationMinutes: 60), for: "gallery")
+
+    XCTAssertTrue(state.canStartPlan)
+    XCTAssertEqual(state.timingConflicts, [.init(firstID: "cafe", nextID: "gallery")])
+  }
+
   private let start = Date(timeIntervalSince1970: 1_800_000_000)
   func testReorderingKeepsMetadataAndCanMoveAfterLast() {
     var state = MapPreviewState()

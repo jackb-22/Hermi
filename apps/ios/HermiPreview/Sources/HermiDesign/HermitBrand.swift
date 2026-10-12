@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// Original native pixel artwork guided by App logo.jpg. Fine limestone ribs,
-/// stepped crown and antenna distinguish the Empire State shell at larger sizes.
+/// Shared native artwork matching the approved 2026-10-08 brand reference.
+/// The Empire State shell wraps around the crab; its Liberty torch travels with it.
 struct HermitBrandMark: View {
   var emergence: Double = 1
   var stride: Int = 0
@@ -12,14 +12,25 @@ struct HermitBrandMark: View {
       func box(_ x: Double, _ y: Double, _ w: Double, _ h: Double, _ color: Color) {
         context.fill(Path(CGRect(x: origin.x + x * unit, y: origin.y + y * unit, width: w * unit, height: h * unit)), with: .color(color), style: FillStyle(antialiased: false))
       }
-      let ink = HermiPalette.color(0x292C32)
-      let stone = HermiPalette.color(0xE4D4B2), light = HermiPalette.color(0xFFF0CF)
+      func silhouette(_ points: [(Double, Double)], _ color: Color) {
+        let path = Path { path in
+          guard let first = points.first else { return }
+          path.move(to: CGPoint(x: origin.x + first.0 * unit, y: origin.y + first.1 * unit))
+          for point in points.dropFirst() {
+            path.addLine(to: CGPoint(x: origin.x + point.0 * unit, y: origin.y + point.1 * unit))
+          }
+          path.closeSubpath()
+        }
+        context.fill(path, with: .color(color), style: FillStyle(antialiased: false))
+      }
+      let ink = HermiPalette.color(0x292C30)
+      let stone = HermiPalette.color(0xE1D6B5), light = HermiPalette.color(0xFFF2D0)
       let shade = HermiPalette.color(0xA49E92), window = HermiPalette.color(0x747C86)
-      let coral = HermiPalette.color(0xFF796D), red = HermiPalette.color(0xD9515C)
-      let blush = HermiPalette.color(0xED586B), shine = HermiPalette.color(0xFFC3A0)
+      let coral = HermiPalette.color(0xEF8072), red = HermiPalette.color(0xC65560)
+      let blush = HermiPalette.color(0xDC6170), shine = HermiPalette.color(0xFFBE9C)
       // Asymmetric tiered shell: a tall Art Deco tower carried on the crab's back.
       box(40, 0, 2, 9, ink); box(40, 2, 1, 6, light)
-      for (x, y, w, h) in [(38.0,8.0,6.0,7.0),(35,14,12,8),(31,21,20,10),(27,29,27,18),(18,38,12,14),(48,37,10,17),(12,48,48,10)] {
+      for (x, y, w, h) in [(38.0,8.0,6.0,7.0),(35,14,12,8),(31,21,20,10),(27,29,27,18),(18,38,12,14),(48,37,10,17)] {
         box(x,y,w,h,ink); box(x+1,y+1,w-3,h-2,stone)
         box(x+w-4,y+2,3,h-3,shade); box(x+1,y+1,w-3,1,light)
       }
@@ -29,15 +40,38 @@ struct HermitBrandMark: View {
         for y in [29.0,35,41] { box(x,y,2,1,stone) }
       }
       for x in [20.0,24,51,55] { box(x,41,1,10,window) }
-      box(14,49,42,2,light); box(15,53,42,3,shade)
-      // The shell opening remains visible while the crab cautiously peeks out.
-      box(17,51,28,13,ink); box(21,49,20,3,ink)
+      // One recessed opening joins the tower to the crab's back. The stepped
+      // limestone lip rises over its head and wraps down the right shoulder.
+      silhouette([(12,49),(16,49),(16,48),(21,48),(21,46),(26,46),(26,45),
+                  (42,45),(42,47),(47,47),(47,48),(60,48),(60,57),(58,57),
+                  (58,59),(53,59),(53,62),(46,62),(46,64),(18,64),(18,57),(14,57),
+                  (14,54),(12,54)], ink)
+      func shellLip() {
+        silhouette([(13,50),(17,50),(17,49),(22,49),(22,47),(27,47),(27,46),
+                    (41,46),(41,48),(46,48),(46,49),(59,49),(59,56),(57,56),
+                    (57,58),(53,58),(53,57),(49,57),(49,55),(46,55),(46,52),
+                    (43,52),(43,50),(40,50),(40,48),(28,48),(28,49),(23,49),
+                    (23,50),(20,50),(20,52),(18,52),(18,55),(15,55),(15,52),
+                    (13,52)], stone)
+        // Continuous top highlight, then a shaded outer wall: no floating plinth.
+        for (x, y, w) in [(13.0,50.0,4.0),(17,49,5),(22,47,5),(27,46,14),
+                          (41,48,5),(46,49,13)] { box(x,y,w,1,light) }
+        silhouette([(47,51),(50,51),(50,52),(57,52),(57,50),(59,50),(59,56),
+                    (53,56),(53,55),(49,55),(49,54),(47,54)], shade)
+        box(50,55,7,1,light)
+      }
       let peek = max(0, min(1, emergence))
       if peek > 0 {
         var crab = context
         crab.clip(to: Path(CGRect(x: origin.x, y: origin.y + 30 * unit, width: 64 * unit, height: 42 * unit)))
-        // Translate the complete face/limbs together; no detached eyes during reveal.
-        crab.translateBy(x: 0, y: (1 - peek) * 22 * unit)
+        // Emerge from inside the opening, keeping the face, torch and limbs
+        // together and inside the frame throughout the intro/loading cycle.
+        let anchor = CGPoint(x: origin.x + 31 * unit, y: origin.y + 53 * unit)
+        let scale = 0.65 + 0.35 * peek
+        crab.opacity *= peek
+        crab.translateBy(x: anchor.x, y: anchor.y)
+        crab.scaleBy(x: scale, y: scale)
+        crab.translateBy(x: -anchor.x, y: -anchor.y - (1 - peek) * 3 * unit)
         func pixel(_ x: Double, _ y: Double, _ w: Double, _ h: Double, _ color: Color) {
           crab.fill(Path(CGRect(x: origin.x+x*unit,y: origin.y+y*unit,width:w*unit,height:h*unit)), with: .color(color), style: FillStyle(antialiased: false))
         }
@@ -58,8 +92,8 @@ struct HermitBrandMark: View {
         pixel(20,59,5,2,blush); pixel(36,59,5,2,blush)
         pixel(29,59,1,1,ink); pixel(32,59,1,1,ink); pixel(30,60,2,1,ink)
         // Liberty torch moves with the crab; the claw wraps around its stem.
-        let copper = HermiPalette.color(0x70B5A4)
-        let copperShade = HermiPalette.color(0x397F79)
+        let copper = HermiPalette.color(0x7FB1A4)
+        let copperShade = HermiPalette.color(0x4E817A)
         pixel(8,44,4,17,ink); pixel(9,45,2,15,copperShade)
         pixel(9,46,1,12,copper)
         pixel(5,43,10,4,ink); pixel(6,43,8,2,copper)
@@ -80,6 +114,8 @@ struct HermitBrandMark: View {
         pixel(48,61,4,1,shine); pixel(53,62,3,1,shine)
         pixel(48,65,2,2,ink)
       }
+      // The front rim occludes the emerging crab, so the tower reads as its shell.
+      shellLip()
     }.accessibilityHidden(true)
   }
 }

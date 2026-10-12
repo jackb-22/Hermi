@@ -1,5 +1,24 @@
 import SwiftUI
 
+/// Reading roles use the same native rounded family and retain Dynamic Type.
+/// PixelText remains reserved for the existing brand lettering.
+enum HermiTypography {
+  static let title = Font.system(.title2, design: .rounded).weight(.bold)
+  static let heading = Font.system(.headline, design: .rounded)
+  static let body = Font.system(.body, design: .rounded)
+  static let label = Font.system(.subheadline, design: .rounded).weight(.semibold)
+  static let metadata = Font.system(.footnote, design: .rounded)
+}
+
+enum HermiSpacing {
+  static let tight: CGFloat = 4
+  static let small: CGFloat = 8
+  static let medium: CGFloat = 12
+  static let standard: CGFloat = 16
+  static let gutter: CGFloat = 20
+  static let section: CGFloat = 24
+}
+
 enum HermiPalette {
   // One RGB source for SwiftUI sprites, the map renderer and map UI chrome.
   static let inkRGB: UInt32 = 0x29343F
@@ -65,8 +84,8 @@ struct HermiButtonStyle: ButtonStyle {
   var secondary = false
   @Environment(\.isEnabled) private var enabled
   func makeBody(configuration: Configuration) -> some View {
-    configuration.label.font(.body.weight(.semibold))
-      .frame(maxWidth: .infinity, minHeight: 48).padding(.horizontal, 16)
+    configuration.label.font(HermiTypography.body.weight(.semibold))
+      .frame(maxWidth: .infinity, minHeight: 48).padding(.horizontal, HermiSpacing.standard)
       .foregroundStyle(enabled ? (secondary ? HermiPalette.ink : HermiPalette.paper) : HermiPalette.secondary)
       .background(PixelPanel(corner: 5).fill(enabled ? (secondary ? HermiPalette.controlSurface : HermiPalette.ink) : HermiPalette.line))
       .overlay(PixelPanel(corner: 5).strokeBorderEquivalent(secondary ? HermiPalette.line : .clear))

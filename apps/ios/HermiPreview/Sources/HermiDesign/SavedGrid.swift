@@ -5,6 +5,7 @@ import SwiftUI
 /// move to folder and remove are in each box's press-and-hold menu.
 struct SavedGrid: View {
   @Binding var state: MapPreviewState
+  @Environment(\.dynamicTypeSize) private var dynamicTypeSize
   var feedback: String?
   var append: (SavedReference) -> Void
   var openPlan: (String) -> Void
@@ -13,8 +14,6 @@ struct SavedGrid: View {
   @State private var openPlace: SavedReference?
   @State private var creatingFolder = false
   @State private var folderName = ""
-  private let columns = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
-
   private var folder: SavedFolder? { state.library.folders.first { $0.id == folderID } }
   private var items: [SavedReference] {
     let valid = Set(state.savedReferences)
@@ -24,46 +23,57 @@ struct SavedGrid: View {
   }
 
   var body: some View {
-    ScrollView {
-      VStack(alignment: .leading, spacing: 14) {
+    GeometryReader { geometry in
+      let usesList = dynamicTypeSize.isAccessibilitySize || geometry.size.width - 40 < 350
+      ScrollView {
+      VStack(alignment: .leading, spacing: HermiSpacing.section) {
         HStack {
           if let folder {
             Button { folderID = nil } label: {
-              HStack(spacing: 6) { PixelIcon(name: "back").frame(width: 16, height: 12); Text("Saved") }
-                .font(.subheadline.bold()).frame(minHeight: 44)
+              HStack(spacing: HermiSpacing.small) { PixelIcon(name: "back").frame(width: 16, height: 12); Text("Saved") }
+                .font(HermiTypography.label).frame(minHeight: 44)
             }.accessibilityLabel("Back to all saved")
-            Spacer()
-            Text("\(folder.name) · \(folder.items.count)").font(.headline).lineLimit(1)
+            VStack(alignment: .trailing, spacing: HermiSpacing.tight) {
+              Text(folder.name).font(HermiTypography.heading)
+                .fixedSize(horizontal: false, vertical: true).multilineTextAlignment(.trailing)
+              Text("\(folder.items.count) items").font(HermiTypography.metadata).foregroundStyle(HermiPalette.secondary)
+            }.frame(maxWidth: .infinity, alignment: .trailing)
           } else {
-            Text("\(state.savedReferences.count) saved").font(.caption).foregroundStyle(HermiPalette.secondary)
+            VStack(alignment: .leading, spacing: HermiSpacing.tight) {
+              Text("\(state.savedReferences.count) items").font(HermiTypography.metadata).foregroundStyle(HermiPalette.secondary)
+            }
             Spacer()
             Button { folderName = ""; creatingFolder = true } label: {
-              HStack(spacing: 6) { PixelIcon(name: "plus").frame(width: 12, height: 12); Text("New folder") }
-                .font(.caption.bold()).padding(.horizontal, 10).frame(minHeight: 36)
+              HStack(spacing: HermiSpacing.small) { PixelIcon(name: "plus").frame(width: 12, height: 12); Text("New folder") }
+                .font(HermiTypography.label).padding(.horizontal, HermiSpacing.medium).frame(minHeight: 44)
                 .background(HermiPalette.lime, in: PixelPanel(corner: 5))
             }
           }
         }
-        if let feedback { Text(feedback).font(.caption).foregroundStyle(HermiPalette.green) }
-        LazyVGrid(columns: columns, spacing: 14) {
+        if let feedback {
+          Text(feedback).font(HermiTypography.metadata).foregroundStyle(HermiPalette.green)
+            .fixedSize(horizontal: false, vertical: true).accessibilityAddTraits(.updatesFrequently)
+        }
+        LazyVGrid(columns: usesList ? [GridItem(.flexible())] : [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: HermiSpacing.medium) {
           if folder == nil {
             ForEach(state.library.folders) { folder in
-              Button { folderID = folder.id } label: { folderTile(folder) }.buttonStyle(.plain)
+              Button { folderID = folder.id } label: { folderTile(folder, usesList: usesList) }.buttonStyle(.plain)
             }
           }
           ForEach(items) { reference in
-            Button { open(reference) } label: { tile(reference) }.buttonStyle(.plain)
+            Button { open(reference) } label: { tile(reference, usesList: usesList) }.buttonStyle(.plain)
               .contextMenu { menu(reference) }
           }
         }
         if items.isEmpty && (folder != nil || state.library.folders.isEmpty) {
-          VStack(spacing: 12) {
+          VStack(spacing: HermiSpacing.small) {
             HermitBrandMark().frame(width: 56, height: 63)
             Text(folder == nil ? "Nothing saved yet. Bookmark places, posts or plans." : "This folder is empty. Hold any saved item to move it here.")
-              .font(.subheadline).multilineTextAlignment(.center)
-          }.frame(maxWidth: .infinity).padding(20)
+              .font(HermiTypography.body).multilineTextAlignment(.center)
+          }.frame(maxWidth: .infinity).padding(HermiSpacing.gutter)
         }
       }.padding(20)
+      }
     }
     .coverScreen(item: $viewing) { reference in
       SavedViewer(state: $state, reference: reference, close: { viewing = nil },
@@ -95,37 +105,98 @@ struct SavedGrid: View {
 
   // MARK: Tiles
 
-  private func tile(_ reference: SavedReference) -> some View {
-    VStack(alignment: .leading, spacing: 6) {
-      SavedThumbnail(state: state, reference: reference)
-        .aspectRatio(1, contentMode: .fit).clipShape(PixelPanel(corner: 8))
-        .overlay(alignment: .topLeading) { badge(reference.kind.rawValue.uppercased()) }
-      Text(state.savedTitle(reference)).font(.caption.weight(.semibold)).lineLimit(2)
+  private func tile(_ reference: SavedReference, usesList: Bool) -> some View {
+    Group {
+      if usesList {
+        HStack(alignment: .top, spacing: HermiSpacing.medium) {
+          SavedThumbnail(state: state, reference: reference)
+            .frame(width: 92, height: 92).clipShape(PixelPanel(corner: 8))
+            .overlay(alignment: .topLeading) { badge(reference.kind.rawValue.uppercased(), fill: itemAccent(reference)) }
+          itemText(reference).frame(maxWidth: .infinity, alignment: .leading)
+        }
+      } else {
+        VStack(alignment: .leading, spacing: HermiSpacing.small) {
+          SavedThumbnail(state: state, reference: reference)
+            .aspectRatio(1, contentMode: .fit).clipShape(PixelPanel(corner: 8))
+            .overlay(alignment: .topLeading) { badge(reference.kind.rawValue.uppercased(), fill: itemAccent(reference)) }
+          itemText(reference)
+        }
+      }
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .accessibilityElement(children: .ignore)
+    .accessibilityLabel("\(reference.kind.rawValue.capitalized), \(state.savedTitle(reference)), \(itemDescriptor(reference))")
+  }
+
+  private func itemText(_ reference: SavedReference) -> some View {
+    VStack(alignment: .leading, spacing: HermiSpacing.tight) {
+      Text(state.savedTitle(reference)).font(HermiTypography.label).fixedSize(horizontal: false, vertical: true)
+      Text(itemDescriptor(reference)).font(HermiTypography.metadata).foregroundStyle(HermiPalette.secondary)
+        .fixedSize(horizontal: false, vertical: true)
     }
   }
 
-  private func folderTile(_ folder: SavedFolder) -> some View {
-    VStack(alignment: .leading, spacing: 6) {
-      let previews = Array(folder.items.prefix(4))
-      LazyVGrid(columns: [GridItem(.flexible(), spacing: 3), GridItem(.flexible(), spacing: 3)], spacing: 3) {
-        ForEach(0..<4, id: \.self) { index in
-          Group {
-            if index < previews.count { SavedThumbnail(state: state, reference: previews[index]) }
-            else { HermiPalette.line.opacity(0.5) }
-          }.aspectRatio(1, contentMode: .fit).clipped()
+  private func folderTile(_ folder: SavedFolder, usesList: Bool) -> some View {
+    let previews = Array(folder.items.prefix(4))
+    return Group {
+      if usesList {
+        HStack(alignment: .top, spacing: HermiSpacing.medium) {
+          folderPreview(previews).frame(width: 92, height: 92)
+          VStack(alignment: .leading, spacing: HermiSpacing.tight) {
+            Text(folder.name).font(HermiTypography.label).fixedSize(horizontal: false, vertical: true)
+            Text("\(folder.items.count) items").font(HermiTypography.metadata).foregroundStyle(HermiPalette.secondary)
+          }
+        }
+      } else {
+        VStack(alignment: .leading, spacing: 6) {
+          folderPreview(previews)
+          Text(folder.name).font(HermiTypography.label).fixedSize(horizontal: false, vertical: true)
+          Text("\(folder.items.count) items").font(HermiTypography.metadata).foregroundStyle(HermiPalette.secondary)
         }
       }
-      .padding(4).background(HermiPalette.controlSurface, in: PixelPanel(corner: 8))
-      .overlay(PixelPanel(corner: 8).stroke(HermiPalette.ink, lineWidth: 2))
-      .overlay(alignment: .topLeading) { badge("FOLDER") }
-      Text("\(folder.name) · \(folder.items.count)").font(.caption.weight(.semibold)).lineLimit(1)
-    }.accessibilityLabel("Folder \(folder.name), \(folder.items.count) items")
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .accessibilityElement(children: .ignore)
+    .accessibilityLabel("Folder \(folder.name), \(folder.items.count) items")
   }
 
-  private func badge(_ text: String) -> some View {
-    Text(text).font(.system(size: 9, weight: .bold, design: .monospaced))
-      .padding(.horizontal, 5).padding(.vertical, 3)
-      .background(HermiPalette.controlSurface.opacity(0.9), in: PixelPanel(corner: 3)).padding(6)
+  private func folderPreview(_ previews: [SavedReference]) -> some View {
+    LazyVGrid(columns: [GridItem(.flexible(), spacing: 3), GridItem(.flexible(), spacing: 3)], spacing: 3) {
+      ForEach(0..<4, id: \.self) { index in
+        Group {
+          if index < previews.count { SavedThumbnail(state: state, reference: previews[index]) }
+          else { HermiPalette.line.opacity(0.5) }
+        }.aspectRatio(1, contentMode: .fit).clipped()
+      }
+    }
+    .padding(4).background(HermiPalette.controlSurface, in: PixelPanel(corner: 8))
+    .overlay(PixelPanel(corner: 8).stroke(HermiPalette.ink, lineWidth: 2))
+    .overlay(alignment: .topLeading) { badge("FOLDER") }
+  }
+
+  private func badge(_ text: String, fill: Color = HermiPalette.controlSurface) -> some View {
+    Text(text).font(HermiTypography.metadata.weight(.bold))
+      .padding(.horizontal, HermiSpacing.small).padding(.vertical, HermiSpacing.tight)
+      .foregroundStyle(HermiPalette.ink)
+      .background(fill.opacity(0.96), in: PixelPanel(corner: 3)).padding(HermiSpacing.small)
+  }
+
+  private func itemAccent(_ reference: SavedReference) -> Color {
+    if let place = MapSamplePlace.find(reference.refID) { return HermiPalette.category(place.category) }
+    if reference.kind == .plan { return HermiPalette.green.opacity(0.45) }
+    return HermiPalette.lavender
+  }
+
+  private func itemDescriptor(_ reference: SavedReference) -> String {
+    switch reference.kind {
+    case .place: return MapSamplePlace.find(reference.refID)?.category.rawValue ?? "Unavailable place"
+    case .post:
+      guard let post = PlaceFeedPost.find(reference.refID) else { return "Unavailable post" }
+      return "Post · \(MapSamplePlace.find(post.placeID)?.name ?? "Place unavailable")"
+    case .plan:
+      guard let plan = state.library.plan(reference.refID) else { return "Unavailable plan" }
+      return "\(plan.stopIDs.count) stops · \(plan.visibility.rawValue)"
+    }
   }
 
   @ViewBuilder

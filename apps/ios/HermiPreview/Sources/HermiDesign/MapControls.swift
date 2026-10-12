@@ -29,6 +29,7 @@ struct PixelIcon: View {
     case "info": return ["   III   ","         ","   III   ","    II   ","    II   ","    II   ","  IIIIII "]
     case "social": return ["  III  III ","  III  III ","           "," IIIII IIII"," IIIII IIII"," IIIII IIII","  I I  I I ","  I I  I I "]
     case "plan": return ["   IIIIIIIIII", "  I         I", " I          I", "I           I", " I          I", "  I         I", "   IIIIIIIIII"]
+    case "filter": return ["IIIIIIIIIII", "    III    ", "    III    ", " IIIIIIIII ", "    III    ", "     I     ", "   IIIII   "]
     case "settings": return ["    III    "," II III II "," IIIIIIIII ","  II   II  ","III I I III","III I I III","  II   II  "," IIIIIIIII "," II III II ","    III    "]
     case "clock": return ["   IIIII   "," II     II "," I   I   I ","I    I    I","I    III  I","I         I"," I       I "," II     II ","   IIIII   "]
     case "camera": return ["   IIIII   ","IIIIIIIIIII","I         I","I   III   I","I  I   I  I","I   III   I","I         I","IIIIIIIIIII"]
@@ -115,8 +116,12 @@ struct CategoryPinControl: View {
           .simultaneousGesture(TapGesture().onEnded { if !dropping { onFilter() } })
         PixelIcon(name: "right").frame(width: 8, height: 12).allowsHitTesting(false)
       }
-      Text(category.rawValue).font(.caption2.weight(.semibold)).fixedSize()
-        .underline(filterActive, color: HermiPalette.green)
+      Text(category.rawValue).font(HermiTypography.label).fixedSize()
+        .padding(.horizontal, HermiSpacing.small).padding(.vertical, HermiSpacing.tight)
+        .background(filterActive ? HermiPalette.green.opacity(0.12) : HermiPalette.controlSurface.opacity(0.96),
+                    in: PixelPanel(corner: 5))
+        .overlay(PixelPanel(corner: 5).stroke(filterActive ? HermiPalette.green : HermiPalette.line, lineWidth: 1))
+        .accessibilityHidden(true)
     }
       .onChange(of: touching) { _, active in
         if !active { showing = false; dropping = false; dragging = .zero }

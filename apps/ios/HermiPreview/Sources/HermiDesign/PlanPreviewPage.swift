@@ -38,9 +38,11 @@ struct PlanPreviewPage: View {
   @State private var saveFeedback: String?
   @State private var viewingPost: SavedReference?
   @State private var openPlace: SavedReference?
+  @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+  @ScaledMetric(relativeTo: .footnote) private var timeColumnWidth: CGFloat = 112
   private var warning: Bool { !state.timingConflicts.isEmpty }
   var body: some View {
-    VStack(spacing: 16) {
+    VStack(spacing: HermiSpacing.standard) {
       Capsule().fill(HermiPalette.secondary.opacity(0.5)).frame(width: 36, height: 4).padding(.top, 10)
         .frame(height: 24).frame(maxWidth: .infinity).contentShape(Rectangle())
         .gesture(DragGesture(minimumDistance: 10).exclusively(before: TapGesture()).onEnded { gesture in
@@ -56,7 +58,7 @@ struct PlanPreviewPage: View {
       HStack {
         CloseButton { close() }
           .accessibilityLabel("Close planning").controlHelp("Close planning and return to your previous page")
-        Text(saved ? "Saved" : "My Plan").font(.title2.bold())
+        Text(saved ? "Saved" : "My Plan").font(HermiTypography.title)
         Spacer()
         if saved {
           Button { state.sheet = .plan } label: {
@@ -64,6 +66,14 @@ struct PlanPreviewPage: View {
           }.accessibilityLabel("Return to My Plan")
             .controlHelp("Close full Saved list and return to My Plan")
         } else {
+          Button { state.undoPlanEdit(); saveFeedback = nil } label: {
+            Image(systemName: "arrow.uturn.backward")
+              .font(.system(size: 16, weight: .semibold))
+              .frame(width: 44, height: 44)
+          }
+          .disabled(!state.canUndoPlan).opacity(state.canUndoPlan ? 1 : 0.4)
+          .accessibilityLabel("Undo")
+          .accessibilityHint("Undo the last change to stops, times or invite selections")
           PixelIcon(name: "save").frame(width: 22, height: 26).frame(width: 44, height: 44)
             .contentShape(Rectangle())
             .gesture(LongPressGesture(minimumDuration: 0.4).exclusively(before: TapGesture()).onEnded { gesture in
@@ -80,83 +90,72 @@ struct PlanPreviewPage: View {
             // This hold is the Save Plan action, not a control-description popup.
             .help(state.editingSavedPlan == nil ? "Tap to show Saved here. Hold to save the current plan" : "Tap for Saved. Hold for sharing draft preferences; edits autosave locally")
         }
-      }.padding(.horizontal, 16)
+      }.padding(.horizontal, HermiSpacing.standard)
       if saved {
         SavedGrid(state: $state, feedback: saveFeedback, append: append) { id in
           if state.openSavedPlan(id) { saveFeedback = nil; showDrawer = false }
         }
       }
       else {
-        HStack(spacing: 12) {
-          VStack(alignment: .leading, spacing: 3) {
-            Text(state.editingSavedPlan?.name ?? "Current draft").font(.subheadline.bold()).lineLimit(1)
-            Text(LiveSession.shared.isLive ? "Synced to your account" : (state.editingSavedPlan == nil ? "On this device" : "Autosaves on this device"))
-              .font(.caption2).foregroundStyle(HermiPalette.secondary)
-          }
-          Spacer()
-          if state.editingSavedPlan != nil {
+        if state.editingSavedPlan != nil {
+          HStack(spacing: HermiSpacing.medium) {
+            Text(state.editingSavedPlan?.name ?? "Saved plan")
+              .font(HermiTypography.label).fixedSize(horizontal: false, vertical: true)
+            Spacer()
             Button("My draft") { state.returnToPlanDraft(); saveFeedback = nil }
-              .font(.caption).frame(minHeight: 44).controlHelp("Return to your preserved unfinished plan")
+              .font(HermiTypography.label).frame(minHeight: 44)
+              .controlHelp("Return to your preserved unfinished plan")
           }
-          Button("Undo") { state.undoPlanEdit(); saveFeedback = nil }
-            .font(.caption.bold()).frame(minHeight: 44).disabled(!state.canUndoPlan)
-            .opacity(state.canUndoPlan ? 1 : 0.35).controlHelp("Undo the last change to stops, times or invite selections")
-        }.padding(.horizontal, 20)
+          .padding(.horizontal, HermiSpacing.gutter)
+          .padding(.vertical, HermiSpacing.tight)
+        }
         if showDrawer { savedDrawer }
         if LiveSession.shared.isLive, let goJoined { InvitationsSection(goJoined: goJoined) }
         if let saveFeedback {
-          Text(saveFeedback).font(.caption).padding(.horizontal, 18).accessibilityAddTraits(.updatesFrequently)
+          Text(saveFeedback).font(HermiTypography.metadata).padding(.horizontal, HermiSpacing.gutter).accessibilityAddTraits(.updatesFrequently)
         }
-        HStack {
-          Button { help.toggle() } label: { PixelIcon(name: "clock").frame(width: 24, height: 24).frame(width: 44, height: 44) }
-            .accessibilityLabel("Timeline help").controlHelp("Tap a time to edit. Hold a stop and move it to reorder")
-          Text("Hold a stop to reorder").font(.caption).foregroundStyle(HermiPalette.secondary)
-          Spacer()
-        }.padding(.horizontal, 18)
-        if help { Text("Set arrival, stay length and a reminder preference for each place. Reminders are not scheduled in preview.").font(.caption).padding(.horizontal, 20) }
-        ScrollView {
-          LazyVStack(spacing: 12) {
-            if state.planIDs.isEmpty {
-              HermitBrandMark().frame(width: 56, height: 63)
-              Text("Add a place from Map, Feed or Saved.").font(.subheadline).padding(24)
+        if !state.planIDs.isEmpty {
+          HStack {
+            Button { help.toggle() } label: { PixelIcon(name: "clock").frame(width: 24, height: 24).frame(width: 44, height: 44) }
+              .accessibilityLabel("Timeline help")
+              .accessibilityHint("Explains editing times and reordering stops")
+            if state.planIDs.count > 1 {
+              Text("Hold a stop to reorder").font(HermiTypography.metadata).foregroundStyle(HermiPalette.secondary)
             }
-            ForEach(Array(shown.ids.enumerated()), id: \.element) { index, id in
-              if let place = MapSamplePlace.find(id) {
-                if index > 0, suggestion != nil || !(shown.legs ?? [:]).isEmpty {
-                  LegRow(leg: shown.leg(into: id),
-                         changed: suggestion != nil && shown.leg(into: id) != state.planContents.leg(into: id))
-                }
-                stopRow(place)
-              }
-            }
-            if !removedBySuggestion.isEmpty {
-              Text("Removes " + removedBySuggestion.map(\.name).joined(separator: ", "))
-                .font(.caption).strikethrough().foregroundStyle(HermiPalette.secondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-          }.padding(.horizontal, 18).padding(.vertical, 8)
+            Spacer()
+          }.padding(.horizontal, HermiSpacing.standard)
+          if help {
+            Text("Set arrival, stay length and a reminder preference for each place. Reminders are not scheduled in preview.")
+              .font(HermiTypography.metadata).padding(.horizontal, HermiSpacing.gutter)
+          }
         }
+        if dynamicTypeSize.isAccessibilitySize { timeline }
+        else { ScrollView { timeline } }
         if let suggestion {
           SuggestionBar(suggestion: suggestion, applying: assistant?.phase == .applying,
                         apply: applySuggestion, dismiss: dismissSuggestion)
             .padding(.horizontal, 18)
         } else if warning {
           Text("Some stops overlap or run backwards. Edit their times or continue with Go!")
-            .font(.caption).foregroundStyle(HermiPalette.ink).padding(12)
-            .background(HermiPalette.coral.opacity(0.25), in: PixelPanel(corner: 6)).padding(.horizontal, 18)
+            .font(HermiTypography.metadata).foregroundStyle(HermiPalette.ink).padding(HermiSpacing.medium)
+            .background(HermiPalette.coral.opacity(0.25), in: PixelPanel(corner: 6)).padding(.horizontal, HermiSpacing.gutter)
         }
         if suggestion == nil {
         Button { if state.canStartPlan { go() } } label: {
-          Text("Go!").font(.title2.bold()).frame(width: 130, height: 62)
-            .background(HermiPalette.lime, in: PixelPanel(corner: 18))
-        }.disabled(!state.canStartPlan).opacity(state.canStartPlan ? 1 : 0.45)
+          Text("Go!").font(HermiTypography.title).padding(.horizontal, HermiSpacing.section)
+            .frame(minWidth: 130, minHeight: 62)
+            .foregroundStyle(HermiPalette.ink)
+            .background(state.canStartPlan ? HermiPalette.lime : HermiPalette.line, in: PixelPanel(corner: 18))
+        }.disabled(!state.canStartPlan)
           .accessibilityHint("Opens Action preview. No real trip, tracking or notifications begin")
           .controlHelp(!state.canStartPlan ? "Add at least one place before Go" : "Enter Action preview: Directions and Camera")
         }
         Text("Local plan preview · reminders and invitations are not sent")
-          .font(.caption2).foregroundStyle(HermiPalette.secondary).padding(.horizontal, 18)
+          .font(HermiTypography.metadata).foregroundStyle(HermiPalette.secondary)
+          .fixedSize(horizontal: false, vertical: true).padding(.horizontal, HermiSpacing.gutter)
       }
     }
+    .modifier(PlanReadingScroll(enabled: dynamicTypeSize.isAccessibilitySize && !saved))
     .buttonStyle(.plain)
     .padding(.bottom, 115)
     .frame(maxWidth: .infinity)
@@ -249,29 +248,83 @@ struct PlanPreviewPage: View {
     }
   }
 
+  private var timeline: some View {
+    LazyVStack(spacing: HermiSpacing.standard) {
+      if state.planIDs.isEmpty {
+        VStack(alignment: .leading, spacing: HermiSpacing.small) {
+          Text("Your plan starts with a place").font(HermiTypography.heading)
+          Text("Add an explicit place from Map, Feed or Saved. It will appear here when you choose Add.")
+            .font(HermiTypography.body).foregroundStyle(HermiPalette.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(HermiSpacing.medium)
+        .background(HermiPalette.controlSurface, in: PixelPanel(corner: 8))
+        .overlay(PixelPanel(corner: 8).stroke(HermiPalette.line, lineWidth: 1))
+      }
+      ForEach(Array(shown.ids.enumerated()), id: \.element) { index, id in
+        if let place = MapSamplePlace.find(id) {
+          if index > 0, suggestion != nil || !(shown.legs ?? [:]).isEmpty {
+            LegRow(leg: shown.leg(into: id),
+                   changed: suggestion != nil && shown.leg(into: id) != state.planContents.leg(into: id))
+          }
+          stopRow(place)
+        }
+      }
+      if !removedBySuggestion.isEmpty {
+        Text("Removes " + removedBySuggestion.map(\.name).joined(separator: ", "))
+          .font(HermiTypography.metadata).strikethrough().foregroundStyle(HermiPalette.secondary)
+          .frame(maxWidth: .infinity, alignment: .leading)
+      }
+    }.padding(.horizontal, HermiSpacing.gutter).padding(.vertical, HermiSpacing.small)
+  }
+
   private func stopRow(_ place: MapSamplePlace) -> some View {
     let mark = mark(place.id)
-    return HStack(spacing: 10) {
+    let isAccessibilityLayout = dynamicTypeSize.isAccessibilitySize
+    // Keep the complete schedule on the left at large text sizes. The earlier
+    // narrow bound let Dynamic Type split “12:00 PM” and the reminder into a
+    // tall stack, so reserve a wider column and let the stop title wrap at right.
+    let readableTimeWidth = min(max(timeColumnWidth, 184), 208)
+    let layout = AnyLayout(HStackLayout(
+      alignment: isAccessibilityLayout ? .top : .center,
+      spacing: HermiSpacing.medium
+    ))
+    return layout {
       Button { editor = place } label: {
-        VStack(spacing: 5) {
+        VStack(alignment: .leading, spacing: HermiSpacing.tight) {
           if let time = times[place.id] {
-            Text(time.arrival, format: .dateTime.month(.abbreviated).day()).font(.system(size: 9))
-            Text(time.arrival, style: .time).font(.caption.bold())
+            Text(time.arrival, format: .dateTime.month(.abbreviated).day())
+              .font(HermiTypography.metadata).foregroundStyle(HermiPalette.secondary)
+            Text(time.arrival, format: .dateTime.hour().minute())
+              .font(HermiTypography.label).monospacedDigit()
+              .lineLimit(1).minimumScaleFactor(isAccessibilityLayout ? 0.55 : 0.68).allowsTightening(true)
               .foregroundStyle(mark == .none ? HermiPalette.ink : HermiPalette.green)
-            Text("\(time.durationMinutes)m" + (time.reminderMinutes > 0 ? " · \(time.reminderMinutes)m before" : "")).font(.system(size: 9)).lineLimit(2)
-          } else { Text("Set time").font(.caption) }
-        }.frame(width: 64, height: 58)
+            if isAccessibilityLayout {
+              Text("\(time.durationMinutes)m").font(HermiTypography.metadata).foregroundStyle(HermiPalette.secondary)
+              if time.reminderMinutes > 0 {
+                Text("\(time.reminderMinutes)m before").font(HermiTypography.metadata).foregroundStyle(HermiPalette.secondary)
+              }
+            } else {
+              Text("\(time.durationMinutes)m" + (time.reminderMinutes > 0 ? " · \(time.reminderMinutes)m before" : ""))
+                .font(HermiTypography.metadata).foregroundStyle(HermiPalette.secondary)
+            }
+          } else { Text("Set time").font(HermiTypography.metadata) }
+        }.fixedSize(horizontal: false, vertical: true)
+          .frame(width: isAccessibilityLayout ? readableTimeWidth : timeColumnWidth, alignment: .leading)
+          .frame(minWidth: 44, minHeight: 64, alignment: .leading)
+          .contentShape(Rectangle())
       }.accessibilityLabel("Edit time for \(place.name)")
         .controlHelp("Edit arrival, duration and reminder for \(place.name)")
-      Rectangle().fill(HermiPalette.category(place.category)).frame(width: 2, height: 58)
-      HStack(spacing: 4) {
+      HStack(spacing: HermiSpacing.tight) {
         Button { openPlace = SavedReference(kind: .place, refID: place.id) } label: {
-          Text(place.name).font(.subheadline).frame(maxWidth: .infinity, minHeight: 54, alignment: .leading)
+          Text(place.name).font(HermiTypography.body).fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, minHeight: 64, alignment: .leading)
         }.help("Open place details. Hold and drag this row to reorder")
         Button { participants = place } label: { PixelIcon(name: "menu").frame(width: 22, height: 16).frame(width: 44, height: 48) }
           .accessibilityLabel("Who's going to \(place.name)")
           .controlHelp("View attendees and choose existing friends to invite")
-      }.padding(.leading, 12).background(HermiPalette.category(place.category).opacity(0.32), in: PixelPanel(corner: 8))
+      }.padding(.leading, HermiSpacing.medium).background(HermiPalette.category(place.category).opacity(0.32), in: PixelPanel(corner: 8))
         .overlay(alignment: .topTrailing) {
           if mark == .added {
             Text("NEW").font(.system(size: 9, design: .monospaced).bold()).padding(.horizontal, 5).padding(.vertical, 2)
@@ -295,6 +348,7 @@ struct PlanPreviewPage: View {
         }
     }
   }
+
   private var savedDrawer: some View {
     VStack(alignment: .leading, spacing: 6) {
       HStack {
@@ -310,9 +364,10 @@ struct PlanPreviewPage: View {
         LazyHStack(spacing: 10) {
           ForEach(state.savedReferences) { reference in
             VStack(alignment: .leading, spacing: 10) {
-              Text(reference.kind.rawValue.uppercased()).font(.system(size: 10, design: .monospaced))
+              Text(reference.kind.rawValue.capitalized).font(HermiTypography.metadata).foregroundStyle(HermiPalette.secondary)
               Button { openSaved(reference) } label: {
-                Text(savedTitle(reference)).font(.subheadline.bold()).lineLimit(2).frame(maxWidth: .infinity, alignment: .leading)
+                Text(savedTitle(reference)).font(HermiTypography.label).fixedSize(horizontal: false, vertical: true)
+                  .frame(maxWidth: .infinity, alignment: .leading)
               }
                 .controlHelp(reference.kind == .plan ? "Open this saved plan for editing; preserve your current draft" : "Open place details")
               Spacer(minLength: 0)
@@ -321,7 +376,7 @@ struct PlanPreviewPage: View {
                   .background(HermiPalette.lime, in: PixelPanel(corner: 5))
               }.accessibilityLabel("Add \(savedTitle(reference)) to current plan")
                 .controlHelp("Append explicit places; existing stops are skipped")
-            }.padding(10).frame(width: 138, height: 128)
+            }.padding(HermiSpacing.medium).frame(width: 158, alignment: .leading).frame(minHeight: 140)
               .background(HermiPalette.category(MapSamplePlace.find(reference.refID)?.category ?? .culture).opacity(0.3), in: PixelPanel(corner: 6))
           }
           if state.savedReferences.isEmpty { Text("Nothing saved yet").font(.caption).frame(height: 90) }
@@ -352,6 +407,16 @@ struct PlanPreviewPage: View {
     if reference.kind == .plan {
       if state.openSavedPlan(reference.refID) { saveFeedback = nil; showDrawer = false }
     } else if reference.kind == .place { openPlace = reference }
+  }
+}
+
+/// Large reading sizes scroll the whole Plan rather than squeezing its timeline
+/// between growing headers and footers. Normal sizes retain the existing layout.
+private struct PlanReadingScroll: ViewModifier {
+  let enabled: Bool
+  @ViewBuilder func body(content: Content) -> some View {
+    if enabled { ScrollView { content }.frame(maxWidth: .infinity, maxHeight: .infinity) }
+    else { content }
   }
 }
 

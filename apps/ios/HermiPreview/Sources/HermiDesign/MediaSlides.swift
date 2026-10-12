@@ -35,12 +35,23 @@ struct CachedImage: View {
     ZStack {
       if let image {
         Image(platform: image).resizable().aspectRatio(contentMode: contentMode)
+          .accessibilityLabel("Photo")
       } else {
         HermiPalette.ink.opacity(0.9)
         if failed || url == nil {
-          PixelIcon(name: "photo").frame(width: 24, height: 24).opacity(0.4)
+          VStack(spacing: HermiSpacing.small) {
+            PixelIcon(name: "photo").frame(width: 24, height: 24).opacity(0.65)
+            Text("Photo unavailable").font(HermiTypography.metadata).foregroundStyle(HermiPalette.paper)
+          }
+          .accessibilityElement(children: .combine)
+          .accessibilityLabel("Photo unavailable")
         } else {
-          ProgressView().tint(HermiPalette.paper)
+          VStack(spacing: HermiSpacing.small) {
+            ProgressView().tint(HermiPalette.paper)
+            Text("Loading photo").font(HermiTypography.metadata).foregroundStyle(HermiPalette.paper)
+          }
+          .accessibilityElement(children: .combine)
+          .accessibilityLabel("Loading photo")
         }
       }
     }

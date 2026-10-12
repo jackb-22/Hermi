@@ -1,5 +1,13 @@
 # Hermi user testing
 
+## Current review: curated UI round 2, device verification
+
+The implementation pass spans R2.00–R2.14 and is recorded in [the round 2 handoff](design-reference/2026-10-12-curated-ui-round-2/02-14-implementation/REVIEW.md). Follow-up iPhone/simulator findings, screenshots and exact verification limits are in the [device review](design-reference/2026-10-12-curated-ui-round-2/10-device-review/REVIEW.md). After review feedback, the `.accessibility5` Plan fixture now keeps schedule details in a left column and event cards at the right; this was visually checked in iPhone 17 Pro Max Simulator. Scroll the plan at this size to check lower stops and Go remain reachable.
+
+The signed app launched on the connected iPhone 17 Pro; Map, Feed and Profile were inspected. The latest code was rebuilt in iPhone 16e Simulator (iOS 26.3), where the Profile route notice, Feed caption sheet, empty Plan action and Assistant categories were reviewed. The route notice and disabled Plan action were corrected in commits `3f10751` and `7e574a6`. The Assistant category styling was confirmed and left unchanged. The 120-test Swift suite and map bridge checks pass. The preview was closed after review.
+
+Open checks: Saved with accessibility-size text (the fixture launch was blocked before app launch by CoreSimulatorService/SwiftPM cache errors), VoiceOver speech, actual Dynamic Type, Reduce Motion, keyboard avoidance, 390/430-point layouts, representative owned imagery and media failure states, and physical-device verification of the two final fixes. The sample imagery is clearly labeled; asset provenance is not established. R2.00 is partial and production/account integration checks remain outside this local visual acceptance.
+
 > Merge handoff, 2026-09-27: development is paused here. Incoming server settings replace the Replay intro demo button referenced in earlier checklists. Committed branding is retained; the unfinished expressive-crab revision is backed up outside the repository. Use `--hermi-demo` for branding playback. Merge validation: 62 frontend tests and unsigned iPhone build pass; backend/runtime integration acceptance remains pending.
 
 This is the user-facing test entry point. Product reference: [unified design schema](HERMI_SCHEMA.md). Resume/checkpoint: [progress](PROGRESS.md).

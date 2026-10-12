@@ -151,7 +151,7 @@ struct PlaceDetailSummary: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 6) {
       if let address = detail?.address ?? place.address {
-        Text(address).font(.caption).foregroundStyle(HermiPalette.secondary)
+        Text(address).font(HermiTypography.metadata).foregroundStyle(HermiPalette.secondary)
       }
       HStack(spacing: 14) {
         stat(detail?.been ?? place.been, "been")
@@ -159,18 +159,22 @@ struct PlaceDetailSummary: View {
         stat(detail?.hereNow, "here now")
         stat(detail?.going, "going")
       }
-      Text(facts).font(.caption)
+      Text(facts).font(HermiTypography.metadata)
       if let summary = detail?.reviewSummary, !summary.isEmpty {
-        Text(summary).font(.subheadline).italic()
+        Text(summary).font(HermiTypography.body).italic()
       }
     }
+    .padding(HermiSpacing.medium)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .background(HermiPalette.controlSurface, in: PixelPanel(corner: 6))
+    .overlay(PixelPanel(corner: 6).stroke(HermiPalette.line, lineWidth: 1))
     .task(id: place.id) { await load() }
   }
 
   private func stat(_ value: Int?, _ label: String) -> some View {
     VStack(alignment: .leading, spacing: 1) {
-      Text(value.map(String.init) ?? "—").font(.system(.headline, design: .monospaced))
-      Text(label).font(.caption2).foregroundStyle(HermiPalette.secondary)
+      Text(value.map(String.init) ?? "—").font(HermiTypography.heading.monospacedDigit())
+      Text(label).font(HermiTypography.metadata).foregroundStyle(HermiPalette.secondary)
     }.accessibilityElement(children: .combine)
   }
 

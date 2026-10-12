@@ -5,6 +5,21 @@ final class MultiPinTests: XCTestCase {
   func testGardenFixtureIsOnLand() throws {
     XCTAssertTrue(NYCLandMask.shared.allows(try XCTUnwrap(MapSamplePlace.find("garden")).coordinate))
   }
+  func testCitywideCategoryFilterDoesNotChangeMapRouteOrSheet() {
+    var state = MapPreviewState()
+    XCTAssertEqual(state.panel, .map)
+    XCTAssertNil(state.sheet)
+
+    state.toggleCategoryFilter()
+    XCTAssertEqual(state.activeCitywideCategory, .food)
+    XCTAssertEqual(state.panel, .map)
+    XCTAssertNil(state.sheet)
+
+    state.toggleCategoryFilter()
+    XCTAssertNil(state.activeCitywideCategory)
+    XCTAssertEqual(state.panel, .map)
+    XCTAssertNil(state.sheet)
+  }
   func testUnionDeduplicationAndIndependentCategoryFilter() throws {
     var state = MapPreviewState()
     state.category = .food

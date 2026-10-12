@@ -6,7 +6,7 @@ public struct HermiMapPreview: View {
   @State private var showingIntro = BrandIntroPolicy.shouldShow(
     seen: UserDefaults.standard.bool(forKey: BrandIntroPolicy.key),
     demo: ProcessInfo.processInfo.arguments.contains("--hermi-demo"),
-    fixture: ProcessInfo.processInfo.arguments.contains { $0.hasPrefix("--hermi-") && $0.hasSuffix("-review") },
+    fixture: PreviewReviewArguments.isFixture(ProcessInfo.processInfo.arguments),
     existingPreview: UserDefaults.standard.data(forKey: "hermi.preview.map-composition.v1") != nil)
   @State private var state = MapPreviewState()
   @State private var moving = false
@@ -31,9 +31,9 @@ public struct HermiMapPreview: View {
   @State private var aiDebugBackend: AssistantBackend?
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @Environment(\.scenePhase) private var scenePhase
-  private var pinReviewFixture: Bool {
+  private var isReviewFixture: Bool {
     #if DEBUG
-    ProcessInfo.processInfo.arguments.contains("--hermi-pin-review") || ProcessInfo.processInfo.arguments.contains("--hermi-multipin-review") || ProcessInfo.processInfo.arguments.contains("--hermi-plan-review") || ProcessInfo.processInfo.arguments.contains("--hermi-saved-review") || ProcessInfo.processInfo.arguments.contains("--hermi-feed-review")
+    PreviewReviewArguments.isFixture(ProcessInfo.processInfo.arguments)
     #else
     false
     #endif
@@ -57,15 +57,15 @@ public struct HermiMapPreview: View {
         switch state.panel {
         case .map: map(in: geometry.size).ignoresSafeArea()
         case .feed: FeedPager(state: $state, size: geometry.size, onMoving: beginMapGesture, onStopped: endMapGesture).ignoresSafeArea()
-        case .profile: profile
+        case .profile: profile(safeTop: safeGeometry.safeAreaInsets.top, safeBottom: safeGeometry.safeAreaInsets.bottom)
         }
         }.accessibilityHidden(mapCovered).allowsHitTesting(!mapCovered)
         if let pinNotice, state.panel == .map {
-          VStack { Text(pinNotice).font(.caption).padding(12)
+          VStack { Spacer()
+            Text(pinNotice).font(.caption).fixedSize(horizontal: false, vertical: true).padding(12)
               .background(HermiPalette.controlSurface, in: PixelPanel(corner: 6))
-              .padding(.top, safeGeometry.safeAreaInsets.top + 8)
-            Spacer()
-          }.padding(.leading, 16).padding(.trailing, 100).allowsHitTesting(false)
+          }.padding(.leading, 16).padding(.trailing, 92)
+            .padding(.bottom, safeGeometry.safeAreaInsets.bottom + 88).allowsHitTesting(false)
         }
         VStack {
           if !mapCovered { topBar(in: geometry.size) }
@@ -114,6 +114,15 @@ public struct HermiMapPreview: View {
     }
     .background(HermiPalette.paper).foregroundStyle(HermiPalette.ink)
     .preferredColorScheme(.light)
+    .transformEnvironment(\.dynamicTypeSize) { size in
+      #if DEBUG
+      // Deterministic typography review without changing the user's OS setting.
+      // Without the flag, the actual platform preference remains authoritative.
+      if ProcessInfo.processInfo.arguments.contains("--hermi-type-review=xxxl") {
+        size = .accessibility5
+      }
+      #endif
+    }
     .accessibilityHidden(state.actionSession != nil)
     .allowsHitTesting(state.actionSession == nil)
     .overlay {
@@ -154,10 +163,10 @@ public struct HermiMapPreview: View {
       }.frame(minWidth: 340, minHeight: 600)
     }
     .onAppear {
-      if !pinReviewFixture { introSeen = true }
-      if pinReviewFixture {
+      if !isReviewFixture { introSeen = true }
+      if isReviewFixture {
         state = MapPreviewState()
-        if ProcessInfo.processInfo.arguments.contains("--hermi-feed-review") {
+        if ProcessInfo.processInfo.arguments.contains("--hermi-feed-review") || ProcessInfo.processInfo.arguments.contains("--hermi-feed-long-review") {
           state.switchPanel(.feed)
           state.addPlace("cafe")
           state.planUndoHistory = []
@@ -171,28 +180,98 @@ public struct HermiMapPreview: View {
           state.category = .food
         }
         editingPinID = state.discoveryPins.first?.id
-        if ProcessInfo.processInfo.arguments.contains("--hermi-plan-review") || ProcessInfo.processInfo.arguments.contains("--hermi-saved-review") {
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--hermi-place-review=long") {
+          // A local-only long-title sample resolves through the ordinary place flow.
+          PlaceCatalog.shared.upsert([
+            MapSamplePlace(id: "cafe", name: "Corner café and community kitchen on Broadway",
+                           category: .food, latitude: 40.8073, longitude: -73.9654)
+          ])
+          state.selectPlace("cafe")
+          return
+        }
+        #endif
+        if ProcessInfo.processInfo.arguments.contains(where: { $0 == "--hermi-plan-review" || $0.hasPrefix("--hermi-plan-review=") }) || ProcessInfo.processInfo.arguments.contains(where: { $0 == "--hermi-saved-review" || $0.hasPrefix("--hermi-saved-review=") }) {
           state.planIDs = ["cafe", "gallery", "garden"]
           state.stopTimes = [:]; state.stopInviteDrafts = [:]
           let start = Calendar.current.startOfDay(for: Date()).addingTimeInterval(12 * 3600)
           state.setStopTime(.init(arrival: start, reminderMinutes: 15), for: "cafe")
           state.setStopTime(.init(arrival: start.addingTimeInterval(1800)), for: "gallery")
           state.setStopTime(.init(arrival: start.addingTimeInterval(7200), durationMinutes: 30), for: "garden")
-          if ProcessInfo.processInfo.arguments.contains("--hermi-saved-review") {
-            state.toggleSave("books"); state.toggleSave("tea")
+          if ProcessInfo.processInfo.arguments.contains("--hermi-plan-review=one") {
+            state.planIDs = ["cafe"]
+            state.stopTimes = ["cafe": PreviewStopTime(arrival: start, durationMinutes: 60, reminderMinutes: 15)]
+            state.stopInviteDrafts = ["cafe": []]
+          }
+          if ProcessInfo.processInfo.arguments.contains(where: { $0 == "--hermi-saved-review" || $0.hasPrefix("--hermi-saved-review=") }) {
             var library = SavedLibrary()
-            _ = library.savePost("cafe-alex")
+            if !ProcessInfo.processInfo.arguments.contains("--hermi-saved-review=empty") {
+              state.toggleSave("books"); state.toggleSave("tea")
+              _ = library.savePost("cafe-alex")
+              _ = library.savePost("garden-sam")
+            }
             _ = library.savePlan(name: "Saturday loop", folderID: nil, newFolder: "Weekend ideas",
                                  visibility: .solo, friends: [], stops: ["cafe", "garden"],
                                  times: state.stopTimes ?? [:])
-            if let index = library.folders.indices.first {
+            if !ProcessInfo.processInfo.arguments.contains("--hermi-saved-review=empty"), let plan = library.plans.first {
+              library.plans.append(SavedPlanDraft(name: "Afternoon through the neighborhood gardens",
+                folderID: nil, visibility: .solo, friendNames: [], stopIDs: ["garden", "cafe", "gallery"], times: [:]))
+              _ = library.put(.init(kind: .plan, refID: plan.id.uuidString), in: library.folders.first!.id)
+            }
+            if !ProcessInfo.processInfo.arguments.contains("--hermi-saved-review=empty"), let index = library.folders.indices.first {
               library.folders[index].items.append(.init(kind: .post, refID: "cafe-alex"))
+              library.folders[index].items.append(.init(kind: .place, refID: "books"))
             }
             state.library = library
+            if ProcessInfo.processInfo.arguments.contains("--hermi-saved-review=empty") {
+              state.savedIDs = []; state.library = SavedLibrary()
+            }
+            if ProcessInfo.processInfo.arguments.contains("--hermi-saved-review=long") {
+              PlaceCatalog.shared.upsert([
+                MapSamplePlace(id: "books", name: "The neighborhood's very long independent bookshop name",
+                               category: .culture, latitude: 40.8078, longitude: -73.9658)
+              ])
+              state.toggleSave("books")
+              var folders = state.library.folders
+              if let index = folders.indices.first {
+                folders[index].name = "Saturday walks, little bookshops, and neighborhood gardens"
+                state.library.folders = folders
+              }
+              var posts = state.library.posts
+              if posts.count > 1 {
+                posts[1].refID = "cafe-alex"
+                state.library.posts = posts
+              }
+            }
           }
           state.planUndoHistory = [] // Fixture setup is not a user edit.
-          state.sheet = .plan
+          if ProcessInfo.processInfo.arguments.contains(where: { $0 == "--hermi-saved-review" || $0.hasPrefix("--hermi-saved-review=") }) {
+            state.switchPanel(.profile)
+            state.sheet = .saved
+          } else {
+            state.sheet = .plan
+          }
           #if DEBUG
+          if ProcessInfo.processInfo.arguments.contains("--hermi-type-review=empty") {
+            state.planIDs = []; state.stopTimes = [:]; state.stopInviteDrafts = [:]
+          }
+          if ProcessInfo.processInfo.arguments.contains("--hermi-type-review=warning") {
+            state.stopTimes = [
+              "cafe": PreviewStopTime(arrival: start, durationMinutes: 120),
+              "gallery": PreviewStopTime(arrival: start.addingTimeInterval(30 * 60), durationMinutes: 60),
+              "garden": PreviewStopTime(arrival: start.addingTimeInterval(90 * 60), durationMinutes: 45)
+            ]
+          }
+          if ProcessInfo.processInfo.arguments.contains("--hermi-type-review=long") {
+            let place = MapSamplePlace(id: "typography-review-long-name",
+              name: "Riverside community gardens and neighborhood conservatory",
+              category: .nature, latitude: 40.808, longitude: -73.967)
+            PlaceCatalog.shared.upsert([place])
+            state.planIDs.append(place.id)
+            state.setStopTime(.init(arrival: start.addingTimeInterval(10800), durationMinutes: 120,
+                                   reminderMinutes: 30), for: place.id)
+            state.planUndoHistory = []
+          }
           if let flag = ProcessInfo.processInfo.arguments.first(where: { $0.hasPrefix("--hermi-ai-review=") }) {
             seedAIScenario(String(flag.dropFirst("--hermi-ai-review=".count)))
           }
@@ -224,16 +303,20 @@ public struct HermiMapPreview: View {
         .presentationDragIndicator(.visible)
     }
     .onChange(of: state) { _, value in
-      guard !pinReviewFixture else { return }
+      guard !isReviewFixture else { return }
       if let data = try? JSONEncoder().encode(value) { UserDefaults.standard.set(data, forKey: storageKey) }
       PlaceCatalog.shared.persist(referenced: value.referencedPlaceIDs)
       SavedSync.shared.push(value)
       PlanSync.shared.push(value)
     }
     .task { _ = await Task.detached { NYCLandMask.shared.available }.value }
-    .task { await LiveSession.shared.restore() }
+    .task {
+      guard !isReviewFixture else { return }
+      await LiveSession.shared.restore()
+    }
     .task(id: state.discoveryQuery) { PlaceCatalog.shared.discoveryChanged(state.discoveryQuery) }
     .onChange(of: LiveSession.shared.isLive) { _, live in
+      guard !isReviewFixture else { return }
       // Connecting (or restoring) swaps fixtures for the live places in the current map area.
       if live {
         PlaceCatalog.shared.refresh()
@@ -268,7 +351,7 @@ public struct HermiMapPreview: View {
       if let notice { pinNotice = notice }
     }
     .onChange(of: scenePhase) { _, phase in
-      if phase == .active { Task { await LiveSession.shared.restore(); await refreshPlans() } }
+      if phase == .active && !isReviewFixture { Task { await LiveSession.shared.restore(); await refreshPlans() } }
     }
     .task(id: pinNotice) {
       guard pinNotice != nil else { return }
@@ -309,18 +392,24 @@ public struct HermiMapPreview: View {
   private func mapTools(in size: CGSize) -> some View {
     VStack(spacing: 6) {
       if state.panel == .map {
-        CategoryPinControl(category: $state.category, filterActive: state.activeCitywideCategory == state.category, onFilter: { state.toggleCategoryFilter(); state.sheet = .nearby; panelLevel = .compact }, onDrop: { point in
-          // The geographic view can have an origin different from the root/safe area.
-          let overlapsTools = point.x > size.width - 84 && (point.y < 280 || point.y > size.height - 250)
-          guard !overlapsTools, point.y > 100, point.y < size.height - 110,
-                let normalized = MapDropProjection.normalized(point, in: mapFrame) else {
-            pinNotice = "Drop on the map, away from the controls."; return
-          }
-          mapCommand = MapCommand(action: "drop", point: normalized)
-          panelLevel = .compact
-        }, onDragBegan: { state.sheet = nil; editingPinID = nil; pinNotice = nil })
-      }
-      if state.panel == .profile {
+        CategoryPinControl(
+          category: $state.category,
+          filterActive: state.activeCitywideCategory == state.category,
+          onFilter: { state.toggleCategoryFilter() },
+          onDrop: { point in
+            // The geographic view can have an origin different from the root/safe area.
+            let overlapsTools = point.x > size.width - 84 && (point.y < 280 || point.y > size.height - 250)
+            guard !overlapsTools, point.y > 100, point.y < size.height - 110,
+                  let normalized = MapDropProjection.normalized(point, in: mapFrame) else {
+              pinNotice = "Drop on the map, away from the controls."; return
+            }
+            mapCommand = MapCommand(action: "drop", point: normalized)
+            panelLevel = .compact
+          },
+          onDragBegan: { state.sheet = nil; editingPinID = nil; pinNotice = nil }
+        )
+        mapSocialAndPlanControls
+      } else if state.panel == .profile {
         Button { settings = true } label: {
           PixelIcon(name: "settings").frame(width: 26, height: 26).frame(width: 34, height: 34)
             .background(HermiPalette.controlSurface, in: PixelPanel(corner: 8)).frame(width: 44, height: 44)
@@ -330,26 +419,45 @@ public struct HermiMapPreview: View {
             .background(HermiPalette.controlSurface, in: PixelPanel(corner: 8)).frame(width: 44, height: 44)
         }.accessibilityLabel("Open Saved folders").controlHelp("Browse saved places, posts and plans")
       } else {
-      Button {
-        if state.panel == .feed { state.toggleFeedAudience() }
-        else { state.social.toggle() }
-      } label: {
-        PixelIcon(name: "social").frame(width: 26, height: 26).frame(width: 34, height: 34)
-          .background((state.panel == .feed ? state.feedOptions.audience == .friends : state.social) ? HermiPalette.lime : HermiPalette.controlSurface, in: PixelPanel(corner: 8))
-        .frame(width: 44, height: 44).contentShape(Rectangle())
-      }.accessibilityLabel(state.panel == .feed ? (state.feedOptions.audience == .friends ? "Friends feed. Show general" : "General feed. Show friends") : (state.social ? "Social map. Switch to Solo" : "Solo map. Switch to Social"))
-        .controlHelp(state.panel == .feed ? "Switch the Feed between General and Friends" : "Toggle Solo and Social map")
-      Button {
-        if state.panel == .feed { state.toggleFeedContent() }
-        else { state.sheet = .plan; panelLevel = .full }
-      } label: {
-        PixelIcon(name: "plan").frame(width: 26, height: 26).frame(width: 34, height: 34)
-          .background(state.panel == .feed ? state.feedOptions.content.tint : HermiPalette.controlSurface, in: PixelPanel(corner: 8))
-        .frame(width: 44, height: 44).contentShape(Rectangle())
-      }.accessibilityLabel(state.panel == .feed ? "Feed shows \(state.feedOptions.content.label). Change filter" : "My Plan, \(state.planIDs.count) places")
-        .controlHelp(state.panel == .feed ? "Filter the Feed: everything, posts only or plans only" : "Open My Plan. Saved is inside its bookmark button")
+        feedControls
       }
     }.buttonStyle(.plain)
+  }
+
+  /// Keep the two permanent Map actions on one shared surface; their tap targets
+  /// remain separate 44-point controls with a quiet divider between them.
+  private var mapSocialAndPlanControls: some View {
+    VStack(spacing: 0) {
+      Button { state.social.toggle() } label: {
+        PixelIcon(name: "social").frame(width: 26, height: 26).frame(width: 44, height: 44).contentShape(Rectangle())
+          .background(state.social ? HermiPalette.lime : .clear, in: PixelPanel(corner: 7))
+      }.accessibilityLabel(state.social ? "Social map. Switch to Solo" : "Solo map. Switch to Social")
+        .controlHelp("Show or hide friends on the map")
+      Rectangle().fill(HermiPalette.line).frame(width: 24, height: 1).accessibilityHidden(true)
+      Button { state.sheet = .plan; panelLevel = .full } label: {
+        PixelIcon(name: "plan").frame(width: 26, height: 26).frame(width: 44, height: 44).contentShape(Rectangle())
+      }.accessibilityLabel("My Plan")
+        .controlHelp("Open your planned stops")
+    }
+    .padding(4)
+    .background(HermiPalette.controlSurface.opacity(0.96), in: PixelPanel(corner: 8))
+    .overlay(PixelPanel(corner: 8).stroke(HermiPalette.line, lineWidth: 1))
+    .accessibilityElement(children: .contain)
+  }
+
+  @ViewBuilder private var feedControls: some View {
+    Button { state.toggleFeedAudience() } label: {
+      PixelIcon(name: "social").frame(width: 26, height: 26).frame(width: 34, height: 34)
+        .background(state.feedOptions.audience == .friends ? HermiPalette.lime : HermiPalette.controlSurface, in: PixelPanel(corner: 8))
+        .frame(width: 44, height: 44).contentShape(Rectangle())
+    }.accessibilityLabel(state.feedOptions.audience == .friends ? "Friends feed. Show general" : "General feed. Show friends")
+      .controlHelp("Switch the Feed between General and Friends")
+    Button { state.toggleFeedContent() } label: {
+      PixelIcon(name: "filter").frame(width: 26, height: 26).frame(width: 34, height: 34)
+        .background(state.feedOptions.content.tint, in: PixelPanel(corner: 8))
+        .frame(width: 44, height: 44).contentShape(Rectangle())
+    }.accessibilityLabel("Feed content: \(state.feedOptions.content.label). Change content filter")
+      .controlHelp("Filter the Feed: everything, posts only or plans only")
   }
 
   private func map(in size: CGSize) -> some View {
@@ -590,14 +698,16 @@ public struct HermiMapPreview: View {
       }.scrollIndicators(.hidden).id(sheet)
       Color.clear.frame(height: 82)
     }
-    .frame(height: panelLevel.height(viewport: height, safeTop: safeTop))
+    .frame(height: panelLevel.height(viewport: height, safeTop: safeTop, isPlace: {
+      if case .place = sheet { return true }
+      return false
+    }()))
     .animation(reduceMotion ? nil : .interactiveSpring(response: 0.3, dampingFraction: 0.9), value: panelLevel)
     .frame(maxWidth: .infinity)
     .background(HermiPalette.paper, in: UnevenRoundedRectangle(topLeadingRadius: 24, topTrailingRadius: 24))
     .overlay(alignment: .topLeading) {
       CloseButton(label: "Close details") {
-        if state.returnSheet == .plan || state.returnSheet == .saved { state.goBack() }
-        else { state.sheet = nil; state.returnSheet = nil }
+        state.goBack()
         panelLevel = .compact
       }.padding(.leading, 10).padding(.top, 2)
     }
@@ -612,43 +722,61 @@ public struct HermiMapPreview: View {
   private var nearbyContent: some View {
     // Only the selected pin's places (nearest first); all current matches when no pin is selected.
     let places = state.nearbyPlaces(for: editingPinID)
-    return VStack(alignment: .leading, spacing: 12) {
-      HStack { Text("Nearby").font(.headline); Spacer(); Text(discoverySummary).font(.caption).foregroundStyle(HermiPalette.secondary) }
-      if places.isEmpty {
-        Text(LiveSession.shared.isLive ? (PlaceCatalog.shared.loading ? "Loading places…" : "No places match these filters here.") : "No sample places match these filters.").font(.subheadline)
-      }
-      ScrollView(.horizontal) {
-        LazyHStack(spacing: 12) {
-          ForEach(places) { place in
-            Button { state.selectPlace(place.id) } label: {
-              VStack(alignment: .leading, spacing: 6) {
-                mediaTile(place.category).frame(width: 124, height: 76)
-                Text(place.name).font(.caption.weight(.medium)).lineLimit(1)
-              }.frame(width: 124, alignment: .leading)
-            }.buttonStyle(.plain)
-          }
+    return VStack(alignment: .leading, spacing: HermiSpacing.medium) {
+      VStack(alignment: .leading, spacing: HermiSpacing.tight) {
+        Text("Nearby").font(HermiTypography.heading)
+        if !discoverySummary.isEmpty {
+          Text(discoverySummary).font(HermiTypography.metadata).foregroundStyle(HermiPalette.secondary)
         }
-      }.scrollIndicators(.hidden)
+      }
+      if places.isEmpty {
+        Text(LiveSession.shared.isLive ? (PlaceCatalog.shared.loading ? "Loading places…" : "No places match these filters here.") : "No sample places match these filters.").font(HermiTypography.body)
+      }
+      if panelLevel == .compact {
+        ScrollView(.horizontal) {
+          LazyHStack(spacing: 12) { ForEach(places) { nearbyCard($0) } }
+        }.scrollIndicators(.hidden)
+      } else {
+        LazyVStack(spacing: HermiSpacing.medium) { ForEach(places) { nearbyCard($0) } }
+      }
     }
   }
 
-  private func placeContent(_ place: MapSamplePlace) -> some View {
-    VStack(alignment: .leading, spacing: 12) {
-      HStack {
-        Text(place.name).font(.headline).lineLimit(1)
-        Spacer(minLength: 4)
-        Button { state.toggleSave(place.id) } label: {
-          PixelIcon(name: state.savedIDs.contains(place.id) ? "saved" : "save").frame(width: 20, height: 24).frame(width: 44, height: 44)
-        }.buttonStyle(.plain).accessibilityLabel(state.savedIDs.contains(place.id) ? "Unsave place" : "Save place").controlHelp("Toggle this place in Saved, independently of My Plan")
-        Button { state.togglePlan(place.id) } label: {
-          PixelIcon(name: state.planIDs.contains(place.id) ? "minus" : "plus")
-            .frame(width: 20, height: 20).frame(width: 32, height: 32)
-            .background(HermiPalette.lime, in: PixelPanel(corner: 6))
-            .frame(width: 44, height: 44).contentShape(Rectangle())
-        }.buttonStyle(.plain)
-          .accessibilityLabel(state.planIDs.contains(place.id) ? "Remove from plan" : "Add to plan")
-          .controlHelp("Toggle this place in My Plan without changing Saved")
+  private func nearbyCard(_ place: MapSamplePlace) -> some View {
+    Button { state.selectPlace(place.id) } label: {
+      Group {
+        if panelLevel == .compact {
+          VStack(alignment: .leading, spacing: HermiSpacing.small) {
+            mediaTile(place.category).frame(width: 124, height: 76)
+            Text(place.name).font(HermiTypography.label).fixedSize(horizontal: false, vertical: true)
+            Text(place.category.rawValue).font(HermiTypography.metadata).foregroundStyle(HermiPalette.secondary)
+          }
+        } else {
+          HStack(alignment: .top, spacing: HermiSpacing.medium) {
+            mediaTile(place.category).frame(width: 96, height: 72)
+            VStack(alignment: .leading, spacing: HermiSpacing.tight) {
+              Text(place.name).font(HermiTypography.label).fixedSize(horizontal: false, vertical: true)
+              Text(place.category.rawValue).font(HermiTypography.metadata).foregroundStyle(HermiPalette.secondary)
+            }.frame(maxWidth: .infinity, alignment: .leading)
+          }
+        }
       }
+      .frame(maxWidth: panelLevel == .compact ? 124 : .infinity, alignment: .leading)
+    }
+    .buttonStyle(.plain)
+    .accessibilityLabel("\(place.name), \(place.category.rawValue)")
+    .accessibilityHint("Open place details")
+  }
+
+  private func placeContent(_ place: MapSamplePlace) -> some View {
+    VStack(alignment: .leading, spacing: HermiSpacing.medium) {
+      PlaceDetailHeader(
+        place: place,
+        isSaved: state.savedIDs.contains(place.id),
+        isPlanned: state.planIDs.contains(place.id),
+        toggleSave: { state.toggleSave(place.id) },
+        togglePlan: { state.togglePlan(place.id) }
+      )
       PlaceFeedContent(place: place, savedPostIDs: Set(state.library.posts.map(\.refID)), togglePostSave: { state.togglePostBookmark($0) },
                        openPost: { mapPost = SavedReference(kind: .post, refID: $0) })
         .id(place.id)
@@ -664,14 +792,15 @@ public struct HermiMapPreview: View {
       .accessibilityLabel(variant == 2 ? "Video placement" : "Photo placement")
   }
 
-  private var profile: some View {
+  private func profile(safeTop: CGFloat, safeBottom: CGFloat) -> some View {
     ScrollView {
       VStack(spacing: 14) {
         HStack(spacing: 12) {
           HermitSprite().frame(width: 48, height: 42)
           VStack(alignment: .leading, spacing: 4) {
-            Text(LiveSession.shared.me?.name ?? "Alex").font(.title2.bold())
-            Text(LiveSession.shared.me.map { "@\($0.username)" } ?? "@alex · Sample profile").font(.caption)
+            Text(LiveSession.shared.me?.name ?? "Alex").font(HermiTypography.title).fixedSize(horizontal: false, vertical: true)
+            Text(LiveSession.shared.me.map { "@\($0.username)" } ?? "@alex · Sample profile")
+              .font(HermiTypography.metadata).fixedSize(horizontal: false, vertical: true)
           }
           Spacer()
 
@@ -680,18 +809,22 @@ public struct HermiMapPreview: View {
           ForEach([ProfileDetail.friends, .score, .rank]) { detail in
             Button { profileDetail = detail } label: {
               VStack(spacing: 5) {
-                Text(headerValue(detail)).font(.system(.headline, design: .monospaced))
-                Text(detail.rawValue).font(.caption)
-              }.frame(maxWidth: .infinity).frame(minHeight: 48)
+                Text(headerValue(detail)).font(.system(.headline, design: .monospaced).weight(.bold))
+                Text(detail.rawValue).font(HermiTypography.metadata).fixedSize(horizontal: false, vertical: true)
+              }.frame(maxWidth: .infinity).frame(minHeight: 56)
             }.buttonStyle(.plain).accessibilityLabel(detail.rawValue).controlHelp("Open \(detail.rawValue)")
           }
         }.padding(.horizontal, 24)
-        HStack(spacing: 40) {
+        HStack(spacing: 8) {
           ForEach(["Adventures", "Posts"], id: \.self) { tab in
             Button { profileTab = tab } label: {
-              PixelIcon(name: tab == "Adventures" ? "route" : "grid").frame(width: 25, height: 25)
-                .frame(width: 64, height: 48)
-                .background(profileTab == tab ? HermiPalette.lime : .clear, in: PixelPanel(corner: 6))
+              HStack(spacing: 8) {
+                PixelIcon(name: tab == "Adventures" ? "route" : "grid").frame(width: 20, height: 20)
+                Text(tab).font(HermiTypography.label)
+              }
+              .frame(maxWidth: .infinity, minHeight: 48)
+              .background(profileTab == tab ? HermiPalette.lime : HermiPalette.controlSurface,
+                          in: PixelPanel(corner: 6))
             }.buttonStyle(.plain).accessibilityLabel(tab).controlHelp("Show your \(tab.lowercased())").accessibilityAddTraits(profileTab == tab ? .isSelected : [])
           }
         }
@@ -716,10 +849,10 @@ public struct HermiMapPreview: View {
               }.buttonStyle(.plain).accessibilityLabel("Sample post at \(place.name)").controlHelp("Open posts and reviews for \(place.name)")
             }
           }
-          Text("Sample media placements").font(.caption)
+          Text("Sample media placements").font(HermiTypography.metadata)
           }
         }
-      }.padding(.top, 135).padding(.bottom, 130)
+      }.padding(.top, safeTop + 58).padding(.bottom, safeBottom + 88)
     }.background(HermiPalette.paper).ignoresSafeArea()
       .refreshable { await LiveProfile.shared.load(force: true) }
       .task { await LiveProfile.shared.load() }
@@ -734,12 +867,12 @@ public struct HermiMapPreview: View {
       .sheet(item: Binding(get: { postPlace.flatMap(MapSamplePlace.find) }, set: { postPlace = $0?.id })) { place in
         ScrollView {
           VStack(alignment: .leading, spacing: 20) {
-            HStack { CloseButton(label: "Close post") { postPlace = nil }; Text(place.name).font(.title2.bold()); Spacer() }
-            Text("Your posts").font(.headline)
+            HStack { CloseButton(label: "Close post") { postPlace = nil }; Text(place.name).font(HermiTypography.title).fixedSize(horizontal: false, vertical: true); Spacer(minLength: 0) }
+            Text("Your posts").font(HermiTypography.heading)
             HStack(spacing: 6) { ForEach(0..<3) { mediaTile(place.category, variant: $0).frame(height: 150) } }
-            Text("Your review").font(.headline)
-            Text("No verified review loaded.").font(.subheadline)
-            Text("Sample place · media and reviews await backend integration").font(.caption).foregroundStyle(HermiPalette.secondary)
+            Text("Your review").font(HermiTypography.heading)
+            Text("No verified review loaded.").font(HermiTypography.body)
+            Text("Sample place · media and reviews await backend integration").font(HermiTypography.metadata).foregroundStyle(HermiPalette.secondary)
           }.padding(20)
         }.background(HermiPalette.paper).presentationDetents([.medium, .large])
       }
