@@ -331,16 +331,22 @@ public struct HermiMapPreview: View {
   private func mapTools(in size: CGSize) -> some View {
     VStack(spacing: 6) {
       if state.panel == .map {
-        CategoryPinControl(category: $state.category, filterActive: state.activeCitywideCategory == state.category, onFilter: { state.toggleCategoryFilter(); state.sheet = .nearby; panelLevel = .compact }, onDrop: { point in
-          // The geographic view can have an origin different from the root/safe area.
-          let overlapsTools = point.x > size.width - 84 && (point.y < 280 || point.y > size.height - 250)
-          guard !overlapsTools, point.y > 100, point.y < size.height - 110,
-                let normalized = MapDropProjection.normalized(point, in: mapFrame) else {
-            pinNotice = "Drop on the map, away from the controls."; return
-          }
-          mapCommand = MapCommand(action: "drop", point: normalized)
-          panelLevel = .compact
-        }, onDragBegan: { state.sheet = nil; editingPinID = nil; pinNotice = nil })
+        CategoryPinControl(
+          category: $state.category,
+          filterActive: state.activeCitywideCategory == state.category,
+          onFilter: { state.toggleCategoryFilter() },
+          onDrop: { point in
+            // The geographic view can have an origin different from the root/safe area.
+            let overlapsTools = point.x > size.width - 84 && (point.y < 280 || point.y > size.height - 250)
+            guard !overlapsTools, point.y > 100, point.y < size.height - 110,
+                  let normalized = MapDropProjection.normalized(point, in: mapFrame) else {
+              pinNotice = "Drop on the map, away from the controls."; return
+            }
+            mapCommand = MapCommand(action: "drop", point: normalized)
+            panelLevel = .compact
+          },
+          onDragBegan: { state.sheet = nil; editingPinID = nil; pinNotice = nil }
+        )
         mapSocialAndPlanControls
       } else if state.panel == .profile {
         Button { settings = true } label: {

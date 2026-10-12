@@ -4,6 +4,10 @@ Updated: 2026-10-12. Branch: design/curated-ui-refresh. Earlier frontend history
 
 ## Current checkpoint
 
+### 2026-10-12 — unified-truth correction to increment 2
+
+The user caught a behavior mismatch: the category pin’s quick tap had been made to open Nearby. The unified schema defines this gesture as toggling the citywide category filter only. Removed the unintended route/sheet mutation, added a focused state regression test, and verified in the compact desktop preview that Food becomes selected while Map stays open and Nearby remains closed. Updated the [increment 2 review](design-reference/2026-10-12-curated-ui/02-map-discovery/REVIEW.md) with the contract and corrected screenshot. 117 Swift tests and all map bridge checks pass. This fixes the checkpoint before user review; no work on increment 3 until approval.
+
 ### 2026-10-12 — curated UI increment 2, committed for user review
 
 Refined the Map category selector with a clearer selected-state chip; grouped permanent Social and My Plan actions on one shared control surface; retained the category pin's adjustable action and hold/slide/drop gesture. Nearby now gives its title and pin/filter summary separate hierarchy and allows place names to wrap. Feed retains its own audience/content filters; Profile retains Settings/Saved. Map gestures and attribution positioning remain covered by the map bridge suite. Fixed the desktop preview launcher to resolve SwiftPM's active architecture-specific build directory.
