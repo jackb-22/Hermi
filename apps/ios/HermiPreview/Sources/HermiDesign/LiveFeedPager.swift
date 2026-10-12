@@ -64,14 +64,12 @@ struct LiveFeedPager: View {
             Text(card.author).font(HermiTypography.label)
             if !card.title.isEmpty {
               Text(card.title).font(card.isPlan ? HermiTypography.title : HermiTypography.body.weight(.medium)).lineLimit(3)
-              if card.title.count > 150 {
-                Button("Read full \(card.isPlan ? "description" : "caption")") {
-                  fullCaption = FeedCaption(title: card.isPlan ? card.title : card.author,
-                                            text: card.title)
-                }
-                .font(HermiTypography.metadata.weight(.semibold))
-                .accessibilityHint("Opens the complete text in a scrollable view")
+              Button("Read full \(card.isPlan ? "description" : "caption")") {
+                fullCaption = FeedCaption(title: card.isPlan ? card.title : card.author,
+                                          text: card.title)
               }
+              .font(HermiTypography.metadata.weight(.semibold))
+              .accessibilityHint("Opens the complete text in a scrollable view")
             }
             if let again = card.again { Text(again ? "Would go again" : "Wouldn’t go again").font(HermiTypography.metadata.weight(.semibold)) }
           }

@@ -66,7 +66,7 @@ struct FeedPager: View {
           VStack(alignment: .leading, spacing: 6) {
             Text(post.author).font(HermiTypography.label)
             Text(post.caption).font(HermiTypography.body.weight(.medium)).lineLimit(4)
-            if post.caption.count > 150 {
+            if !post.caption.isEmpty {
               Button("Read full caption") { fullCaption = FeedCaption(title: post.author, text: post.caption) }
                 .font(HermiTypography.metadata.weight(.semibold))
                 .accessibilityHint("Opens the complete caption in a scrollable view")
