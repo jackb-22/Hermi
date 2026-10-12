@@ -1,6 +1,8 @@
 # Hermi curated UI implementation plan
 
-2026-10-12 · Status: planning complete; UI implementation has not started.
+2026-10-12 · Status: increment 0 underway; desktop baseline ready for review, iPhone verification pending. UI styling implementation has not started.
+
+User review gate: after every increment, open a preview for hands-on testing and wait for explicit approval before beginning the next increment. See the [increment 0 checkpoint](design-reference/2026-10-12-curated-ui/00-baseline/REVIEW.md).
 
 ## Objective and authority
 

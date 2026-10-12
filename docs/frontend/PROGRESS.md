@@ -4,6 +4,12 @@ Updated: 2026-09-27. Branch: frontend. Earlier 47-commit history pushed with use
 
 ## Current checkpoint
 
+### 2026-10-12 — curated UI increment 0, desktop review checkpoint
+
+User authorized beginning the curated UI plan and requires a preview plus explicit approval before each subsequent increment. The [baseline review](design-reference/2026-10-12-curated-ui/00-baseline/REVIEW.md) records fresh desktop captures, board/map reference inspection, exercised interactions, and pending checks. Desktop build, 116 Swift tests, and map bridge checks passed. Native desktop preview is open for user testing; no product styling or behavior changes yet.
+
+Fresh iPhone verification remains pending: Simulator services are sandbox-inaccessible, escalation was automatically rejected, and Simulator Computer Use timed out. Increment 0 is a partial review checkpoint, not full visual acceptance. Do not start increment 1 without explicit user approval; do not claim missing phone/accessibility/fixture checks passed. Older pause/next-action entries below are historical and superseded by this user's current instruction.
+
 ### Merge finalized handoff — development paused here
 
 User authorized finalizing the merge in favor of incoming `e61193dea14a024a6dff1c053a99add9f7564903`. ProfileSettingsPage matches incoming ServerSettingsSection; the replay button is absent. The unfinished crab redraw/accelerating-walk revision was set aside and its two files restored to committed HEAD. Existing staged integration and iOS prototype work was preserved; .DS_Store was excluded locally.
