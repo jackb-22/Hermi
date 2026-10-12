@@ -1,8 +1,72 @@
 # Hermi frontend progress
 
-Updated: 2026-09-27. Branch: frontend. Earlier 47-commit history pushed with user authorization; subsequent branding work is local for review.
+Updated: 2026-10-12. Branch: design/curated-ui-refresh. Earlier frontend history and subsequent branding work are documented below; this curated UI series is local and committed by increment.
 
 ## Current checkpoint
+
+### 2026-10-12 — curated UI increment 9, final review ready
+
+Completed the final local visual/journey acceptance pass and added the [increment 9 evidence record](design-reference/2026-10-12-curated-ui/09-final-acceptance/REVIEW.md) with a compact Plan capture. The current interactive desktop preview is open on the populated Plan fixture. Full run: 118 Swift tests pass, every map bridge scenario passes, the macOS target builds, and `git diff --check` passes. Source increments 1–8 remain individually committed; increment 9 changes documentation/evidence only.
+
+Review the compact Plan’s title, stop rows, advisory timing warning, local-only notice and Go action; Go then opens the local Action preview for Directions/Camera/End/Recap checks. Increment 8’s Camera and Recap captures remain linked from its review note. Native simulator relaunch failed through LaunchServices despite a valid copied executable bundle, while direct open succeeded; the preview window is therefore available interactively but may not be attachable to the accessibility inspector in this launch. Earlier desktop interaction evidence is recorded per increment. Native iPhone matrix, Dynamic Type/VoiceOver/device haptics, real service states and live outing integration remain pending. Wait for final user review before publishing the branch.
+
+### 2026-10-12 — curated UI increment 8, ready for user review
+
+Directions/Camera and Recap surfaces now share rounded semantic text roles, wrapping explanations and stop names, and larger mode/check-in/review actions. Recap facts retain monospaced values but scale with system text. Motion audit found no custom task animations in these views; existing native sheet transitions remain under the parent Reduce Motion preference. No check-in, capture, End, server status, verification, XP or plan lifecycle behavior changed. The [increment 8 review](design-reference/2026-10-12-curated-ui/08-action-recap/REVIEW.md) records the local preview and screenshots.
+
+macOS preview build and all 118 Swift tests pass; `git diff --check` passes. In the compact desktop preview, inspected Camera, Directions’ planned-stop panel, End confirmation and Recap; the local recap explicitly says the plan is unchanged and no outing was recorded. The desktop map remained at its Loading map placeholder. iPhone simulator rebuilds failed because CoreSimulatorService disconnected and its user-library log/cache were inaccessible. Native iPhone layout, accessibility text, VoiceOver, and live Action states remain pending. Wait for review before increment 9.
+
+### 2026-10-12 — curated UI increment 7, ready for user review
+
+Feed pages now use the established rounded type roles across sample and live presentation, allow titles and status text to wrap, and offer a scrollable “Read full caption/description” sheet for long text. Profile identity, metric labels and the Adventures/Posts switch use the same hierarchy; both tabs now show their names beside the existing pixel icons. Navigation, feed filters, Save/Add semantics, profile metrics and privacy remain intact. A local long-caption review fixture is available through `--hermi-feed-review --hermi-feed-long-review`; it never loads account data. The [increment 7 review](design-reference/2026-10-12-curated-ui/07-feed-profile/REVIEW.md) has simulator captures and the test checklist.
+
+The macOS preview build and all 118 Swift tests pass; `git diff --check` passes. Interactively inspected Feed plus Adventures/Posts on iPhone 16e, iOS 26.3 at default text size. Repeated tab switching did not navigate away or open content. The simulator service became unavailable during the follow-up build for the long-caption fixture, so that fixture and sheet still need interactive review; large Dynamic Type, live-account data, and VoiceOver remain pending. The user approved increment 7 on 2026-10-12; increment 8 is now ready for review.
+
+### 2026-10-12 — curated UI increment 6, ready for user review
+
+Plan Assistant menu, category picker, suggestion bar and chat now use Hermi’s shared rounded reading roles without an accessibility-size cap. Menu options and status messages wrap, large-text categories switch to two columns, source links have larger targets and explicit labels, and chat can scroll-dismiss the keyboard. Apply and Dismiss stay separate, suggestions stay provisional, and errors remain visible with readable status text. The menu now measures to content at standard sizes instead of stretching to the available height. The [increment 6 review](design-reference/2026-10-12-curated-ui/06-assistant/REVIEW.md) records the visible fixture, commands and exact checks.
+
+Desktop build and 118 Swift tests pass. Interactively inspected the menu and category picker; category choices stay distinct and the menu no longer has the previous large blank area. Actual AI calls and recorded response rendering were not verified in this macOS process; signed-out chat correctly requires an account, and live Apply still requires the account API. Native iPhone accessibility text sizing, keyboard presentation, VoiceOver and request failure interaction remain pending. Wait for review before increment 7.
+
+### 2026-10-12 — curated UI increment 5, ready for user review
+
+Saved now has a clear page title/count, larger New folder target, wrapping mixed-item and folder names, readable secondary descriptors, and category/type cues. The saved row within My Plan uses the same rounded type scale and wraps item labels. Folder navigation and item context-menu behavior are unchanged; Saved remains separate from plan insertion. Added local long-title, empty, and mixed-content fixtures. The [increment 5 review](design-reference/2026-10-12-curated-ui/05-saved/REVIEW.md) includes launch commands and the checklist.
+
+Desktop build and 118 Swift tests pass; `git diff --check` passes. The empty Saved composition rendered, but fixture data was cleared by the active preview state during review, so populated folder content and context actions still need user verification in the preview. Native iPhone text scaling and VoiceOver remain pending. Wait for review before increment 6.
+
+### 2026-10-12 — curated UI increment 4, ready for user review
+
+My Plan no longer spends a status row on “Current draft” and device-sync text. Undo remains accessible and is grouped with editing. Saved-plan name and “My draft” return action stay together when editing an existing plan. Reorder help appears only when there are stops. The empty plan now gives one direct next step in a quiet framed message; the existing crab is not repeated. Warning copy and Go eligibility are unchanged. DEBUG fixtures cover a one-stop plan and overlapping times. The [increment 4 review](design-reference/2026-10-12-curated-ui/04-plan-reading/REVIEW.md) has the preview command and test checklist.
+
+Desktop build, 118 Swift tests, shell syntax check, and all map bridge checks pass. Visually inspected the populated Plan with advisory warning and enabled Go, and the empty state with disabled Go and no reorder instruction. A macOS automation/session issue prevented a clean final one-stop window capture; code fixture is in place and the user can exercise it from the provided launch command. Device drag, VoiceOver, and actual iPhone Dynamic Type remain pending. Wait for user review before increment 5.
+
+### 2026-10-12 — curated UI increment 3, ready for user review
+
+Place details now share a wrapping title/category header and two explicit, separate actions. Save reflects Saved membership; Add reflects My Plan membership, with accessible labels and values. Secondary place facts use a quiet framed group and the existing rounded typography. Closing a place returns to its recorded source, including Nearby. A local DEBUG long-name fixture exercises the actual selected-place flow. The [increment 3 review](design-reference/2026-10-12-curated-ui/03-place-details/REVIEW.md) has the preview command, review steps, and captured screen.
+
+Desktop build and 117 Swift tests passed; all map bridge checks passed. Interactively verified the long title wraps, Add and Save update independently, and Close restores Nearby with the café result. Live metadata/failure responses and native iPhone/VoiceOver checks remain pending. The **Hermi Preview** window is open on the clean long-name place detail. Wait for user review before increment 4.
+
+### 2026-10-12 — unified-truth correction to increment 2
+
+The user caught a behavior mismatch: the category pin’s quick tap had been made to open Nearby. The unified schema defines this gesture as toggling the citywide category filter only. Removed the unintended route/sheet mutation, added a focused state regression test, and verified in the compact desktop preview that Food becomes selected while Map stays open and Nearby remains closed. Updated the [increment 2 review](design-reference/2026-10-12-curated-ui/02-map-discovery/REVIEW.md) with the contract and corrected screenshot. 117 Swift tests and all map bridge checks pass. This fixes the checkpoint before user review; no work on increment 3 until approval.
+
+### 2026-10-12 — curated UI increment 2, committed for user review
+
+Refined the Map category selector with a clearer selected-state chip; grouped permanent Social and My Plan actions on one shared control surface; retained the category pin's adjustable action and hold/slide/drop gesture. Nearby now gives its title and pin/filter summary separate hierarchy and allows place names to wrap. Feed retains its own audience/content filters; Profile retains Settings/Saved. Map gestures and attribution positioning remain covered by the map bridge suite. Fixed the desktop preview launcher to resolve SwiftPM's active architecture-specific build directory.
+
+Desktop build and 116 Swift tests passed; all map bridge scenarios passed. Opened the 375 × 667-point compact desktop review, exercised the category filter, Social toggle, and Plan navigation, and inspected both compact and expanded Nearby states. Screenshots and the focused user checklist are in [increment 2 review](design-reference/2026-10-12-curated-ui/02-map-discovery/REVIEW.md). Simulator/physical iPhone gesture, VoiceOver, and haptic checks remain pending. Preview is open with Food citywide active and Nearby visible; wait for user approval before increment 3.
+
+### 2026-10-12 — curated UI increment 1, implemented for user review
+
+User approved moving beyond the unchanged baseline. Implemented native rounded reading roles/spacing and applied them to My Plan, with readable schedule metadata, adaptive columns, long-name wrapping, and a full-page accessibility scrolling layout. Added local DEBUG long-name/empty/XXXL review fixtures and compact desktop review sizing. The [increment 1 checklist](design-reference/2026-10-12-curated-ui/01-typography/REVIEW.md) includes exact launch commands, tests and expected results, captures, and limitations.
+
+Desktop build and 116 tests passed; constrained/long/empty/accessibility-layout renders inspected. Time editor/Cancel and accessible reorder/Undo exercised; fixture restored. Desktop preview is open on the standard three-stop Plan. Native iPhone build blocked before compilation by sandbox access to Xcode's SwiftPM manifest diagnostics cache; actual iPhone font scaling and device checks are pending. No native iPhone acceptance is claimed. Wait for explicit user approval before increment 2; fix any increment 1 feedback first.
+
+### 2026-10-12 — curated UI increment 0, desktop review checkpoint
+
+User authorized beginning the curated UI plan and requires a preview plus explicit approval before each subsequent increment. The [baseline review](design-reference/2026-10-12-curated-ui/00-baseline/REVIEW.md) records fresh desktop captures, board/map reference inspection, exercised interactions, and pending checks. Desktop build, 116 Swift tests, and map bridge checks passed. Native desktop preview is open for user testing; no product styling or behavior changes yet.
+
+Fresh iPhone verification remains pending: Simulator services are sandbox-inaccessible, escalation was automatically rejected, and Simulator Computer Use timed out. Increment 0 is a partial review checkpoint, not full visual acceptance. Do not start increment 1 without explicit user approval; do not claim missing phone/accessibility/fixture checks passed. Older pause/next-action entries below are historical and superseded by this user's current instruction.
 
 ### Merge finalized handoff — development paused here
 

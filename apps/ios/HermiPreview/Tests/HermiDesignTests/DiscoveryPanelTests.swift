@@ -31,7 +31,9 @@ final class DiscoveryPanelTests: XCTestCase {
     state.selectPlace("cafe")
     XCTAssertEqual(state.panel, .map)
     XCTAssertEqual(state.sheet, .place("cafe"))
-    state.sheet = nil
+    state.goBack()
+    XCTAssertEqual(state.sheet, .nearby)
+    XCTAssertNil(state.returnSheet)
     XCTAssertEqual(state.discoveryPins, pins)
     XCTAssertEqual(state.citywideCategory, .nature)
     state.switchPanel(.feed); state.selectPlace("cafe")
