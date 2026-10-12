@@ -1,5 +1,9 @@
 # Hermi frontend progress
 
+### 2026-10-12 — large-text Plan columns corrected and simulator-verified
+
+After the user reviewed the XXXL Plan and asked for time slots on the left with event cards grouped on the right, replaced the accessibility-size vertical stack with a two-column row. Simulator review exposed narrow event cards and a wrapping time label, so the time column is bounded and the localized hour/minute and day period are split cleanly. The `.accessibility5` fixture on iPhone 17 Pro Max Simulator (iOS 26.3) now shows date/time/duration/reminder in a consistent left column, aligned event cards on the right, and complete wrapped stop names. Screenshot and exact scope are in the [device review](design-reference/2026-10-12-curated-ui-round-2/10-device-review/REVIEW.md). The iOS Simulator build and all 120 Swift tests pass. Physical-device text sizing/VoiceOver and scrolling through the full accessibility-size plan remain unverified.
+
 ### 2026-10-12 — round 2 implementation and iPhone visual pass
 
 Implemented the authorized source changes in separate commits from `725e3ec` through `22eb6ec`, following deterministic fixture commit `53a1e35`. Feed full text is accessible at every text length; Place compact space preserves its identity/action group; Plan utilities and Saved hierarchy are condensed; Saved responds to text size and width; expanded Nearby uses a vertical list; Feed filtering has its own glyph; Profile spacing and map notices account for safe areas; planned-place reversal is explicit; remote media reports loading/failure; Feed full-text actions have 44-point targets. Commit list and limitations: [round 2 implementation handoff](design-reference/2026-10-12-curated-ui-round-2/02-14-implementation/REVIEW.md).
