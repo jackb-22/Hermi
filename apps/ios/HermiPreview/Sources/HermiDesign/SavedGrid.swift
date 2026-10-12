@@ -14,10 +14,6 @@ struct SavedGrid: View {
   @State private var openPlace: SavedReference?
   @State private var creatingFolder = false
   @State private var folderName = ""
-  private var columns: [GridItem] {
-    dynamicTypeSize.isAccessibilitySize ? [GridItem(.flexible())] : [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
-  }
-
   private var folder: SavedFolder? { state.library.folders.first { $0.id == folderID } }
   private var items: [SavedReference] {
     let valid = Set(state.savedReferences)
@@ -27,7 +23,9 @@ struct SavedGrid: View {
   }
 
   var body: some View {
-    ScrollView {
+    GeometryReader { geometry in
+      let usesList = dynamicTypeSize.isAccessibilitySize || geometry.size.width - 40 < 350
+      ScrollView {
       VStack(alignment: .leading, spacing: HermiSpacing.section) {
         HStack {
           if let folder {
@@ -56,14 +54,14 @@ struct SavedGrid: View {
           Text(feedback).font(HermiTypography.metadata).foregroundStyle(HermiPalette.green)
             .fixedSize(horizontal: false, vertical: true).accessibilityAddTraits(.updatesFrequently)
         }
-        LazyVGrid(columns: columns, spacing: HermiSpacing.medium) {
+        LazyVGrid(columns: usesList ? [GridItem(.flexible())] : [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: HermiSpacing.medium) {
           if folder == nil {
             ForEach(state.library.folders) { folder in
-              Button { folderID = folder.id } label: { folderTile(folder) }.buttonStyle(.plain)
+              Button { folderID = folder.id } label: { folderTile(folder, usesList: usesList) }.buttonStyle(.plain)
             }
           }
           ForEach(items) { reference in
-            Button { open(reference) } label: { tile(reference) }.buttonStyle(.plain)
+            Button { open(reference) } label: { tile(reference, usesList: usesList) }.buttonStyle(.plain)
               .contextMenu { menu(reference) }
           }
         }
@@ -75,6 +73,7 @@ struct SavedGrid: View {
           }.frame(maxWidth: .infinity).padding(HermiSpacing.gutter)
         }
       }.padding(20)
+      }
     }
     .coverScreen(item: $viewing) { reference in
       SavedViewer(state: $state, reference: reference, close: { viewing = nil },
@@ -106,9 +105,9 @@ struct SavedGrid: View {
 
   // MARK: Tiles
 
-  private func tile(_ reference: SavedReference) -> some View {
+  private func tile(_ reference: SavedReference, usesList: Bool) -> some View {
     Group {
-      if dynamicTypeSize.isAccessibilitySize {
+      if usesList {
         HStack(alignment: .top, spacing: HermiSpacing.medium) {
           SavedThumbnail(state: state, reference: reference)
             .frame(width: 92, height: 92).clipShape(PixelPanel(corner: 8))
@@ -137,10 +136,10 @@ struct SavedGrid: View {
     }
   }
 
-  private func folderTile(_ folder: SavedFolder) -> some View {
+  private func folderTile(_ folder: SavedFolder, usesList: Bool) -> some View {
     let previews = Array(folder.items.prefix(4))
     return Group {
-      if dynamicTypeSize.isAccessibilitySize {
+      if usesList {
         HStack(alignment: .top, spacing: HermiSpacing.medium) {
           folderPreview(previews).frame(width: 92, height: 92)
           VStack(alignment: .leading, spacing: HermiSpacing.tight) {
