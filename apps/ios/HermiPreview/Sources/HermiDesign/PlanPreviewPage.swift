@@ -89,33 +89,47 @@ struct PlanPreviewPage: View {
         }
       }
       else {
-        HStack(spacing: HermiSpacing.medium) {
-          VStack(alignment: .leading, spacing: HermiSpacing.tight) {
-            Text(state.editingSavedPlan?.name ?? "Current draft").font(HermiTypography.label)
-            Text(LiveSession.shared.isLive ? "Synced to your account" : (state.editingSavedPlan == nil ? "On this device" : "Autosaves on this device"))
-              .font(HermiTypography.metadata).foregroundStyle(HermiPalette.secondary)
-          }
-          Spacer()
-          if state.editingSavedPlan != nil {
+        if state.editingSavedPlan != nil {
+          HStack(spacing: HermiSpacing.medium) {
+            Text(state.editingSavedPlan?.name ?? "Saved plan")
+              .font(HermiTypography.label).fixedSize(horizontal: false, vertical: true)
+            Spacer()
             Button("My draft") { state.returnToPlanDraft(); saveFeedback = nil }
-              .font(HermiTypography.label).frame(minHeight: 44).controlHelp("Return to your preserved unfinished plan")
+              .font(HermiTypography.label).frame(minHeight: 44)
+              .controlHelp("Return to your preserved unfinished plan")
           }
-          Button("Undo") { state.undoPlanEdit(); saveFeedback = nil }
-            .font(HermiTypography.label).frame(minHeight: 44).disabled(!state.canUndoPlan)
-            .opacity(state.canUndoPlan ? 1 : 0.35).controlHelp("Undo the last change to stops, times or invite selections")
-        }.padding(.horizontal, HermiSpacing.gutter)
+          .padding(.horizontal, HermiSpacing.gutter)
+          .padding(.vertical, HermiSpacing.tight)
+        }
+        HStack(spacing: HermiSpacing.medium) {
+          Spacer()
+          Button { state.undoPlanEdit(); saveFeedback = nil } label: {
+            Label("Undo", systemImage: "arrow.uturn.backward")
+              .font(HermiTypography.label).frame(minHeight: 44)
+          }
+          .disabled(!state.canUndoPlan).opacity(state.canUndoPlan ? 1 : 0.4)
+          .accessibilityHint("Undo the last change to stops, times or invite selections")
+        }
+        .padding(.horizontal, HermiSpacing.gutter)
+        .padding(.vertical, HermiSpacing.tight)
         if showDrawer { savedDrawer }
         if LiveSession.shared.isLive, let goJoined { InvitationsSection(goJoined: goJoined) }
         if let saveFeedback {
           Text(saveFeedback).font(HermiTypography.metadata).padding(.horizontal, HermiSpacing.gutter).accessibilityAddTraits(.updatesFrequently)
         }
-        HStack {
-          Button { help.toggle() } label: { PixelIcon(name: "clock").frame(width: 24, height: 24).frame(width: 44, height: 44) }
-            .accessibilityLabel("Timeline help").controlHelp("Tap a time to edit. Hold a stop and move it to reorder")
-          Text("Hold a stop to reorder").font(HermiTypography.metadata).foregroundStyle(HermiPalette.secondary)
-          Spacer()
-        }.padding(.horizontal, HermiSpacing.standard)
-        if help { Text("Set arrival, stay length and a reminder preference for each place. Reminders are not scheduled in preview.").font(HermiTypography.metadata).padding(.horizontal, HermiSpacing.gutter) }
+        if !state.planIDs.isEmpty {
+          HStack {
+            Button { help.toggle() } label: { PixelIcon(name: "clock").frame(width: 24, height: 24).frame(width: 44, height: 44) }
+              .accessibilityLabel("Timeline help")
+              .accessibilityHint("Explains editing times and reordering stops")
+            Text("Hold a stop to reorder").font(HermiTypography.metadata).foregroundStyle(HermiPalette.secondary)
+            Spacer()
+          }.padding(.horizontal, HermiSpacing.standard)
+          if help {
+            Text("Set arrival, stay length and a reminder preference for each place. Reminders are not scheduled in preview.")
+              .font(HermiTypography.metadata).padding(.horizontal, HermiSpacing.gutter)
+          }
+        }
         if dynamicTypeSize.isAccessibilitySize { timeline }
         else { ScrollView { timeline } }
         if let suggestion {
@@ -237,8 +251,16 @@ struct PlanPreviewPage: View {
   private var timeline: some View {
     LazyVStack(spacing: HermiSpacing.standard) {
       if state.planIDs.isEmpty {
-        HermitBrandMark().frame(width: 56, height: 63)
-        Text("Add a place from Map, Feed or Saved.").font(HermiTypography.body).padding(HermiSpacing.section)
+        VStack(alignment: .leading, spacing: HermiSpacing.small) {
+          Text("Your plan starts with a place").font(HermiTypography.heading)
+          Text("Add an explicit place from Map, Feed or Saved. It will appear here when you choose Add.")
+            .font(HermiTypography.body).foregroundStyle(HermiPalette.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(HermiSpacing.medium)
+        .background(HermiPalette.controlSurface, in: PixelPanel(corner: 8))
+        .overlay(PixelPanel(corner: 8).stroke(HermiPalette.line, lineWidth: 1))
       }
       ForEach(Array(shown.ids.enumerated()), id: \.element) { index, id in
         if let place = MapSamplePlace.find(id) {

@@ -1,8 +1,8 @@
 # Hermi curated UI implementation plan
 
-2026-10-12 · Status: increment 3 implemented and desktop-verified; awaiting user review. Native iPhone verification pending.
+2026-10-12 · Status: increment 4 implemented and desktop-verified; awaiting user review. Native iPhone verification pending.
 
-User review gate: after every increment, open a preview for hands-on testing, give specific test instructions and expected results, and wait for explicit approval before beginning the next increment. The user approved increments 1 and 2 by continuing. Review [increment 2](design-reference/2026-10-12-curated-ui/02-map-discovery/REVIEW.md) and [increment 3](design-reference/2026-10-12-curated-ui/03-place-details/REVIEW.md). Native iPhone checks remain pending.
+User review gate: after every increment, open a preview for hands-on testing, give specific test instructions and expected results, and wait for explicit approval before beginning the next increment. The user approved increments 1–3 by continuing. Review [increment 3](design-reference/2026-10-12-curated-ui/03-place-details/REVIEW.md) and [increment 4](design-reference/2026-10-12-curated-ui/04-plan-reading/REVIEW.md). Native iPhone checks remain pending.
 
 ## Objective and authority
 

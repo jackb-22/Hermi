@@ -191,13 +191,18 @@ public struct HermiMapPreview: View {
           return
         }
         #endif
-        if ProcessInfo.processInfo.arguments.contains("--hermi-plan-review") || ProcessInfo.processInfo.arguments.contains("--hermi-saved-review") {
+        if ProcessInfo.processInfo.arguments.contains(where: { $0 == "--hermi-plan-review" || $0.hasPrefix("--hermi-plan-review=") }) || ProcessInfo.processInfo.arguments.contains("--hermi-saved-review") {
           state.planIDs = ["cafe", "gallery", "garden"]
           state.stopTimes = [:]; state.stopInviteDrafts = [:]
           let start = Calendar.current.startOfDay(for: Date()).addingTimeInterval(12 * 3600)
           state.setStopTime(.init(arrival: start, reminderMinutes: 15), for: "cafe")
           state.setStopTime(.init(arrival: start.addingTimeInterval(1800)), for: "gallery")
           state.setStopTime(.init(arrival: start.addingTimeInterval(7200), durationMinutes: 30), for: "garden")
+          if ProcessInfo.processInfo.arguments.contains("--hermi-plan-review=one") {
+            state.planIDs = ["cafe"]
+            state.stopTimes = ["cafe": PreviewStopTime(arrival: start, durationMinutes: 60, reminderMinutes: 15)]
+            state.stopInviteDrafts = ["cafe": []]
+          }
           if ProcessInfo.processInfo.arguments.contains("--hermi-saved-review") {
             state.toggleSave("books"); state.toggleSave("tea")
             var library = SavedLibrary()
@@ -214,7 +219,14 @@ public struct HermiMapPreview: View {
           state.sheet = .plan
           #if DEBUG
           if ProcessInfo.processInfo.arguments.contains("--hermi-type-review=empty") {
-            state.planIDs = []; state.stopTimes = [:]
+            state.planIDs = []; state.stopTimes = [:]; state.stopInviteDrafts = [:]
+          }
+          if ProcessInfo.processInfo.arguments.contains("--hermi-type-review=warning") {
+            state.stopTimes = [
+              "cafe": PreviewStopTime(arrival: start, durationMinutes: 120),
+              "gallery": PreviewStopTime(arrival: start.addingTimeInterval(30 * 60), durationMinutes: 60),
+              "garden": PreviewStopTime(arrival: start.addingTimeInterval(90 * 60), durationMinutes: 45)
+            ]
           }
           if ProcessInfo.processInfo.arguments.contains("--hermi-type-review=long") {
             let place = MapSamplePlace(id: "typography-review-long-name",

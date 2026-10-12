@@ -4,6 +4,12 @@ Updated: 2026-10-12. Branch: design/curated-ui-refresh. Earlier frontend history
 
 ## Current checkpoint
 
+### 2026-10-12 — curated UI increment 4, ready for user review
+
+My Plan no longer spends a status row on “Current draft” and device-sync text. Undo remains accessible and is grouped with editing. Saved-plan name and “My draft” return action stay together when editing an existing plan. Reorder help appears only when there are stops. The empty plan now gives one direct next step in a quiet framed message; the existing crab is not repeated. Warning copy and Go eligibility are unchanged. DEBUG fixtures cover a one-stop plan and overlapping times. The [increment 4 review](design-reference/2026-10-12-curated-ui/04-plan-reading/REVIEW.md) has the preview command and test checklist.
+
+Desktop build, 118 Swift tests, shell syntax check, and all map bridge checks pass. Visually inspected the populated Plan with advisory warning and enabled Go, and the empty state with disabled Go and no reorder instruction. A macOS automation/session issue prevented a clean final one-stop window capture; code fixture is in place and the user can exercise it from the provided launch command. Device drag, VoiceOver, and actual iPhone Dynamic Type remain pending. Wait for user review before increment 5.
+
 ### 2026-10-12 — curated UI increment 3, ready for user review
 
 Place details now share a wrapping title/category header and two explicit, separate actions. Save reflects Saved membership; Add reflects My Plan membership, with accessible labels and values. Secondary place facts use a quiet framed group and the existing rounded typography. Closing a place returns to its recorded source, including Nearby. A local DEBUG long-name fixture exercises the actual selected-place flow. The [increment 3 review](design-reference/2026-10-12-curated-ui/03-place-details/REVIEW.md) has the preview command, review steps, and captured screen.
