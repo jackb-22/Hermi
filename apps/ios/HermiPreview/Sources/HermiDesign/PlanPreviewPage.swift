@@ -319,8 +319,6 @@ struct PlanPreviewPage: View {
           .contentShape(Rectangle())
       }.accessibilityLabel("Edit time for \(place.name)")
         .controlHelp("Edit arrival, duration and reminder for \(place.name)")
-      Rectangle().fill(HermiPalette.category(place.category)).frame(width: 2, height: 64)
-        .accessibilityHidden(true)
       HStack(spacing: HermiSpacing.tight) {
         Button { openPlace = SavedReference(kind: .place, refID: place.id) } label: {
           Text(place.name).font(HermiTypography.body).fixedSize(horizontal: false, vertical: true)

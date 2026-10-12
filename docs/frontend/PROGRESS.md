@@ -1,5 +1,9 @@
 # Hermi frontend progress
 
+### 2026-10-12 — Plan divider removed after user review
+
+Removed the category-colored vertical rule between the large-text schedule column and event cards. Rebuilt and inspected the iPhone 17 Pro Max Simulator `.accessibility5` fixture; the left/right grouping remains clear without the extra line. The [Plan screenshot](design-reference/2026-10-12-curated-ui-round-2/10-device-review/accessibility-plan-columns-iphone17pm.jpeg) reflects this follow-up. All 120 Swift tests pass.
+
 ### 2026-10-12 — large-text Plan columns corrected and simulator-verified
 
 After the user reviewed the XXXL Plan and asked for time slots on the left with event cards grouped on the right, replaced the accessibility-size vertical stack with a two-column row. Simulator review exposed narrow event cards and a wrapping time label, so the time column is bounded and the localized hour/minute and day period are split cleanly. The `.accessibility5` fixture on iPhone 17 Pro Max Simulator (iOS 26.3) now shows date/time/duration/reminder in a consistent left column, aligned event cards on the right, and complete wrapped stop names. Screenshot and exact scope are in the [device review](design-reference/2026-10-12-curated-ui-round-2/10-device-review/REVIEW.md). The iOS Simulator build and all 120 Swift tests pass. Physical-device text sizing/VoiceOver and scrolling through the full accessibility-size plan remain unverified.
