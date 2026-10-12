@@ -66,6 +66,14 @@ struct PlanPreviewPage: View {
           }.accessibilityLabel("Return to My Plan")
             .controlHelp("Close full Saved list and return to My Plan")
         } else {
+          Button { state.undoPlanEdit(); saveFeedback = nil } label: {
+            Image(systemName: "arrow.uturn.backward")
+              .font(.system(size: 16, weight: .semibold))
+              .frame(width: 44, height: 44)
+          }
+          .disabled(!state.canUndoPlan).opacity(state.canUndoPlan ? 1 : 0.4)
+          .accessibilityLabel("Undo")
+          .accessibilityHint("Undo the last change to stops, times or invite selections")
           PixelIcon(name: "save").frame(width: 22, height: 26).frame(width: 44, height: 44)
             .contentShape(Rectangle())
             .gesture(LongPressGesture(minimumDuration: 0.4).exclusively(before: TapGesture()).onEnded { gesture in
@@ -101,17 +109,6 @@ struct PlanPreviewPage: View {
           .padding(.horizontal, HermiSpacing.gutter)
           .padding(.vertical, HermiSpacing.tight)
         }
-        HStack(spacing: HermiSpacing.medium) {
-          Spacer()
-          Button { state.undoPlanEdit(); saveFeedback = nil } label: {
-            Label("Undo", systemImage: "arrow.uturn.backward")
-              .font(HermiTypography.label).frame(minHeight: 44)
-          }
-          .disabled(!state.canUndoPlan).opacity(state.canUndoPlan ? 1 : 0.4)
-          .accessibilityHint("Undo the last change to stops, times or invite selections")
-        }
-        .padding(.horizontal, HermiSpacing.gutter)
-        .padding(.vertical, HermiSpacing.tight)
         if showDrawer { savedDrawer }
         if LiveSession.shared.isLive, let goJoined { InvitationsSection(goJoined: goJoined) }
         if let saveFeedback {
@@ -122,7 +119,9 @@ struct PlanPreviewPage: View {
             Button { help.toggle() } label: { PixelIcon(name: "clock").frame(width: 24, height: 24).frame(width: 44, height: 44) }
               .accessibilityLabel("Timeline help")
               .accessibilityHint("Explains editing times and reordering stops")
-            Text("Hold a stop to reorder").font(HermiTypography.metadata).foregroundStyle(HermiPalette.secondary)
+            if state.planIDs.count > 1 {
+              Text("Hold a stop to reorder").font(HermiTypography.metadata).foregroundStyle(HermiPalette.secondary)
+            }
             Spacer()
           }.padding(.horizontal, HermiSpacing.standard)
           if help {
