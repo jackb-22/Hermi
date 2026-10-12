@@ -144,8 +144,9 @@ struct PlanPreviewPage: View {
         Button { if state.canStartPlan { go() } } label: {
           Text("Go!").font(HermiTypography.title).padding(.horizontal, HermiSpacing.section)
             .frame(minWidth: 130, minHeight: 62)
-            .background(HermiPalette.lime, in: PixelPanel(corner: 18))
-        }.disabled(!state.canStartPlan).opacity(state.canStartPlan ? 1 : 0.45)
+            .foregroundStyle(HermiPalette.ink)
+            .background(state.canStartPlan ? HermiPalette.lime : HermiPalette.line, in: PixelPanel(corner: 18))
+        }.disabled(!state.canStartPlan)
           .accessibilityHint("Opens Action preview. No real trip, tracking or notifications begin")
           .controlHelp(!state.canStartPlan ? "Add at least one place before Go" : "Enter Action preview: Directions and Camera")
         }
