@@ -4,6 +4,12 @@ Updated: 2026-10-12. Branch: design/curated-ui-refresh. Earlier frontend history
 
 ## Current checkpoint
 
+### 2026-10-12 — curated UI increment 7, ready for user review
+
+Feed pages now use the established rounded type roles across sample and live presentation, allow titles and status text to wrap, and offer a scrollable “Read full caption/description” sheet for long text. Profile identity, metric labels and the Adventures/Posts switch use the same hierarchy; both tabs now show their names beside the existing pixel icons. Navigation, feed filters, Save/Add semantics, profile metrics and privacy remain intact. A local long-caption review fixture is available through `--hermi-feed-review --hermi-feed-long-review`; it never loads account data. The [increment 7 review](design-reference/2026-10-12-curated-ui/07-feed-profile/REVIEW.md) has simulator captures and the test checklist.
+
+The macOS preview build and all 118 Swift tests pass; `git diff --check` passes. Interactively inspected Feed plus Adventures/Posts on iPhone 16e, iOS 26.3 at default text size. Repeated tab switching did not navigate away or open content. The simulator service became unavailable during the follow-up build for the long-caption fixture, so that fixture and sheet still need interactive review; large Dynamic Type, live-account data, and VoiceOver remain pending. Wait for review before increment 8.
+
 ### 2026-10-12 — curated UI increment 6, ready for user review
 
 Plan Assistant menu, category picker, suggestion bar and chat now use Hermi’s shared rounded reading roles without an accessibility-size cap. Menu options and status messages wrap, large-text categories switch to two columns, source links have larger targets and explicit labels, and chat can scroll-dismiss the keyboard. Apply and Dismiss stay separate, suggestions stay provisional, and errors remain visible with readable status text. The menu now measures to content at standard sizes instead of stretching to the available height. The [increment 6 review](design-reference/2026-10-12-curated-ui/06-assistant/REVIEW.md) records the visible fixture, commands and exact checks.

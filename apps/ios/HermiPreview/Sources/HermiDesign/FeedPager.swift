@@ -7,6 +7,7 @@ struct FeedPager: View {
   var onStopped: () -> Void
   @State private var current: String?
   @State private var notice: String?
+  @State private var fullCaption: FeedCaption?
   private var showsPosts: Bool { state.feedOptions.content != .plans }
   private var showsPlans: Bool { state.feedOptions.content != .posts }
   private var visibleIDs: [String] {
@@ -46,7 +47,7 @@ struct FeedPager: View {
     }.scrollTargetBehavior(.paging).scrollPosition(id: $current).scrollIndicators(.hidden)
       .overlay(alignment: .topLeading) {
         Text("\(state.feedOptions.audience.rawValue) · \(state.feedOptions.content.label)")
-          .font(.caption.bold()).padding(10).background(HermiPalette.controlSurface, in: PixelPanel(corner: 5))
+          .font(HermiTypography.metadata.weight(.semibold)).padding(10).background(HermiPalette.controlSurface, in: PixelPanel(corner: 5))
           .padding(.top, 105).padding(.leading, 20).allowsHitTesting(false)
       }
       .simultaneousGesture(DragGesture(minimumDistance: 20)
@@ -54,6 +55,7 @@ struct FeedPager: View {
       .onChange(of: current) { _, _ in onStopped(); notice = nil }
       .onChange(of: visibleIDs) { _, ids in current = ids.first ?? "end"; notice = nil }
       .onDisappear { onStopped() }
+      .sheet(item: $fullCaption) { caption in FeedCaptionSheet(caption: caption) }
   }
   private func postPage(_ post: PlaceFeedPost, place: MapSamplePlace, index: Int) -> some View {
     ZStack {
@@ -62,8 +64,13 @@ struct FeedPager: View {
         Spacer()
         HStack(alignment: .bottom) {
           VStack(alignment: .leading, spacing: 6) {
-            Text(post.author).font(.subheadline.bold())
-            Text(post.caption).font(.title3.weight(.medium))
+            Text(post.author).font(HermiTypography.label)
+            Text(post.caption).font(HermiTypography.body.weight(.medium)).lineLimit(4)
+            if post.caption.count > 150 {
+              Button("Read full caption") { fullCaption = FeedCaption(title: post.author, text: post.caption) }
+                .font(HermiTypography.metadata.weight(.semibold))
+                .accessibilityHint("Opens the complete caption in a scrollable view")
+            }
           }
           Spacer()
           VStack(spacing: 10) {
@@ -78,7 +85,7 @@ struct FeedPager: View {
           }
         }
         placeStrip(place)
-        Text("SAMPLE POST · MEDIA PLACEHOLDER · SWIPE UP").font(.system(size: 9, design: .monospaced))
+        Text("SAMPLE POST · MEDIA PLACEHOLDER · SWIPE UP").font(HermiTypography.metadata)
       }.foregroundStyle(.white).padding(.horizontal, 24).padding(.bottom, 115)
     }.buttonStyle(.plain).clipped()
   }
@@ -92,8 +99,8 @@ struct FeedPager: View {
         Spacer()
         HStack(alignment: .bottom) {
           VStack(alignment: .leading, spacing: 6) {
-            Text(plan.author).font(.subheadline.bold())
-            Text(plan.name).font(.title2.bold())
+            Text(plan.author).font(HermiTypography.label)
+            Text(plan.name).font(HermiTypography.title).fixedSize(horizontal: false, vertical: true)
           }
           Spacer()
           VStack(spacing: 10) {
@@ -116,8 +123,8 @@ struct FeedPager: View {
             }
           }
         }.scrollIndicators(.hidden)
-        if let notice { Text(notice).font(.caption) }
-        Text("SAMPLE PLAN · ILLUSTRATED ROUTE · SWIPE UP").font(.system(size: 9, design: .monospaced))
+        if let notice { Text(notice).font(HermiTypography.metadata).fixedSize(horizontal: false, vertical: true) }
+        Text("SAMPLE PLAN · ILLUSTRATED ROUTE · SWIPE UP").font(HermiTypography.metadata)
       }.foregroundStyle(.white).padding(.horizontal, 24).padding(.bottom, 115)
     }.buttonStyle(.plain).clipped()
   }
@@ -131,7 +138,7 @@ struct FeedPager: View {
   private func placeStrip(_ place: MapSamplePlace) -> some View {
     Button { state.selectPlace(place.id) } label: {
       HStack { BallpointPin(category: place.category).frame(width: 16, height: 22); Text(place.name); Spacer(minLength: 0) }
-        .font(.subheadline).foregroundStyle(HermiPalette.ink).padding(.horizontal, 12).frame(minHeight: 44)
+        .font(HermiTypography.label).foregroundStyle(HermiPalette.ink).padding(.horizontal, 12).frame(minHeight: 44)
         .background(HermiPalette.controlSurface, in: PixelPanel(corner: 6))
     }.controlHelp("Open \(place.name): media, description and reviews")
   }

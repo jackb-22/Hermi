@@ -14,6 +14,7 @@ struct LiveFeedPager: View {
   @State private var current: String?
   @State private var notice: String?
   @State private var joining: String?
+  @State private var fullCaption: FeedCaption?
   private let feed = LiveFeed.shared
 
   private var cards: [LiveFeedCard] { feed.visible(audience: state.feedOptions.audience, content: state.feedOptions.content) }
@@ -31,7 +32,7 @@ struct LiveFeedPager: View {
     .refreshable { await feed.load(force: true) }
     .overlay(alignment: .topLeading) {
       Text("\(state.feedOptions.audience == .friends ? "Friends" : "General") · \(state.feedOptions.content.label)")
-        .font(.caption.bold()).padding(10).background(HermiPalette.controlSurface, in: PixelPanel(corner: 5))
+        .font(HermiTypography.metadata.weight(.semibold)).padding(10).background(HermiPalette.controlSurface, in: PixelPanel(corner: 5))
         .padding(.top, 105).padding(.leading, 20).allowsHitTesting(false)
     }
     .simultaneousGesture(DragGesture(minimumDistance: 20).onChanged { _ in onMoving() }.onEnded { _ in onStopped() })
@@ -46,6 +47,7 @@ struct LiveFeedPager: View {
       if let post = cards.first?.postID { feed.markSeen(post) }
     }
     .onDisappear { onStopped() }
+    .sheet(item: $fullCaption) { caption in FeedCaptionSheet(caption: caption) }
   }
 
   // MARK: Page
@@ -59,9 +61,19 @@ struct LiveFeedPager: View {
         Spacer()
         HStack(alignment: .bottom) {
           VStack(alignment: .leading, spacing: 6) {
-            Text(card.author).font(.subheadline.bold())
-            if !card.title.isEmpty { Text(card.title).font(card.isPlan ? Font.title2.bold() : Font.title3.weight(.medium)).lineLimit(3) }
-            if let again = card.again { Text(again ? "Would go again" : "Wouldn’t go again").font(.caption.bold()) }
+            Text(card.author).font(HermiTypography.label)
+            if !card.title.isEmpty {
+              Text(card.title).font(card.isPlan ? HermiTypography.title : HermiTypography.body.weight(.medium)).lineLimit(3)
+              if card.title.count > 150 {
+                Button("Read full \(card.isPlan ? "description" : "caption")") {
+                  fullCaption = FeedCaption(title: card.isPlan ? card.title : card.author,
+                                            text: card.title)
+                }
+                .font(HermiTypography.metadata.weight(.semibold))
+                .accessibilityHint("Opens the complete text in a scrollable view")
+              }
+            }
+            if let again = card.again { Text(again ? "Would go again" : "Wouldn’t go again").font(HermiTypography.metadata.weight(.semibold)) }
           }
           Spacer()
           VStack(spacing: 10) { bookmarkButton(card); addButton(card, places: places) }
@@ -76,7 +88,7 @@ struct LiveFeedPager: View {
             }
           }.scrollIndicators(.hidden)
         }
-        if let notice, current == card.id { Text(notice).font(.caption.bold()) }
+        if let notice, current == card.id { Text(notice).font(HermiTypography.metadata.weight(.semibold)).fixedSize(horizontal: false, vertical: true) }
       }.foregroundStyle(.white).padding(.horizontal, 24).padding(.bottom, 115)
     }.buttonStyle(.plain).clipped()
   }
@@ -130,7 +142,7 @@ struct LiveFeedPager: View {
     } label: {
       HStack {
         if joining == card.id { ProgressView().tint(HermiPalette.ink) }
-        Text(title).font(.title3.bold())
+        Text(title).font(HermiTypography.title)
       }
       .foregroundStyle(HermiPalette.ink).frame(maxWidth: .infinity, minHeight: 56)
       .background(done == nil ? HermiPalette.lime : HermiPalette.controlSurface, in: PixelPanel(corner: 8))
@@ -140,27 +152,27 @@ struct LiveFeedPager: View {
   private var endPage: some View {
     VStack(spacing: 20) {
       HermitBrandMark().frame(width: 60, height: 68)
-      Text(cards.isEmpty ? (feed.loading ? "Loading feed…" : "Nothing here yet") : (feed.endTitle ?? "You’re caught up")).font(.title2.bold())
+      Text(cards.isEmpty ? (feed.loading ? "Loading feed…" : "Nothing here yet") : (feed.endTitle ?? "You’re caught up")).font(HermiTypography.title)
         .multilineTextAlignment(.center)
-      if let error = feed.error { Text(error).font(.caption).foregroundStyle(HermiPalette.error) }
+      if let error = feed.error { Text(error).font(HermiTypography.metadata).foregroundStyle(HermiPalette.error).fixedSize(horizontal: false, vertical: true) }
       if cards.isEmpty, !feed.loading, state.feedOptions.audience == .friends {
-        Text("No friend posts right now. Switch to General at the top right.").font(.caption)
+        Text("No friend posts right now. Switch to General at the top right.").font(HermiTypography.body).multilineTextAlignment(.center)
       }
       Button("My Plan") { state.sheet = .plan }
         .padding(14).background(HermiPalette.lime, in: PixelPanel(corner: 6))
-      Button("Browse Saved") { state.sheet = .saved }.font(.subheadline)
-      Button("Refresh") { Task { await feed.load(force: true) } }.font(.caption)
+      Button("Browse Saved") { state.sheet = .saved }.font(HermiTypography.label).frame(minHeight: 44)
+      Button("Refresh") { Task { await feed.load(force: true) } }.font(HermiTypography.metadata).frame(minHeight: 44)
     }.padding(24).background(HermiPalette.paper)
   }
 
   private func placeStrip(_ place: MapSamplePlace, number: Int?) -> some View {
     Button { state.selectPlace(place.id) } label: {
       HStack {
-        if let number { Text("\(number)").font(.caption.bold()).frame(width: 18) }
+        if let number { Text("\(number)").font(HermiTypography.metadata.weight(.bold)).frame(width: 18) }
         BallpointPin(category: place.category).frame(width: 16, height: 22)
         Text(place.name); Spacer(minLength: 0)
       }
-      .font(.subheadline).foregroundStyle(HermiPalette.ink).padding(.horizontal, 12).frame(minHeight: 44)
+      .font(HermiTypography.label).foregroundStyle(HermiPalette.ink).padding(.horizontal, 12).frame(minHeight: 44)
       .background(HermiPalette.controlSurface, in: PixelPanel(corner: 6))
     }
   }
@@ -169,6 +181,35 @@ struct LiveFeedPager: View {
     PixelIcon(name: name).frame(width: 22, height: 24).frame(width: 44, height: 44)
       .foregroundStyle(HermiPalette.ink)
       .background(active ? HermiPalette.lime : HermiPalette.controlSurface, in: PixelPanel(corner: 6))
+  }
+}
+
+struct FeedCaption: Identifiable {
+  let id = UUID()
+  let title: String
+  let text: String
+}
+
+struct FeedCaptionSheet: View {
+  @Environment(\.dismiss) private var dismiss
+  let caption: FeedCaption
+
+  var body: some View {
+    ScrollView {
+      VStack(alignment: .leading, spacing: HermiSpacing.standard) {
+        HStack {
+          CloseButton(label: "Close full text") { dismiss() }
+          Text(caption.title).font(HermiTypography.title).fixedSize(horizontal: false, vertical: true)
+          Spacer(minLength: 0)
+        }
+        Text(caption.text).font(HermiTypography.body).fixedSize(horizontal: false, vertical: true)
+      }
+      .padding(HermiSpacing.gutter)
+      .frame(maxWidth: 560, alignment: .leading)
+      .frame(maxWidth: .infinity, alignment: .center)
+    }
+    .background(HermiPalette.paper)
+    .presentationDetents([.medium, .large])
   }
 }
 

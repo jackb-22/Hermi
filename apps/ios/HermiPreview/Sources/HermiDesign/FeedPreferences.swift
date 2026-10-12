@@ -35,7 +35,15 @@ extension MapPreviewState {
   }
   var feedPosts: [PlaceFeedPost] {
     let author = feedOptions.audience == .friends ? "sam" : "lee"
-    return nearby.compactMap { PlaceFeedPost.find("\($0.id)-\(author)") }
+    var posts = nearby.compactMap { PlaceFeedPost.find("\($0.id)-\(author)") }
+    #if DEBUG
+    if ProcessInfo.processInfo.arguments.contains("--hermi-feed-long-review"), let first = posts.first {
+      posts[0] = PlaceFeedPost(id: first.id, placeID: first.placeID, author: first.author,
+        caption: "A longer sample caption to check that the Feed keeps its primary actions visible while giving the full story room to breathe. We took the riverside path after lunch, found a quiet patch of shade, and saved this detour for another weekend.",
+        mediaCount: first.mediaCount)
+    }
+    #endif
+    return posts
   }
   var feedPlans: [FeedPlanSample] {
     let matches = Set(nearby.map(\.id))

@@ -33,7 +33,7 @@ public struct HermiMapPreview: View {
   @Environment(\.scenePhase) private var scenePhase
   private var pinReviewFixture: Bool {
     #if DEBUG
-    ProcessInfo.processInfo.arguments.contains("--hermi-pin-review") || ProcessInfo.processInfo.arguments.contains("--hermi-multipin-review") || ProcessInfo.processInfo.arguments.contains("--hermi-plan-review") || ProcessInfo.processInfo.arguments.contains("--hermi-saved-review") || ProcessInfo.processInfo.arguments.contains("--hermi-feed-review")
+    ProcessInfo.processInfo.arguments.contains("--hermi-pin-review") || ProcessInfo.processInfo.arguments.contains("--hermi-multipin-review") || ProcessInfo.processInfo.arguments.contains("--hermi-plan-review") || ProcessInfo.processInfo.arguments.contains("--hermi-saved-review") || ProcessInfo.processInfo.arguments.contains("--hermi-feed-review") || ProcessInfo.processInfo.arguments.contains("--hermi-feed-long-review")
     #else
     false
     #endif
@@ -166,7 +166,7 @@ public struct HermiMapPreview: View {
       if !pinReviewFixture { introSeen = true }
       if pinReviewFixture {
         state = MapPreviewState()
-        if ProcessInfo.processInfo.arguments.contains("--hermi-feed-review") {
+        if ProcessInfo.processInfo.arguments.contains("--hermi-feed-review") || ProcessInfo.processInfo.arguments.contains("--hermi-feed-long-review") {
           state.switchPanel(.feed)
           state.addPlace("cafe")
           state.planUndoHistory = []
@@ -776,8 +776,9 @@ public struct HermiMapPreview: View {
         HStack(spacing: 12) {
           HermitSprite().frame(width: 48, height: 42)
           VStack(alignment: .leading, spacing: 4) {
-            Text(LiveSession.shared.me?.name ?? "Alex").font(.title2.bold())
-            Text(LiveSession.shared.me.map { "@\($0.username)" } ?? "@alex · Sample profile").font(.caption)
+            Text(LiveSession.shared.me?.name ?? "Alex").font(HermiTypography.title).fixedSize(horizontal: false, vertical: true)
+            Text(LiveSession.shared.me.map { "@\($0.username)" } ?? "@alex · Sample profile")
+              .font(HermiTypography.metadata).fixedSize(horizontal: false, vertical: true)
           }
           Spacer()
 
@@ -786,18 +787,22 @@ public struct HermiMapPreview: View {
           ForEach([ProfileDetail.friends, .score, .rank]) { detail in
             Button { profileDetail = detail } label: {
               VStack(spacing: 5) {
-                Text(headerValue(detail)).font(.system(.headline, design: .monospaced))
-                Text(detail.rawValue).font(.caption)
-              }.frame(maxWidth: .infinity).frame(minHeight: 48)
+                Text(headerValue(detail)).font(.system(.headline, design: .monospaced).weight(.bold))
+                Text(detail.rawValue).font(HermiTypography.metadata).fixedSize(horizontal: false, vertical: true)
+              }.frame(maxWidth: .infinity).frame(minHeight: 56)
             }.buttonStyle(.plain).accessibilityLabel(detail.rawValue).controlHelp("Open \(detail.rawValue)")
           }
         }.padding(.horizontal, 24)
-        HStack(spacing: 40) {
+        HStack(spacing: 8) {
           ForEach(["Adventures", "Posts"], id: \.self) { tab in
             Button { profileTab = tab } label: {
-              PixelIcon(name: tab == "Adventures" ? "route" : "grid").frame(width: 25, height: 25)
-                .frame(width: 64, height: 48)
-                .background(profileTab == tab ? HermiPalette.lime : .clear, in: PixelPanel(corner: 6))
+              HStack(spacing: 8) {
+                PixelIcon(name: tab == "Adventures" ? "route" : "grid").frame(width: 20, height: 20)
+                Text(tab).font(HermiTypography.label)
+              }
+              .frame(maxWidth: .infinity, minHeight: 48)
+              .background(profileTab == tab ? HermiPalette.lime : HermiPalette.controlSurface,
+                          in: PixelPanel(corner: 6))
             }.buttonStyle(.plain).accessibilityLabel(tab).controlHelp("Show your \(tab.lowercased())").accessibilityAddTraits(profileTab == tab ? .isSelected : [])
           }
         }
@@ -822,7 +827,7 @@ public struct HermiMapPreview: View {
               }.buttonStyle(.plain).accessibilityLabel("Sample post at \(place.name)").controlHelp("Open posts and reviews for \(place.name)")
             }
           }
-          Text("Sample media placements").font(.caption)
+          Text("Sample media placements").font(HermiTypography.metadata)
           }
         }
       }.padding(.top, 135).padding(.bottom, 130)
@@ -840,12 +845,12 @@ public struct HermiMapPreview: View {
       .sheet(item: Binding(get: { postPlace.flatMap(MapSamplePlace.find) }, set: { postPlace = $0?.id })) { place in
         ScrollView {
           VStack(alignment: .leading, spacing: 20) {
-            HStack { CloseButton(label: "Close post") { postPlace = nil }; Text(place.name).font(.title2.bold()); Spacer() }
-            Text("Your posts").font(.headline)
+            HStack { CloseButton(label: "Close post") { postPlace = nil }; Text(place.name).font(HermiTypography.title).fixedSize(horizontal: false, vertical: true); Spacer(minLength: 0) }
+            Text("Your posts").font(HermiTypography.heading)
             HStack(spacing: 6) { ForEach(0..<3) { mediaTile(place.category, variant: $0).frame(height: 150) } }
-            Text("Your review").font(.headline)
-            Text("No verified review loaded.").font(.subheadline)
-            Text("Sample place · media and reviews await backend integration").font(.caption).foregroundStyle(HermiPalette.secondary)
+            Text("Your review").font(HermiTypography.heading)
+            Text("No verified review loaded.").font(HermiTypography.body)
+            Text("Sample place · media and reviews await backend integration").font(HermiTypography.metadata).foregroundStyle(HermiPalette.secondary)
           }.padding(20)
         }.background(HermiPalette.paper).presentationDetents([.medium, .large])
       }
