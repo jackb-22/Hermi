@@ -39,7 +39,6 @@ struct SavedGrid: View {
             }.frame(maxWidth: .infinity, alignment: .trailing)
           } else {
             VStack(alignment: .leading, spacing: HermiSpacing.tight) {
-              Text("Saved").font(HermiTypography.title).accessibilityAddTraits(.isHeader)
               Text("\(state.savedReferences.count) items").font(HermiTypography.metadata).foregroundStyle(HermiPalette.secondary)
             }
             Spacer()
