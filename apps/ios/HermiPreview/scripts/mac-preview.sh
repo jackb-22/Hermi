@@ -17,4 +17,4 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 <key>NSHighResolutionCapable</key><true/>
 </dict></plist>
 PLIST
-if [ "${1:-}" != "--build-only" ]; then open "$APP"; fi
+if [ "${1:-}" != "--build-only" ]; then open "$APP" --args "$@"; fi

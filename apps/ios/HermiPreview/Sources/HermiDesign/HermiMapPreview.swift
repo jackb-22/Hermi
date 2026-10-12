@@ -114,6 +114,15 @@ public struct HermiMapPreview: View {
     }
     .background(HermiPalette.paper).foregroundStyle(HermiPalette.ink)
     .preferredColorScheme(.light)
+    .transformEnvironment(\.dynamicTypeSize) { size in
+      #if DEBUG
+      // Deterministic typography review without changing the user's OS setting.
+      // Without the flag, the actual platform preference remains authoritative.
+      if ProcessInfo.processInfo.arguments.contains("--hermi-type-review=xxxl") {
+        size = .accessibility5
+      }
+      #endif
+    }
     .accessibilityHidden(state.actionSession != nil)
     .allowsHitTesting(state.actionSession == nil)
     .overlay {
@@ -193,6 +202,19 @@ public struct HermiMapPreview: View {
           state.planUndoHistory = [] // Fixture setup is not a user edit.
           state.sheet = .plan
           #if DEBUG
+          if ProcessInfo.processInfo.arguments.contains("--hermi-type-review=empty") {
+            state.planIDs = []; state.stopTimes = [:]
+          }
+          if ProcessInfo.processInfo.arguments.contains("--hermi-type-review=long") {
+            let place = MapSamplePlace(id: "typography-review-long-name",
+              name: "Riverside community gardens and neighborhood conservatory",
+              category: .nature, latitude: 40.808, longitude: -73.967)
+            PlaceCatalog.shared.upsert([place])
+            state.planIDs.append(place.id)
+            state.setStopTime(.init(arrival: start.addingTimeInterval(10800), durationMinutes: 120,
+                                   reminderMinutes: 30), for: place.id)
+            state.planUndoHistory = []
+          }
           if let flag = ProcessInfo.processInfo.arguments.first(where: { $0.hasPrefix("--hermi-ai-review=") }) {
             seedAIScenario(String(flag.dropFirst("--hermi-ai-review=".count)))
           }

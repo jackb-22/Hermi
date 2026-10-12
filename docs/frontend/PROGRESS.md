@@ -4,6 +4,12 @@ Updated: 2026-09-27. Branch: frontend. Earlier 47-commit history pushed with use
 
 ## Current checkpoint
 
+### 2026-10-12 — curated UI increment 1, implemented for user review
+
+User approved moving beyond the unchanged baseline. Implemented native rounded reading roles/spacing and applied them to My Plan, with readable schedule metadata, adaptive columns, long-name wrapping, and a full-page accessibility scrolling layout. Added local DEBUG long-name/empty/XXXL review fixtures and compact desktop review sizing. The [increment 1 checklist](design-reference/2026-10-12-curated-ui/01-typography/REVIEW.md) includes exact launch commands, tests and expected results, captures, and limitations.
+
+Desktop build and 116 tests passed; constrained/long/empty/accessibility-layout renders inspected. Time editor/Cancel and accessible reorder/Undo exercised; fixture restored. Desktop preview is open on the standard three-stop Plan. Native iPhone build blocked before compilation by sandbox access to Xcode's SwiftPM manifest diagnostics cache; actual iPhone font scaling and device checks are pending. No native iPhone acceptance is claimed. Wait for explicit user approval before increment 2; fix any increment 1 feedback first.
+
 ### 2026-10-12 — curated UI increment 0, desktop review checkpoint
 
 User authorized beginning the curated UI plan and requires a preview plus explicit approval before each subsequent increment. The [baseline review](design-reference/2026-10-12-curated-ui/00-baseline/REVIEW.md) records fresh desktop captures, board/map reference inspection, exercised interactions, and pending checks. Desktop build, 116 Swift tests, and map bridge checks passed. Native desktop preview is open for user testing; no product styling or behavior changes yet.

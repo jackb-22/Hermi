@@ -2,6 +2,9 @@
 # CI runs every line on every device; a commit line `shots: <regex>` narrows it. `--content-size=<size>` sets
 # Dynamic Type for that shot (e.g. accessibility-extra-extra-extra-large).
 plan|--hermi-plan-review
+plan-type-long|--hermi-plan-review --hermi-type-review=long
+plan-type-empty|--hermi-plan-review --hermi-type-review=empty
+plan-type-xxxl|--hermi-plan-review --content-size=accessibility-extra-extra-extra-large
 saved|--hermi-saved-review
 map|--hermi-pin-review
 ai-closed|--hermi-plan-review --hermi-ai-review=closed
