@@ -24,12 +24,14 @@ import { startGroupChat } from '../src/services/groupChat.ts';
 import { loadPlaces, plans, toSchedStops } from '../src/services/plans.ts';
 import { pairKey } from '../src/services/social.ts';
 import { users } from '../src/services/users.ts';
+import { refuseFakeData } from './lib/noFakeData.ts';
 
 const config = loadConfig({ ...process.env, RUN_WORKER: 'off', LOG_LEVEL: 'warn' });
 if (!/localhost|127\.0\.0\.1/.test(config.MONGO_URI)) {
   console.error('photon-cli writes users and plans: point MONGO_URI at the local docker database');
   process.exit(2);
 }
+refuseFakeData('photon-cli.ts', config);
 const ctx = await createContext(config);
 const app = await buildApp(ctx);
 await app.ready();

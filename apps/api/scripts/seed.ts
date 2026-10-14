@@ -1,6 +1,7 @@
 /**
  * Demo seed: makes the social map, feed and ranks look alive around Morningside Heights.
  * Everything written is marked (Mongo `seed: true`, Tiger ids/refs starting with "seed"), so --reset removes exactly it.
+ * Refuses NODE_ENV=production and MONGO_DB=hermi: production has no fake people (scripts/lib/noFakeData.ts).
  *
  *   tsx --env-file=../../.env scripts/seed.ts --reset --demo maya,sam [--media-dir ./captures]
  *
@@ -33,6 +34,7 @@ import {
   XP,
 } from '@itp/shared';
 import { closeContext, createContext, ensureSchema } from '../src/boot.ts';
+import { loadConfig } from '../src/config.ts';
 import type { PlaceDoc } from '../src/db/placeTypes.ts';
 import type { UserDoc } from '../src/db/types.ts';
 import { buildPrefs } from '../src/domain/prefs.ts';
@@ -48,7 +50,10 @@ import {
 } from '../src/services/plans.ts';
 import type { PostDoc } from '../src/services/posts.ts';
 import { newUser } from '../src/services/users.ts';
+import { refuseFakeData } from './lib/noFakeData.ts';
 
+const config = loadConfig();
+refuseFakeData('seed.ts', config);
 const { values } = parseArgs({
   options: {
     reset: { type: 'boolean', default: false },
@@ -102,7 +107,7 @@ const NAMES = [
   'Portal Peyton',
 ];
 
-const ctx = await createContext();
+const ctx = await createContext(config);
 await ensureSchema(ctx);
 const { db, tiger } = ctx;
 const now = new Date();

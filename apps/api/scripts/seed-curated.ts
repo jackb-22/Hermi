@@ -9,6 +9,7 @@
  * videos are cut to 15 s at 720p. Each place gets multi-part posts (up to 3 photos + a clip, captioned with a
  * review line), then one review post per remaining review; "% would go again" and the review summary update.
  * Everything is marked `seed`, so `seed.ts --reset` removes it.
+ * Refuses NODE_ENV=production and MONGO_DB=hermi: production has no fake people (scripts/lib/noFakeData.ts).
  */
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
@@ -18,11 +19,15 @@ import { basename, extname, join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { newId } from '@itp/shared';
 import { closeContext, createContext, ensureSchema } from '../src/boot.ts';
+import { loadConfig } from '../src/config.ts';
 import type { PlaceDoc } from '../src/db/placeTypes.ts';
 import { processMedia } from '../src/jobs/processMedia.ts';
 import type { MediaDoc } from '../src/services/media.ts';
 import type { PostDoc } from '../src/services/posts.ts';
+import { refuseFakeData } from './lib/noFakeData.ts';
 
+const config = loadConfig();
+refuseFakeData('seed-curated.ts', config);
 const { values } = parseArgs({
   options: {
     dir: { type: 'string', default: join(homedir(), 'Downloads/realplaces/Realplaces') },
@@ -215,7 +220,7 @@ const folders = readdirSync(values.dir!).flatMap((category) => {
     .map((p) => join(path, p));
 });
 
-const ctx = await createContext();
+const ctx = await createContext(config);
 if (!dry) await ensureSchema(ctx);
 const { db, tiger } = ctx;
 const places = db.collection<PlaceDoc>('places');
