@@ -108,6 +108,11 @@ Open when running locally. On a deployment every dev affordance needs the header
   - **Limits:** each send on an allowed domain counts toward 5 an hour per account and 60 an hour per IP, else 429 `RATE_LIMITED` (`details: {limit, windowS}`). A refused domain does not count; a 409 below does. Handle 429 by telling the person to wait.
   - **One school email per account:** `+tag` is ignored (`uni+1@columbia.edu` is `uni@columbia.edu`) and so is case. If another account holds the address, `/auth/edu` is 409 `EDU_EMAIL_TAKEN` and sends nothing; `/auth/edu/verify` is 409 `EDU_EMAIL_TAKEN` too if that account verified it after the code went out (the code is then spent). Re-verifying your own address works. Deleting an account (`DELETE /me`) frees its address. A deleted account's token gets 401 on both endpoints.
   - New error code `EDU_EMAIL_TAKEN`.
+- **v0.31.0** — Safety (App Store 1.2).
+  - **New error code `BANNED`** (403). A banned account gets it from every authenticated route, including the optional-auth ones (`/places*`) when a token is sent. It means "show the suspended screen", not "retry". Sign-in (`/auth/apple`) still returns a token for a banned account; every call with it is then refused.
+  - **Deleted accounts**: the old token is now refused with 401 `UNAUTHORIZED` at once. Before this, most routes kept accepting it until it expired (up to 30 days). The app should treat 401 as "signed out".
+  - **`POST /reports`** now answers 404 `NOT_FOUND` for a post or user that does not exist (or a deleted user), and 429 `RATE_LIMITED` after 20 new reports an hour. Reporting the same target again while your first report is unresolved is a no-op that still answers `{ok:true}`. Every report emails the team.
+  - **Moderation fails closed.** If the safety check cannot run (Gemini down), the post stays `pending` instead of going live; the check retries for several minutes, and a person may approve or remove it afterwards. A `pending` post can therefore stay pending for hours; the app already shows pending posts only to their author.
 
 ## Additions beyond the plan's data model
 

@@ -210,9 +210,34 @@ export async function summarizeReviews(ctx: AppContext, payload: { placeId: stri
   );
 }
 
-/** Captions, review text and images pass a Gemini safety check before a post goes live. */
+/**
+ * Queues the safety check, one live job per post. Clips wait for their rendition and Gemini may be briefly down, so
+ * 8 attempts of backoff give it several minutes; after that a dead job leaves the post pending for a person.
+ */
+export const enqueueModeration = (ctx: AppContext, postId: string) =>
+  enqueue(ctx, 'moderate_post', { postId }, { dedupeKey: `moderate:${postId}`, maxAttempts: 8 });
+
+/** Pending → live, whether the safety check passed or a person approved it. A live Review changes its place's summary. */
+export async function goLive(
+  ctx: AppContext,
+  p: Pick<PostDoc, '_id' | 'type' | 'placeId'>,
+  reason: string,
+): Promise<boolean> {
+  const r = await posts(ctx.db).updateOne(
+    { _id: p._id, status: 'pending' },
+    { $set: { status: 'live', liveAt: ctx.clock.now(), moderationReason: reason } },
+  );
+  if (r.modifiedCount && p.type === 'review') await enqueueReviewSummary(ctx, p.placeId);
+  return r.modifiedCount === 1;
+}
+
+/**
+ * Captions, review text and images pass a Gemini safety check before a post goes live. It fails closed: when the
+ * check cannot run, this throws, the job retries, and after its last attempt the post is still pending (never live
+ * or rejected on a guess) until a person approves or removes it with the admin CLI.
+ */
 export async function moderatePost(ctx: AppContext, payload: { postId: string }, job?: JobDoc) {
-  const { db, providers, clock } = ctx;
+  const { db, providers } = ctx;
   const p = await posts(db).findOne({ _id: payload.postId });
   if (p?.status !== 'pending') return;
   const docs = await media(db)
@@ -244,13 +269,12 @@ export async function moderatePost(ctx: AppContext, payload: { postId: string },
     }
   }
   const verdict = await providers.llm.moderate({ text: p.text, images });
+  if (verdict.allowed) {
+    await goLive(ctx, p, verdict.reason);
+    return;
+  }
   await posts(db).updateOne(
     { _id: p._id, status: 'pending' },
-    {
-      $set: verdict.allowed
-        ? { status: 'live', liveAt: clock.now(), moderationReason: verdict.reason }
-        : { status: 'rejected', moderationReason: verdict.reason },
-    },
+    { $set: { status: 'rejected', moderationReason: verdict.reason } },
   );
-  if (verdict.allowed && p.type === 'review') await enqueueReviewSummary(ctx, p.placeId);
 }

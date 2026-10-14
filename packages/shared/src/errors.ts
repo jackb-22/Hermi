@@ -25,6 +25,7 @@ export const ERROR_CODES = [
   'PROVIDER_UNAVAILABLE',
   'PHOTO_REJECTED',
   'EDU_EMAIL_TAKEN',
+  'BANNED',
 ] as const;
 export type ErrorCode = (typeof ERROR_CODES)[number];
 
