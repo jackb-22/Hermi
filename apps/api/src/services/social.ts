@@ -1,11 +1,11 @@
-import { haversineM, type LatLng, newId } from '@itp/shared';
+import { ApiError, haversineM, type LatLng, newId } from '@itp/shared';
 import type { StreakSchema, UserCardSchema } from '@itp/shared/api';
 import type { Db } from 'mongodb';
 import type { z } from 'zod';
 import type { AppContext } from '../context.ts';
 import type { UserDoc } from '../db/types.ts';
 import { applyHangout, displayStreak, newStreak, type StreakState } from '../domain/streak.ts';
-import { publicUrl } from './users.ts';
+import { publicUrl, users } from './users.ts';
 
 export interface FriendshipDoc {
   _id: string; // "a:b" with a < b
@@ -34,6 +34,17 @@ export async function blockedIds(db: Db, userId: string): Promise<string[]> {
     .find({ $or: [{ blocker: userId }, { blocked: userId }] })
     .toArray();
   return rows.map((b) => (b.blocker === userId ? b.blocked : b.blocker));
+}
+
+/**
+ * Another person's profile data (header, Score) is open to any signed-in user, except a deleted account or one
+ * blocked in either direction. Both read as "no such user", the same as an id that never existed.
+ */
+export async function visibleUser(db: Db, viewerId: string, id: string): Promise<UserDoc> {
+  const u = await users(db).findOne({ _id: id, deletedAt: { $exists: false } });
+  if (!u || (id !== viewerId && (await blockedIds(db, viewerId)).includes(id)))
+    throw new ApiError(404, 'NOT_FOUND', 'No such user');
+  return u;
 }
 
 export const friendships = (db: Db) => db.collection<FriendshipDoc>('friendships');
@@ -105,6 +116,11 @@ export async function logHangout(
 
 export const TAP_WINDOW_MS = 120_000;
 export const TAP_RADIUS_M = 50;
+/**
+ * How long after your tap you may still poll that person's card (GET /taps/pending): the 2-minute window, plus the
+ * 10 minutes a tap's own time may be off the server clock (POST /taps accepts that much).
+ */
+export const PENDING_LOOKBACK_MS = TAP_WINDOW_MS + 10 * 60_000;
 
 /** Finds the reciprocal personal-tag read: the tag's owner read the reader's tag within 2 minutes and 50 m. */
 export async function findReciprocal(

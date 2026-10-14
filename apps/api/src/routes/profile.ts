@@ -5,16 +5,17 @@ import { z } from 'zod';
 import type { UserDoc } from '../db/types.ts';
 import { authed, bearer } from '../plugins/auth.ts';
 import { places } from '../services/places.ts';
+import { plansOf } from '../services/planAccess.ts';
 import { plans } from '../services/plans.ts';
 import { posts } from '../services/posts.ts';
 import { computeScore, scoreAt } from '../services/score.ts';
 import {
-  blockedIds,
   friendIds,
   friendships,
   pairKey,
   toStreak,
   toUserCard,
+  visibleUser,
 } from '../services/social.ts';
 import { studentStatus, users } from '../services/users.ts';
 import { verifyInfo } from '../services/verify.ts';
@@ -68,9 +69,7 @@ export const profileRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     async (req) => {
       const id = req.params.id === 'me' ? req.userId : req.params.id;
-      const u = await users(db).findOne({ _id: id, deletedAt: { $exists: false } });
-      if (!u || (await blockedIds(db, req.userId)).includes(id))
-        throw new ApiError(404, 'NOT_FOUND', 'No such user');
+      const u = await visibleUser(db, req.userId, id);
       const now = clock.now();
       const isMe = id === req.userId;
       const [friends, f, score, postCount, planCount, visited, last] = await Promise.all([
@@ -78,11 +77,13 @@ export const profileRoutes: FastifyPluginAsyncZod = async (app) => {
         isMe ? null : friendships(db).findOne({ _id: pairKey(id, req.userId) }),
         computeScore(app.ctx, u),
         posts(db).countDocuments({ authorId: id, status: 'live' }),
-        plans(db).countDocuments({
-          $or: [{ hostId: id }, { members: { $elemMatch: { userId: id, status: 'joined' } } }],
-          status: { $ne: 'cancelled' },
-          ...(isMe ? {} : { visibility: { $in: ['friends', 'find'] } }),
-        }),
+        // Counts what the Plans tab would list, so the number and the tab agree.
+        isMe
+          ? plans(db).countDocuments({
+              $or: [{ hostId: id }, { members: { $elemMatch: { userId: id, status: 'joined' } } }],
+              status: { $ne: 'cancelled' },
+            })
+          : plansOf(app.ctx, req.userId, id, { limit: 500 }).then((list) => list.length),
         tiger.query<{ n: number }>(
           'select count(distinct place_id)::int as n from checkins where user_id = $1',
           [id],

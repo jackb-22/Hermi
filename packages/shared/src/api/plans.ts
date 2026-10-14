@@ -166,7 +166,9 @@ export const PutStopsBody = z.object({ stops: z.array(StopInput).max(12) });
 
 export const PlansListQuery = z.object({
   scope: z.enum(['upcoming', 'drafts', 'completed', 'all']).default('all'),
-  userId: IdSchema.optional().describe('Another user (public plans only); defaults to you'),
+  userId: IdSchema.optional().describe(
+    'Another user (only the plans you may view); defaults to you',
+  ),
 });
 
 export const ApplyChangesBody = z.object({

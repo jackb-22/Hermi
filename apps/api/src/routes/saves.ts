@@ -15,6 +15,7 @@ import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { authed, bearer } from '../plugins/auth.ts';
 import { places, toPlace } from '../services/places.ts';
+import { assertCanView, visiblePlans } from '../services/planAccess.ts';
 import {
   getPlan,
   loadPlaces,
@@ -54,7 +55,7 @@ export const saveRoutes: FastifyPluginAsyncZod = async (app) => {
   const hydrate = async (userId: string, items: { type: SaveType; refId: string; at: Date }[]) => {
     const me = await getUser(db, userId);
     const byType = (t: SaveType) => items.filter((i) => i.type === t).map((i) => i.refId);
-    const [pl, po, pn] = await Promise.all([
+    const [pl, po, pnAll] = await Promise.all([
       places(db)
         .find({ _id: { $in: byType('place') } })
         .toArray(),
@@ -65,6 +66,8 @@ export const saveRoutes: FastifyPluginAsyncZod = async (app) => {
         .find({ _id: { $in: byType('plan') }, status: { $ne: 'cancelled' } })
         .toArray(),
     ]);
+    // A plan reference can outlive the right to see it (unfriended, made private), so reads check it again.
+    const pn = await visiblePlans(app.ctx, userId, pnAll);
     const placeMap = new Map(pl.map((p) => [p._id, toPlace(p, { pref: me.prefVector })]));
     const postMap = new Map((await hydratePosts(app.ctx, po)).map((p) => [p.id, p]));
     const planMap = new Map(
@@ -160,16 +163,20 @@ export const saveRoutes: FastifyPluginAsyncZod = async (app) => {
       const { type } = req.body;
       let { refId } = req.body;
       let copiedPlanId: string | null = null;
-      const exists =
-        type === 'place'
-          ? await places(db).findOne({ _id: refId })
-          : type === 'post'
-            ? await posts(db).findOne({ _id: refId, status: 'live' })
-            : await getPlan(db, refId);
-      if (!exists) throw new ApiError(404, 'NOT_FOUND', `No such ${type}`);
-      if (type === 'plan' && (exists as PlanDoc).hostId !== req.userId) {
-        copiedPlanId = await copyPlan(exists as PlanDoc, req.userId);
-        refId = copiedPlanId;
+      if (type === 'plan') {
+        // Only a plan you may view can be saved or copied; anything else is a plain 404.
+        const plan = await getPlan(db, refId);
+        await assertCanView(app.ctx, plan, req.userId);
+        if (plan.hostId !== req.userId) {
+          copiedPlanId = await copyPlan(plan, req.userId);
+          refId = copiedPlanId;
+        }
+      } else {
+        const exists =
+          type === 'place'
+            ? await places(db).findOne({ _id: refId })
+            : await posts(db).findOne({ _id: refId, status: 'live' });
+        if (!exists) throw new ApiError(404, 'NOT_FOUND', `No such ${type}`);
       }
       const now = clock.now();
       await saves().updateOne(
@@ -349,6 +356,8 @@ export const saveRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (req) => {
+      if (req.body.type === 'plan')
+        await assertCanView(app.ctx, await getPlan(db, req.body.refId), req.userId);
       await addToFolder(req.userId, req.params.id, req.body.type, req.body.refId);
       await saves().updateOne(
         { userId: req.userId, type: req.body.type, refId: req.body.refId },
