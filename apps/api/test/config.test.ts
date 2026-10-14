@@ -36,6 +36,7 @@ describe('production boot checks', () => {
       'JWT_SECRET is the built-in development secret',
     ]);
     expect(gaps({ JWT_SECRET: DEV_JWT_SECRET })).toHaveLength(1);
+    expect(gaps({ JWT_SECRET: '' })).toEqual(['JWT_SECRET is the built-in development secret']);
     expect(gaps({ DEV_ROUTES: '1' })).toEqual(['DEV_ROUTES and DEV_TOKEN must be unset']);
     expect(gaps({ DEV_TOKEN: 'team-token' })).toEqual(['DEV_ROUTES and DEV_TOKEN must be unset']);
     expect(gaps({ FAKE_PROVIDERS: undefined })).toEqual(['FAKE_PROVIDERS must be 0']);

@@ -172,7 +172,7 @@ describe('POST /plans/:id/ask without AI keys (rules for chips)', () => {
       method: 'POST',
       url: '/v1/ghosts/skip',
       headers: u.headers,
-      payload: { placeIds: [id['Steakhouse']] },
+      payload: { placeIds: [id.Steakhouse] },
     });
     expect(
       await t.ctx.db.collection('ai_memories').findOne({ userId: u.id, source: 'ghost_skip' }),

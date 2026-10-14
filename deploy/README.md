@@ -37,6 +37,8 @@ the new one, so a deploy does not overlap either.
    nano deploy/.env        # fill in every blank; the comments say where each value comes from
    ```
    `deploy/.env` is gitignored. Never commit it.
+   Once the repo is private (plan T14), the clone needs a read-only deploy key: `ssh-keygen -t ed25519` on the
+   Droplet, add the public key under the repo's Settings → Deploy keys, and clone with the `git@github.com:` URL.
 6. **Start.**
    ```sh
    dc up -d --build

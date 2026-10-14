@@ -17,7 +17,8 @@ const Env = z.object({
   HOST: z.string().default('0.0.0.0'),
   LOG_LEVEL: z.string().default('info'),
   PUBLIC_BASE_URL: z.string().url().default('http://localhost:3000'),
-  JWT_SECRET: z.string().min(16).default(DEV_JWT_SECRET),
+  /** Blank counts as unset, so an unfilled env template gets the boot check's message, not a zod error. */
+  JWT_SECRET: optStr.pipe(z.string().min(16).default(DEV_JWT_SECRET)),
   DEV_ROUTES: bool.default(false),
   /** Required (as header x-dev-token) for dev routes on any deployment; share it only with the team. */
   DEV_TOKEN: optStr,
