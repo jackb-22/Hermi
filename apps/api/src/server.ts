@@ -1,12 +1,15 @@
 import { buildApp } from './app.ts';
 import { closeContext, createContext, ensureSchema } from './boot.ts';
+import { assertBootable, loadConfig } from './config.ts';
 import { handlers } from './jobs/handlers.ts';
 import { Worker } from './jobs/queue.ts';
 import { syncDevClock } from './services/devClock.ts';
 import { startGroupChat } from './services/groupChat.ts';
 import { scheduleWeeklyNudge } from './services/nudges.ts';
 
-const ctx = await createContext();
+const config = loadConfig();
+assertBootable(config);
+const ctx = await createContext(config);
 if (ctx.config.AUTO_MIGRATE) await ensureSchema(ctx, console.log);
 await syncDevClock(ctx);
 const app = await buildApp(ctx);

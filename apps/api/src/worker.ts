@@ -1,4 +1,5 @@
 import { closeContext, createContext, ensureSchema } from './boot.ts';
+import { assertBootable, loadConfig } from './config.ts';
 import { registerHooks } from './hooks.ts';
 import { handlers } from './jobs/handlers.ts';
 import { Worker } from './jobs/queue.ts';
@@ -9,7 +10,9 @@ import { scheduleWeeklyNudge } from './services/nudges.ts';
 // Standalone worker component (App Platform "worker"): media, matching, notifications, session finalize,
 // and the plan group chats' iMessage agent (one long-lived Photon stream).
 registerHooks();
-const ctx = await createContext();
+const config = loadConfig();
+assertBootable(config);
+const ctx = await createContext(config);
 if (ctx.config.AUTO_MIGRATE) await ensureSchema(ctx, console.log);
 await syncDevClock(ctx);
 followDevClock(ctx);
