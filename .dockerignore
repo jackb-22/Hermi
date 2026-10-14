@@ -1,6 +1,30 @@
+# Build context for the API image. The Dockerfile copies only the workspace manifests, tsconfig.base.json,
+# packages/shared and apps/api; everything else stays out so the context stays small and secrets never travel.
+.git
 node_modules
 **/node_modules
-.git
-.env
+dist
+coverage
+*.log
+
+# Overture geojson (1.2 GB) for scripts run from a laptop; the API never reads it at runtime.
+# Anchored on purpose: apps/api/src/data/boroughTiles.json is read at runtime and must stay.
+apps/api/data
+
+# Not part of the backend image
+apps/ios
 apps/mobile
+archive
+deploy
+.ci-shots
+.demo
+.c2pa
+Files
+
+# Credentials: keep every env file and key out, except the committed examples
+mongodb.txt
 **/*.p8
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.*.example
