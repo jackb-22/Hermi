@@ -13,6 +13,7 @@ import { parseArgs } from 'node:util';
 import { buildApp } from '../src/app.ts';
 import { closeContext, createContext } from '../src/boot.ts';
 import { loadConfig } from '../src/config.ts';
+import { refuseFakeData } from './lib/noFakeData.ts';
 
 const { values } = parseArgs({
   options: {
@@ -66,7 +67,9 @@ if (RTT > 0) {
   env.TIGER_URL = tiger.toString();
 }
 
-const ctx = await createContext(loadConfig(env));
+const config = loadConfig(env);
+refuseFakeData('bench.ts', config); // dev sign-in creates the benchmark user if it is missing
+const ctx = await createContext(config);
 const app = await buildApp(ctx);
 await app.ready();
 const login = await app.inject({

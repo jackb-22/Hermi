@@ -226,7 +226,8 @@ pnpm test
 ```bash
 # Places: all five boroughs (download once, ~800 MB; the import keeps only places inside NYC)
 uvx --python 3.12 overturemaps download --no-stac --bbox=-74.26,40.49,-73.70,40.92 -f geojsonseq --type=place -o apps/api/data/nyc_places.geojsonseq
-pnpm --filter @itp/api exec tsx --env-file=../../.env scripts/import-overture.ts data/nyc_places.geojsonseq
+# --demo-hall adds the demo table's check-in venue (refused for NODE_ENV=production and MONGO_DB=hermi)
+pnpm --filter @itp/api exec tsx --env-file=../../.env scripts/import-overture.ts data/nyc_places.geojsonseq --demo-hall
 # People, history, posts and open plans (removes only earlier seed data)
 pnpm --filter @itp/api exec tsx --env-file=../../.env scripts/seed.ts --reset --demo ava,ben [--media-dir ./captures]
 # Curated Columbia content: real photos, clips and reviews per place (folder layout in the script header)
