@@ -14,6 +14,9 @@ import { testSuffix } from './globalSetup.ts';
 const LIVE_KEYS = [
   'GEMINI_API_KEY',
   'GOOGLE_MAPS_KEY',
+  'APPLE_BUNDLE_ID',
+  'APPLE_AUTH_KEY_ID',
+  'APPLE_AUTH_PRIVATE_KEY',
   'APPLE_MAPS_KEY_ID',
   'APPLE_MAPS_PRIVATE_KEY',
   'WEATHERKIT_KEY_ID',

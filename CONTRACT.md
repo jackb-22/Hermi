@@ -26,7 +26,7 @@ The backend owns this contract. The **live, always-current reference** is the Op
 Open when running locally. On a deployment every dev affordance needs the header `x-dev-token: <DEV_TOKEN>` (ask Jack for the value), otherwise it returns 403.
 
 - `POST /v1/auth/dev { "username": "maya" }` → token, creates the user if needed.
-- `POST /v1/auth/apple { "identityToken": "fake:<anything>" }` works until real Sign in with Apple is configured.
+- `POST /v1/auth/apple { "identityToken": "fake:<anything>", "nonce": "<16+ characters>", "authorizationCode": "<anything>" }` works until real Sign in with Apple is configured (the fake ignores the nonce and code but still requires both).
 - `POST /v1/auth/edu` returns `devCode` (with the dev token, while no email provider is configured) so you can finish verification without an inbox.
 - App Attest is not enforced (`ATTEST_MODE=off|log`), so the Simulator works.
 
@@ -99,6 +99,10 @@ Open when running locally. On a deployment every dev affordance needs the header
   - Byte ranges are supported, so video plays as usual.
   - `upload.url` from `/media/presign` may also be the API (`PUT /v1/media/:id/upload`). The app already uses whatever `presign` returns, so nothing changes client-side.
   - `/health` lists `mediaDelivery: cdn|api`.
+- **v0.29.0** — Sign in with Apple, server side. **Breaking for the (not yet written) Apple sign-in in the app:** `POST /auth/apple` is now `{identityToken, nonce, authorizationCode, name?}` and both new fields are required.
+  - **`nonce`:** per attempt, generate a fresh random string of at least 16 characters (for example 32 hex characters from `SecRandomCopyBytes`). Set `ASAuthorizationAppleIDRequest.nonce` to its **SHA-256 as lowercase hex**, and send the **raw** string as `nonce`. Apple copies the hash into the identity token; we hash `nonce` and compare. A missing or mismatched nonce is 401 `UNAUTHORIZED`.
+  - **`authorizationCode`:** `credential.authorizationCode` decoded as a UTF-8 string, sent in the same request. It is single-use and valid for 5 minutes, so do not store it or retry with it. We trade it with Apple for a refresh token that stays on our server (it is in no response) and revoke it when the account is deleted with `DELETE /me`, as App Review requires (if Apple is unreachable then, the deletion still succeeds and the worker retries the revocation). If Apple's token endpoint fails, sign-in still succeeds; the next sign-in tries again.
+  - **Dev:** the fake `fake:<sub>` token needs both fields present (any strings; `nonce` at least 16 characters) and ignores them.
 
 ## Additions beyond the plan's data model
 

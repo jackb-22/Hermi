@@ -9,19 +9,22 @@ beforeAll(async () => {
 });
 afterAll(() => t.teardown());
 
+/** The fake verifier ignores both, but the schema still requires them. */
+const proof = { nonce: 'any-nonce-of-16-chars', authorizationCode: 'any-code' };
+
 describe('sign in', () => {
   test('apple (fake verifier) creates once, then signs in', async () => {
     const a = await t.app.inject({
       method: 'POST',
       url: '/v1/auth/apple',
-      payload: { identityToken: 'fake:apple-sub-1', name: 'Ada' },
+      payload: { identityToken: 'fake:apple-sub-1', name: 'Ada', ...proof },
     });
     expect(a.statusCode).toBe(200);
     expect(a.json()).toMatchObject({ isNew: true, user: { name: 'Ada', verified: false } });
     const b = await t.app.inject({
       method: 'POST',
       url: '/auth/apple',
-      payload: { identityToken: 'fake:apple-sub-1' },
+      payload: { identityToken: 'fake:apple-sub-1', ...proof },
     });
     expect(b.json()).toMatchObject({ isNew: false, user: { id: a.json().user.id } });
   });
@@ -30,10 +33,32 @@ describe('sign in', () => {
     const r = await t.app.inject({
       method: 'POST',
       url: '/v1/auth/apple',
-      payload: { identityToken: 'garbage-token' },
+      payload: { identityToken: 'garbage-token', ...proof },
     });
     expect(r.statusCode).toBe(401);
     expect(r.json().error.code).toBe('UNAUTHORIZED');
+  });
+
+  test('apple with a guessable nonce is a 400', async () => {
+    const r = await t.app.inject({
+      method: 'POST',
+      url: '/v1/auth/apple',
+      payload: { identityToken: 'fake:apple-sub-1', nonce: 'short', authorizationCode: 'c' },
+    });
+    expect(r.statusCode).toBe(400);
+  });
+
+  test('apple without the nonce or authorization code is a 400', async () => {
+    for (const missing of ['nonce', 'authorizationCode']) {
+      const { [missing]: _omitted, ...rest } = proof as Record<string, string>;
+      const r = await t.app.inject({
+        method: 'POST',
+        url: '/v1/auth/apple',
+        payload: { identityToken: 'fake:apple-sub-1', ...rest },
+      });
+      expect(r.statusCode).toBe(400);
+      expect(r.json().error.code).toBe('BAD_REQUEST');
+    }
   });
 
   test('schema violation is 400 envelope', async () => {

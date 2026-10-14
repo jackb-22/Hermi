@@ -63,10 +63,12 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (req) => {
-      if (providers.appleIdentity.name === 'fake') await devGuard(req);
+      const apple = providers.appleIdentity;
+      if (apple.name === 'fake') await devGuard(req);
+      const { identityToken, nonce, authorizationCode, name } = req.body;
       let sub: string;
       try {
-        ({ sub } = await providers.appleIdentity.verify(req.body.identityToken));
+        ({ sub } = await apple.verify(identityToken, nonce));
       } catch (e) {
         throw new ApiError(
           401,
@@ -74,14 +76,29 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
           `Apple identity token rejected: ${(e as Error).message}`,
         );
       }
+      // Every sign-in exchanges its code, so the stored token comes from the latest authorization (one
+      // kept from before the user revoked us in Settings would make the revoke at deletion useless).
+      // A failure must not block sign-in: the code is single use, so the next sign-in retries with a new one.
+      let appleRefreshToken: string | undefined;
+      try {
+        appleRefreshToken = await apple.exchangeCode(authorizationCode, sub);
+      } catch (e) {
+        req.log.warn(
+          { reason: (e as Error).message },
+          'Apple code exchange failed; signing in without storing a refresh token',
+        );
+      }
       const existing = await users(db).findOne({ appleSub: sub, deletedAt: { $exists: false } });
-      if (existing)
+      if (existing) {
+        if (appleRefreshToken)
+          await users(db).updateOne({ _id: existing._id }, { $set: { appleRefreshToken } });
         return {
           token: sign(existing._id),
           isNew: false,
           user: toMe(existing, config, clock.now()),
         };
-      const u = newUser(clock.now(), { appleSub: sub, name: req.body.name });
+      }
+      const u = newUser(clock.now(), { appleSub: sub, name, appleRefreshToken });
       await users(db).insertOne(u);
       return { token: sign(u._id), isNew: true, user: toMe(u, config, clock.now()) };
     },

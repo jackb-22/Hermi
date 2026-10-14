@@ -1,6 +1,9 @@
 import { importPKCS8, SignJWT } from 'jose';
 
-/** ES256 developer token for Apple server APIs (Maps Server API, WeatherKit), minted from a .p8 key. */
+/**
+ * ES256 JWT signed with a .p8 key, for Apple server APIs: Maps and WeatherKit developer tokens, and the
+ * Sign in with Apple client secret (which also sets `aud`).
+ */
 export async function appleDevToken(o: {
   teamId: string;
   keyId: string;
@@ -8,6 +11,7 @@ export async function appleDevToken(o: {
   ttlS?: number;
   header?: Record<string, string>;
   sub?: string;
+  audience?: string;
 }) {
   const key = await importPKCS8(o.privateKey.replace(/\\n/g, '\n'), 'ES256');
   const jwt = new SignJWT({})
@@ -16,5 +20,6 @@ export async function appleDevToken(o: {
     .setIssuedAt()
     .setExpirationTime(`${o.ttlS ?? 1800}s`);
   if (o.sub) jwt.setSubject(o.sub);
+  if (o.audience) jwt.setAudience(o.audience);
   return jwt.sign(key);
 }

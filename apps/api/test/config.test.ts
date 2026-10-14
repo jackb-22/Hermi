@@ -8,6 +8,8 @@ const ready = {
   PUBLIC_BASE_URL: 'https://api.hermi.world',
   APPLE_TEAM_ID: 'TEAM',
   APPLE_BUNDLE_ID: 'world.hermi.app',
+  APPLE_AUTH_KEY_ID: 'AUTHKEY123',
+  APPLE_AUTH_PRIVATE_KEY: '-----BEGIN PRIVATE KEY-----\\nabc\\n-----END PRIVATE KEY-----',
   GEMINI_API_KEY: 'g',
   RESEND_API_KEY: 'r',
   EMAIL_FROM: 'Hermi <codes@hermi.world>',
@@ -30,7 +32,9 @@ describe('production boot checks', () => {
   test('the built-in JWT secret, dev access, fakes and http links each stop boot', () => {
     const gaps = (extra: Record<string, string | undefined>) =>
       productionGaps(loadConfig({ ...ready, ...extra }));
-    expect(gaps({ JWT_SECRET: undefined })).toEqual(['JWT_SECRET is the built-in development secret']);
+    expect(gaps({ JWT_SECRET: undefined })).toEqual([
+      'JWT_SECRET is the built-in development secret',
+    ]);
     expect(gaps({ JWT_SECRET: DEV_JWT_SECRET })).toHaveLength(1);
     expect(gaps({ DEV_ROUTES: '1' })).toEqual(['DEV_ROUTES and DEV_TOKEN must be unset']);
     expect(gaps({ DEV_TOKEN: 'team-token' })).toEqual(['DEV_ROUTES and DEV_TOKEN must be unset']);
@@ -38,9 +42,16 @@ describe('production boot checks', () => {
     expect(gaps({ PUBLIC_BASE_URL: undefined })).toEqual(['PUBLIC_BASE_URL must be https']);
   });
 
+  test('production cannot boot without the Sign in with Apple key', () => {
+    const c = loadConfig({ ...ready, APPLE_AUTH_KEY_ID: undefined, APPLE_AUTH_PRIVATE_KEY: '' });
+    expect(productionGaps(c)).toEqual(['missing APPLE_AUTH_KEY_ID, APPLE_AUTH_PRIVATE_KEY']);
+  });
+
   test('missing keys are listed together, with a readable error', () => {
     const c = loadConfig({ ...ready, RESEND_API_KEY: '', S3_KEY: undefined });
     expect(productionGaps(c)).toEqual(['missing RESEND_API_KEY, S3_KEY']);
-    expect(() => assertBootable(c)).toThrow(/Refusing to start in production:\n- missing RESEND_API_KEY, S3_KEY/);
+    expect(() => assertBootable(c)).toThrow(
+      /Refusing to start in production:\n- missing RESEND_API_KEY, S3_KEY/,
+    );
   });
 });

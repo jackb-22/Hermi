@@ -1,3 +1,4 @@
+import { revokeAppleToken } from '../services/appleRevoke.ts';
 import { groupSay } from '../services/groupChat.ts';
 import { matchNotify } from '../services/matching.ts';
 import { sendPush } from '../services/notify.ts';
@@ -23,4 +24,5 @@ export const handlers: Record<string, JobHandler> = {
   review_reminder: reviewReminder as JobHandler,
   group_say: groupSay as JobHandler,
   summarize_reviews: summarizeReviews as JobHandler,
+  revoke_apple_token: revokeAppleToken as JobHandler,
 };

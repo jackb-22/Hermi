@@ -49,6 +49,9 @@ const Env = z.object({
 
   APPLE_TEAM_ID: optStr,
   APPLE_BUNDLE_ID: optStr,
+  /** The one .p8 (PEM, literal \n allowed) shared by Sign in with Apple and APNs: it signs the client secret for code exchange and revocation. */
+  APPLE_AUTH_KEY_ID: optStr,
+  APPLE_AUTH_PRIVATE_KEY: optStr,
   APPLE_MAPS_KEY_ID: optStr,
   APPLE_MAPS_PRIVATE_KEY: optStr,
   WEATHERKIT_KEY_ID: optStr,
@@ -84,6 +87,8 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
 const PRODUCTION_KEYS = [
   'APPLE_TEAM_ID',
   'APPLE_BUNDLE_ID',
+  'APPLE_AUTH_KEY_ID',
+  'APPLE_AUTH_PRIVATE_KEY',
   'GEMINI_API_KEY',
   'RESEND_API_KEY',
   'EMAIL_FROM',

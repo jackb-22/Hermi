@@ -44,6 +44,20 @@ export const AuthResponse = z.object({
 
 export const AppleAuthBody = z.object({
   identityToken: z.string().min(10).describe('identityToken from Sign in with Apple'),
+  nonce: z
+    .string()
+    .min(16)
+    .max(256)
+    .describe(
+      'The raw random nonce (not hashed). Set request.nonce to its SHA-256, lowercase hex, before showing the Apple sheet; Apple copies that hash into the identity token and we check it',
+    ),
+  authorizationCode: z
+    .string()
+    .min(1)
+    .max(2048)
+    .describe(
+      "authorizationCode from the Apple credential, as a string. Single-use and valid 5 minutes: send it with the sign-in request; we trade it for Apple's refresh token",
+    ),
   name: z.string().max(80).optional().describe('Full name; Apple only sends it on first sign-in'),
 });
 
