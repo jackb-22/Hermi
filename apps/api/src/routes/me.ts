@@ -2,12 +2,13 @@ import { ApiError } from '@itp/shared';
 import { MeSchema, OkSchema, PatchMeBody, PushTokenBody } from '@itp/shared/api';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { authed, bearer, requireAuth } from '../plugins/auth.ts';
+import { queueAppleRevoke } from '../services/appleRevoke.ts';
 import { uploadProfilePhoto } from '../services/safety.ts';
 import { getUser, isDupKey, toMe, users } from '../services/users.ts';
 import { errs } from './_util.ts';
 
 export const meRoutes: FastifyPluginAsyncZod = async (app) => {
-  const { db, config, clock } = app.ctx;
+  const { db, config, clock, providers } = app.ctx;
 
   app.get(
     '/me',
@@ -112,13 +113,37 @@ export const meRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (req) => {
+      // Apple requires revoking Sign in with Apple when the account is deleted. Try now. If Apple refuses,
+      // the user is deleted anyway and the token stays on the doc for a job that retries (appleRevoke.ts).
+      const stored = await users(db).findOne(
+        { _id: req.userId },
+        { projection: { appleRefreshToken: 1 } },
+      );
+      let revoked = true;
+      if (stored?.appleRefreshToken) {
+        try {
+          await providers.appleIdentity.revoke(stored.appleRefreshToken);
+        } catch (e) {
+          revoked = false;
+          req.log.warn(
+            { userId: req.userId, reason: (e as Error).message },
+            'Apple token revocation failed; deleting the account and retrying from the queue',
+          );
+        }
+      }
       await users(db).updateOne(
         { _id: req.userId },
         {
           $set: { deletedAt: clock.now(), openToPlans: false, ghostMode: true },
-          $unset: { username: '', appleSub: '', pushTokens: '' },
+          $unset: {
+            username: '',
+            appleSub: '',
+            pushTokens: '',
+            ...(revoked ? { appleRefreshToken: '' } : {}),
+          },
         },
       );
+      if (!revoked) await queueAppleRevoke(app.ctx, req.userId);
       await db
         .collection('posts')
         .updateMany({ authorId: req.userId }, { $set: { status: 'removed' } });
