@@ -1,7 +1,7 @@
 import { localDayKey } from '@itp/shared';
 import { FeedQuery, FeedResponse, OkSchema, SeenBody } from '@itp/shared/api';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
-import { FEED_DAILY_CAP, feedRank, interleave } from '../domain/feedRank.ts';
+import { FEED_DAILY_CAP, FEED_WINDOW_DAYS, feedRank, interleave } from '../domain/feedRank.ts';
 import { tasteMatch } from '../domain/taste.ts';
 import { authed, bearer } from '../plugins/auth.ts';
 import { openPlansFor } from '../services/matching.ts';
@@ -36,8 +36,7 @@ export const feedRoutes: FastifyPluginAsyncZod = async (app) => {
         tags: ['feed'],
         summary:
           'The finite feed: friends first, then places near you, then taste. At most 30 unseen posts a day, then "You\'re caught up. Go outside."',
-        description:
-          'Send lat/lng for the "near you" part. Mark posts seen with POST /feed/seen as cards become visible. Not reachable in Action mode (client rule).',
+        description: `Send lat/lng for the "near you" part. Posts are from the last ${FEED_WINDOW_DAYS} days; newer ones rank higher. Mark posts seen with POST /feed/seen as cards become visible. Not reachable in Action mode (client rule).`,
         security: bearer,
         querystring: FeedQuery,
         response: { 200: FeedResponse, ...errs(401) },
@@ -64,12 +63,12 @@ export const feedRoutes: FastifyPluginAsyncZod = async (app) => {
         status: 'live' as const,
         hiddenFrom: { $ne: me._id },
         authorId: { $nin: [me._id, ...blocked] },
-        createdAt: { $gte: new Date(now.getTime() - 7 * DAY) },
+        createdAt: { $gte: new Date(now.getTime() - FEED_WINDOW_DAYS * DAY) },
       };
 
       // Posts and joinable plans are independent: build both at once.
       const postsP = (async () => {
-        // Candidates: friends' posts from the last 7 days plus posts within 5 km.
+        // Candidates: friends' posts plus posts within 5 km, both inside the feed window.
         const [fromFriends, nearby] = await Promise.all([
           posts(db)
             .find({ ...base, authorId: { $in: friends.filter((f) => !blocked.includes(f)) } })

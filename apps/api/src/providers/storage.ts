@@ -73,6 +73,10 @@ export class S3Storage implements Storage {
       endpoint: c.S3_ENDPOINT,
       forcePathStyle: c.S3_FORCE_PATH_STYLE,
       credentials: { accessKeyId: c.S3_KEY!, secretAccessKey: c.S3_SECRET! },
+      // SDK >= 3.729 signs a checksum of an empty body into presigned PUTs, so the phone's real
+      // upload fails on Cloudflare R2. Only checksum when the operation requires it.
+      requestChecksumCalculation: 'WHEN_REQUIRED',
+      responseChecksumValidation: 'WHEN_REQUIRED',
     });
   }
 

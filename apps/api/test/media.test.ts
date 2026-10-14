@@ -1,5 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
+import { loadConfig } from '../src/config.ts';
+import { S3Storage } from '../src/providers/storage.ts';
 import { insertPlaces, ORIGIN, offset, placeDoc } from './fixtures/places.ts';
 import { venueTag } from './fixtures/tags.ts';
 import { devLogin, setupTestApp } from './helpers.ts';
@@ -144,5 +146,17 @@ describe.each([
       },
     });
     expect(r.statusCode).toBe(404);
+  });
+});
+
+describe('S3 presigned PUT', () => {
+  // Newer AWS SDKs sign a checksum of an empty body into the URL by default. The phone uploads real
+  // bytes, so Cloudflare R2 rejects it. 'WHEN_REQUIRED' on the client keeps the URL free of it.
+  test('carries no checksum parameters (R2 rejects the SDK default)', async () => {
+    const storage = new S3Storage(loadConfig({ NODE_ENV: 'test', FAKE_PROVIDERS: '1', ...S3 }));
+    const q = new URL(await storage.presignPut('orig/u1/presign-check.jpg', 'image/jpeg'))
+      .searchParams;
+    expect(q.has('X-Amz-Signature')).toBe(true);
+    expect([...q.keys()].filter((k) => /checksum/i.test(k))).toEqual([]);
   });
 });
