@@ -139,6 +139,8 @@ export const meRoutes: FastifyPluginAsyncZod = async (app) => {
             username: '',
             appleSub: '',
             pushTokens: '',
+            // The school email can verify a new account.
+            eduEmailHash: '',
             ...(revoked ? { appleRefreshToken: '' } : {}),
           },
         },
