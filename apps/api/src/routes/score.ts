@@ -14,7 +14,7 @@ import { authed, bearer } from '../plugins/auth.ts';
 import { boroughStats } from '../services/boroughs.ts';
 import { places } from '../services/places.ts';
 import { campusScores, computeScore, rankOf, scoreAt } from '../services/score.ts';
-import { friendIds, friendships, toUserCard } from '../services/social.ts';
+import { friendIds, friendships, toUserCard, visibleUser } from '../services/social.ts';
 import { getUser, users } from '../services/users.ts';
 import { errs } from './_util.ts';
 
@@ -41,10 +41,10 @@ export const scoreRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (req) => {
+      // Same audience as the Score row on their profile: anyone signed in, minus deleted and blocked accounts.
       const u = req.query.userId
-        ? await users(db).findOne({ _id: req.query.userId })
+        ? await visibleUser(db, req.userId, req.query.userId)
         : await getUser(db, req.userId);
-      if (!u) throw new ApiError(404, 'NOT_FOUND', 'No such user');
       return computeScore(app.ctx, u);
     },
   );

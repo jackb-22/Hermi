@@ -9,11 +9,13 @@ import {
   findReciprocal,
   friendships,
   logHangout,
+  PENDING_LOOKBACK_MS,
   pairKey,
   recordTagRead,
   TAP_WINDOW_MS,
   toStreak,
   toUserCard,
+  visibleUser,
 } from '../services/social.ts';
 import { tags, verifyTag } from '../services/tags.ts';
 import { getUser, toMe, users } from '../services/users.ts';
@@ -118,15 +120,16 @@ export const tapRoutes: FastifyPluginAsyncZod = async (app) => {
       schema: {
         tags: ['social'],
         summary: 'Poll during the 2-minute window: has the other person tapped back?',
+        description:
+          'Only for someone whose tag you just tapped (POST /taps returned their card), or a friend; anyone else is 404.',
         security: bearer,
         querystring: z.object({ friendId: z.string() }),
-        response: { 200: TapResponse, ...errs(401) },
+        response: { 200: TapResponse, ...errs(401, 404) },
       },
     },
     async (req) => {
       const now = clock.now();
-      const owner = await users(db).findOne({ _id: req.query.friendId });
-      if (!owner) throw new ApiError(404, 'NOT_FOUND', 'No such user');
+      const owner = await visibleUser(db, req.userId, req.query.friendId);
       const base = { kind: 'personal' as const, friend: toUserCard(owner, config), checkin: null };
       const f = await friendships(db).findOne({ _id: pairKey(req.userId, owner._id) });
       const { rows } = await tiger.query<{ time: Date }>(
@@ -134,6 +137,9 @@ export const tapRoutes: FastifyPluginAsyncZod = async (app) => {
         [req.userId, owner.tagId ?? ''],
       );
       const myTap = rows[0]?.time;
+      // The card is only for the other half of a pairing: a friend, or someone whose tag you tapped a moment ago.
+      if (!f && !(myTap && now.getTime() - myTap.getTime() < PENDING_LOOKBACK_MS))
+        throw new ApiError(404, 'NOT_FOUND', 'No such user');
       if (f && myTap) {
         const from = new Date(myTap.getTime() - TAP_WINDOW_MS);
         const matched = (
