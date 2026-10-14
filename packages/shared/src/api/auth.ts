@@ -53,7 +53,14 @@ export const DevAuthBody = z.object({
 });
 
 export const EduStartBody = z.object({
-  email: z.email(),
+  email: z
+    .email()
+    .describe(
+      'A Columbia or Barnard address: columbia.edu, barnard.edu or a subdomain of either (cumc.columbia.edu). ' +
+        'Anything else is 400 EDU_DOMAIN_NOT_ALLOWED. A +tag is ignored (uni+1@columbia.edu is uni@columbia.edu), ' +
+        'and one school email verifies one account: another account holding it is 409 EDU_EMAIL_TAKEN. ' +
+        'Sends are limited per account and per IP: 429 RATE_LIMITED.',
+    ),
   gradYear: z.number().int().min(2000).max(2040),
 });
 export const EduStartResponse = z.object({

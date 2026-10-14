@@ -99,6 +99,11 @@ Open when running locally. On a deployment every dev affordance needs the header
   - Byte ranges are supported, so video plays as usual.
   - `upload.url` from `/media/presign` may also be the API (`PUT /v1/media/:id/upload`). The app already uses whatever `presign` returns, so nothing changes client-side.
   - `/health` lists `mediaDelivery: cdn|api`.
+- **v0.29.0** — School email rules (`POST /auth/edu`, `POST /auth/edu/verify`). Behaviour changes, no shape changes except the new error code.
+  - **Allowed:** `columbia.edu`, `barnard.edu` and any subdomain of either (`cumc.columbia.edu`, `alumni.barnard.edu`). Anything else is 400 `EDU_DOMAIN_NOT_ALLOWED` ("Use your Columbia or Barnard email"); other `.edu` schools no longer pass. `campus` is `Columbia` or `Barnard` (subdomains take their school's), as before. The field takes the address exactly as typed: trim it in the app, because a trailing space is a 400 `BAD_REQUEST`.
+  - **Limits:** each send on an allowed domain counts toward 5 an hour per account and 60 an hour per IP, else 429 `RATE_LIMITED` (`details: {limit, windowS}`). A refused domain does not count; a 409 below does. Handle 429 by telling the person to wait.
+  - **One school email per account:** `+tag` is ignored (`uni+1@columbia.edu` is `uni@columbia.edu`) and so is case. If another account holds the address, `/auth/edu` is 409 `EDU_EMAIL_TAKEN` and sends nothing; `/auth/edu/verify` is 409 `EDU_EMAIL_TAKEN` too if that account verified it after the code went out (the code is then spent). Re-verifying your own address works. Deleting an account (`DELETE /me`) frees its address. A deleted account's token gets 401 on both endpoints.
+  - New error code `EDU_EMAIL_TAKEN`.
 
 ## Additions beyond the plan's data model
 

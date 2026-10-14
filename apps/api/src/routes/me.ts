@@ -116,7 +116,8 @@ export const meRoutes: FastifyPluginAsyncZod = async (app) => {
         { _id: req.userId },
         {
           $set: { deletedAt: clock.now(), openToPlans: false, ghostMode: true },
-          $unset: { username: '', appleSub: '', pushTokens: '' },
+          // eduEmailHash too: the school email can verify a new account.
+          $unset: { username: '', appleSub: '', pushTokens: '', eduEmailHash: '' },
         },
       );
       await db

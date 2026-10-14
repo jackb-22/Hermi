@@ -1,5 +1,6 @@
 import { TAG_DIMS } from '@itp/shared';
 import type { Db, IndexDescription } from 'mongodb';
+import { isDupKey } from '../services/users.ts';
 
 /** MongoDB holds things that exist. Index list follows the plan's Data model table plus implied additions. */
 const INDEXES: Record<string, IndexDescription[]> = {
@@ -86,6 +87,41 @@ const INDEXES: Record<string, IndexDescription[]> = {
 
 export const PREF_VECTOR_INDEX = 'pref_vector';
 
+/**
+ * One school email, one account (POST /auth/edu/verify turns a clash into 409 EDU_EMAIL_TAKEN). Built apart
+ * from INDEXES because older data may break it, and an index that cannot be built must not stop boot.
+ */
+async function ensureEduEmailIndex(db: Db, log: (m: string) => void) {
+  const users = db.collection('users');
+  // DELETE /me now clears the hash; accounts deleted earlier would still hold their address.
+  await users.updateMany(
+    { deletedAt: { $exists: true }, eduEmailHash: { $exists: true } },
+    { $unset: { eduEmailHash: '' } },
+  );
+  try {
+    await users.createIndex(
+      { eduEmailHash: 1 },
+      { unique: true, partialFilterExpression: { eduEmailHash: { $type: 'string' } } },
+    );
+  } catch (err) {
+    if (!isDupKey(err)) throw err;
+    // Live accounts that already share an address (from before the one-email rule). Do not guess which to
+    // keep: sends still refuse a taken address, but until someone resolves these, two accounts racing to
+    // verify the same one can both win.
+    const [clashes] = await users
+      .aggregate<{ n: number }>([
+        { $match: { eduEmailHash: { $type: 'string' } } },
+        { $group: { _id: '$eduEmailHash', n: { $sum: 1 } } },
+        { $match: { n: { $gt: 1 } } },
+        { $count: 'n' },
+      ])
+      .toArray();
+    log(
+      `WARNING: unique index users.eduEmailHash NOT built: ${clashes?.n ?? '?'} school emails are on several accounts; fix them, then restart`,
+    );
+  }
+}
+
 export async function ensureMongoIndexes(db: Db, log: (m: string) => void = () => {}) {
   const existing = new Set(
     (await db.listCollections({}, { nameOnly: true }).toArray()).map((c) => c.name),
@@ -98,6 +134,7 @@ export async function ensureMongoIndexes(db: Db, log: (m: string) => void = () =
       });
     await db.collection(coll).createIndexes(specs);
   }
+  await ensureEduEmailIndex(db, log);
   // Vector index for Find-someone matching: one dimension per tag, pre-filtered on campus and openToPlans.
   try {
     const users = db.collection('users');
