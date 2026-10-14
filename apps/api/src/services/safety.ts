@@ -151,28 +151,30 @@ export async function reviewReport(ctx: AppContext, payload: { postId: string },
   const poster = docs.find((m) => m.kind === 'video' && m.rendition?.posterKey);
   const imageKey = photo?.key ?? poster?.rendition?.posterKey;
 
-  let reason: string | null = null;
-  if (providers.detector.enabled && imageKey) {
-    let verdict = p.reportScan?.verdict;
-    if (!verdict) {
-      const out = await detect(
-        ctx,
-        p.reportScan?.requestId,
-        async () => ({
-          data: (await providers.storage.get(imageKey)) ?? Buffer.alloc(0),
-          name: photo ? `post.${extFor(photo.contentType)}` : 'poster.jpg',
-        }),
-        (requestId) => col.updateOne({ _id: p._id }, { $set: { reportScan: { requestId } } }),
-      );
-      verdict = out.verdict;
-      await col.updateOne(
-        { _id: p._id },
-        { $set: { 'reportScan.verdict': out.verdict, 'reportScan.score': out.score } },
-      );
+  /** The automatic check: a reason to take the post down, or null. Throws when it cannot run. */
+  const scan = async (): Promise<string | null> => {
+    if (providers.detector.enabled && imageKey) {
+      let verdict = p.reportScan?.verdict;
+      if (!verdict) {
+        const out = await detect(
+          ctx,
+          p.reportScan?.requestId,
+          async () => ({
+            data: (await providers.storage.get(imageKey)) ?? Buffer.alloc(0),
+            name: photo ? `post.${extFor(photo.contentType)}` : 'poster.jpg',
+          }),
+          (requestId) => col.updateOne({ _id: p._id }, { $set: { reportScan: { requestId } } }),
+        );
+        verdict = out.verdict;
+        await col.updateOne(
+          { _id: p._id },
+          { $set: { 'reportScan.verdict': out.verdict, 'reportScan.score': out.score } },
+        );
+      }
+      return verdict === 'MANIPULATED'
+        ? 'Reported; Reality Defender flagged the media as manipulated'
+        : null;
     }
-    if (verdict === 'MANIPULATED')
-      reason = 'Reported; Reality Defender flagged the media as manipulated';
-  } else {
     const images = [];
     for (const m of docs.slice(0, 3)) {
       const key = m.kind === 'photo' ? (m.rendition?.key ?? m.key) : m.rendition?.posterKey;
@@ -184,7 +186,17 @@ export async function reviewReport(ctx: AppContext, payload: { postId: string },
         });
     }
     const v = await providers.llm.moderate({ text: p.text, images });
-    if (!v.allowed) reason = `Reported; failed the safety check again: ${v.reason}`;
+    return v.allowed ? null : `Reported; failed the safety check again: ${v.reason}`;
+  };
+
+  let reason: string | null = null;
+  try {
+    reason = await scan();
+  } catch (e) {
+    // The reporter count needs no model, so enough reporters still take the post down while Gemini or the detector
+    // is out. Otherwise retry; if every attempt fails the post stays up and its reports stay open in the admin CLI.
+    if (reporters < REPORTS_TO_REMOVE) throw e;
+    console.warn(`[reports] check unavailable for post ${p._id}: ${(e as Error).message}`);
   }
   if (!reason && reporters >= REPORTS_TO_REMOVE) reason = `Reported by ${reporters} people`;
 

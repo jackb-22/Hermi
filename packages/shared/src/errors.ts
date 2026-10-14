@@ -24,6 +24,7 @@ export const ERROR_CODES = [
   'MEDIA_NOT_VERIFIED',
   'PROVIDER_UNAVAILABLE',
   'PHOTO_REJECTED',
+  'BANNED',
 ] as const;
 export type ErrorCode = (typeof ERROR_CODES)[number];
 

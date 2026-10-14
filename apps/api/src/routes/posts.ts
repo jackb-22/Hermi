@@ -13,12 +13,18 @@ import {
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import type { Filter } from 'mongodb';
 import { z } from 'zod';
-import { enqueue } from '../jobs/queue.ts';
 import { authed, bearer } from '../plugins/auth.ts';
 import { getCheckin, media } from '../services/media.ts';
 import { remember } from '../services/memory.ts';
 import { places } from '../services/places.ts';
-import { enqueueReviewSummary, hydratePosts, type PostDoc, posts } from '../services/posts.ts';
+import {
+  enqueueModeration,
+  enqueueReviewSummary,
+  hydratePosts,
+  type PostDoc,
+  posts,
+} from '../services/posts.ts';
+import { fileReport } from '../services/reports.ts';
 import { sessions } from '../services/sessions.ts';
 import { blockedIds } from '../services/social.ts';
 import { errs } from './_util.ts';
@@ -33,13 +39,7 @@ export const postRoutes: FastifyPluginAsyncZod = async (app) => {
   const publish = async (doc: PostDoc) => {
     await posts(db).insertOne(doc);
     await media(db).updateMany({ _id: { $in: doc.mediaIds } }, { $set: { posted: true } });
-    // Clips wait for their rendition; 8 attempts of exponential backoff give the worker several minutes.
-    await enqueue(
-      app.ctx,
-      'moderate_post',
-      { postId: doc._id },
-      { dedupeKey: `moderate:${doc._id}`, maxAttempts: 8 },
-    );
+    await enqueueModeration(app.ctx, doc._id);
     return one(doc);
   };
 
@@ -344,36 +344,14 @@ export const postRoutes: FastifyPluginAsyncZod = async (app) => {
       schema: {
         tags: ['safety'],
         summary:
-          'Report a post or a user. A reported post disappears for you at once and is queued for review.',
+          'Report a post or a user. A reported post disappears for you at once and is queued for review; the team is emailed about every report.',
         security: bearer,
         body: ReportBody,
-        response: { 200: OkSchema, ...errs(400, 401) },
+        response: { 200: OkSchema, ...errs(400, 401, 404, 429) },
       },
     },
     async (req) => {
-      if (!req.body.postId && !req.body.userId)
-        throw new ApiError(400, 'BAD_REQUEST', 'postId or userId required');
-      if (req.body.postId)
-        await posts(db).updateOne(
-          { _id: req.body.postId },
-          { $addToSet: { hiddenFrom: req.userId } },
-        );
-      await db.collection('reports').insertOne({
-        _id: newId() as never,
-        reporterId: req.userId,
-        postId: req.body.postId,
-        userId: req.body.userId,
-        reason: req.body.reason,
-        status: 'open',
-        createdAt: clock.now(),
-      });
-      if (req.body.postId)
-        await enqueue(
-          app.ctx,
-          'review_report',
-          { postId: req.body.postId },
-          { dedupeKey: `report:${req.body.postId}` },
-        );
+      await fileReport(app.ctx, req.userId, req.body);
       return { ok: true as const };
     },
   );

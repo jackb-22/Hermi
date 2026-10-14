@@ -42,4 +42,7 @@ export interface UserDoc {
   tasteDone: boolean;
   createdAt: Date;
   deletedAt?: Date;
+  /** Set by the admin CLI: every authenticated request is refused with 403 BANNED. */
+  bannedAt?: Date;
+  banReason?: string;
 }

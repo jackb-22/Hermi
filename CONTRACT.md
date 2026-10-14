@@ -99,6 +99,11 @@ Open when running locally. On a deployment every dev affordance needs the header
   - Byte ranges are supported, so video plays as usual.
   - `upload.url` from `/media/presign` may also be the API (`PUT /v1/media/:id/upload`). The app already uses whatever `presign` returns, so nothing changes client-side.
   - `/health` lists `mediaDelivery: cdn|api`.
+- **v0.29.0** — Safety (App Store 1.2). Version number may need renumbering when merged.
+  - **New error code `BANNED`** (403). A banned account gets it from every authenticated route, including the optional-auth ones (`/places*`) when a token is sent. It means "show the suspended screen", not "retry". Sign-in (`/auth/apple`) still returns a token for a banned account; every call with it is then refused.
+  - **Deleted accounts**: the old token is now refused with 401 `UNAUTHORIZED` at once. Before this, most routes kept accepting it until it expired (up to 30 days). The app should treat 401 as "signed out".
+  - **`POST /reports`** now answers 404 `NOT_FOUND` for a post or user that does not exist (or a deleted user), and 429 `RATE_LIMITED` after 20 new reports an hour. Reporting the same target again while your first report is unresolved is a no-op that still answers `{ok:true}`. Every report emails the team.
+  - **Moderation fails closed.** If the safety check cannot run (Gemini down), the post stays `pending` instead of going live; the check retries for several minutes, and a person may approve or remove it afterwards. A `pending` post can therefore stay pending for hours; the app already shows pending posts only to their author.
 
 ## Additions beyond the plan's data model
 

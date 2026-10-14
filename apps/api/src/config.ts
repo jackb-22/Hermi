@@ -69,6 +69,11 @@ const Env = z.object({
   REALITY_DEFENDER_KEY: optStr,
   RESEND_API_KEY: optStr,
   EMAIL_FROM: optStr,
+  /** Where every user report is emailed (App Store 1.2: a person reads each one). Forwarded to both founders. */
+  REPORTS_EMAIL_TO: z
+    .string()
+    .optional()
+    .transform((v) => v || 'support@hermi.world'),
 });
 
 export type Config = z.infer<typeof Env> & { devRoutes: boolean };

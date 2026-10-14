@@ -82,7 +82,12 @@ export async function userByHandle(
 ): Promise<UserDoc | null> {
   const handle = rawHandle ? normalizeHandle(rawHandle) : null;
   if (!handle) return null;
-  return users(ctx.db).findOne({ imessageHandles: handle, deletedAt: { $exists: false } });
+  // A banned account loses the texting door too: this path never passes through requireAuth.
+  return users(ctx.db).findOne({
+    imessageHandles: handle,
+    deletedAt: { $exists: false },
+    bannedAt: { $exists: false },
+  });
 }
 
 export function smsUrl(agentAddress: string | null, body: string): string | null {

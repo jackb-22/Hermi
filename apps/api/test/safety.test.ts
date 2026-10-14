@@ -3,7 +3,7 @@ import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { newId } from '@itp/shared';
-import { afterAll, beforeAll, describe, expect, test } from 'vitest';
+import { afterAll, beforeAll, describe, expect, test, vi } from 'vitest';
 import { AI_SOURCE_TYPES } from '../src/providers/c2pa.ts';
 import { FakeDetector, OffDetector } from '../src/providers/detector.ts';
 import type { PostDoc } from '../src/services/posts.ts';
@@ -222,6 +222,34 @@ describe('reported posts', () => {
       status: 'removed',
       moderationReason: 'Reported by 3 people',
     });
+  });
+
+  test('Gemini down: three reporters still take the post down; fewer retry and the post stays up', async () => {
+    t.ctx.providers.detector = new OffDetector();
+    const down = vi
+      .spyOn(t.ctx.providers.llm, 'moderate')
+      .mockRejectedValue(new Error('gemini 503'));
+    try {
+      const few = await livePost('Fine text');
+      await report(few);
+      await report(few);
+      await expect(reviewReport(t.ctx, { postId: few })).rejects.toThrow(/503/);
+      expect(await status(few)).toBe('live');
+      expect(await t.ctx.db.collection('reports').findOne({ postId: few })).toMatchObject({
+        status: 'open',
+      });
+
+      const many = await livePost('Fine text');
+      for (let i = 0; i < 3; i++) await report(many);
+      await reviewReport(t.ctx, { postId: many });
+      expect(await t.ctx.db.collection<PostDoc>('posts').findOne({ _id: many })).toMatchObject({
+        status: 'removed',
+        moderationReason: 'Reported by 3 people',
+      });
+      expect(down).toHaveBeenCalledTimes(2);
+    } finally {
+      down.mockRestore();
+    }
   });
 
   test('Reality Defender flags manipulated media on a reported post', async () => {
