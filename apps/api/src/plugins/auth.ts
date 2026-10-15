@@ -19,6 +19,9 @@ declare module 'fastify' {
 
 export const TOKEN_TTL = '30d';
 
+/** What a banned account gets, from routes behind a token and from the routes that issue one. */
+export const bannedError = () => new ApiError(403, 'BANNED', 'This account has been suspended');
+
 export const authPlugin = fp(async (app: FastifyInstance) => {
   await app.register(jwt, { secret: app.ctx.config.JWT_SECRET, sign: { expiresIn: TOKEN_TTL } });
   app.decorateRequest('userId', '');
@@ -40,7 +43,7 @@ async function authenticate(req: FastifyRequest, tokenMessage: string) {
     { projection: { deletedAt: 1, bannedAt: 1 } },
   );
   if (!u || u.deletedAt) throw new ApiError(401, 'UNAUTHORIZED', 'User no longer exists');
-  if (u.bannedAt) throw new ApiError(403, 'BANNED', 'This account has been suspended');
+  if (u.bannedAt) throw bannedError();
   req.userId = sub;
 }
 

@@ -327,7 +327,7 @@ describe('report alerts', () => {
 });
 
 describe('bans and deleted accounts stop at the door', () => {
-  test('banned: 403 BANNED on authed and optional-auth routes; unban restores; sign-in still works', async () => {
+  test('banned: 403 BANNED on authed and optional-auth routes; unban restores; sign-in is refused too', async () => {
     const dan = await devLogin(t.app, 'dan');
     expect((await get(dan, '/posts')).statusCode).toBe(200);
     await banUser(t.ctx, '@dan', 'harassment');
@@ -337,16 +337,14 @@ describe('bans and deleted accounts stop at the door', () => {
       expect(r.json().error.code).toBe('BANNED');
     }
     expect((await post(dan, '/reports', { userId: ben.id })).statusCode).toBe(403);
-    // /auth/dev is not behind requireAuth: signing in still returns a token (it is refused at every route).
+    // Signing in is refused too, so the app is not handed a token it cannot use.
     const again = await t.app.inject({
       method: 'POST',
       url: '/v1/auth/dev',
       payload: { username: 'dan' },
     });
-    expect(again.statusCode).toBe(200);
-    expect(
-      (await get({ headers: { authorization: `Bearer ${again.json().token}` } }, '/me')).statusCode,
-    ).toBe(403);
+    expect(again.statusCode).toBe(403);
+    expect(again.json().error.code).toBe('BANNED');
 
     await unbanUser(t.ctx, '@dan');
     expect((await get(dan, '/posts')).statusCode).toBe(200);

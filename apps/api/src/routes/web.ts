@@ -1,6 +1,7 @@
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { PUBLIC_MEDIA_PREFIXES, verifyMediaSig } from '../providers/storage.ts';
+import { isReviewCampus } from '../services/eduEmail.ts';
 import { loadPlaces, plans } from '../services/plans.ts';
 import { users } from '../services/users.ts';
 import { verifyInfo } from '../services/verify.ts';
@@ -219,7 +220,7 @@ export const webRoutes: FastifyPluginAsyncZod = async (app) => {
       return reply.type('text/html').send(
         page(
           plan.name,
-          `<h1>${esc(plan.name)}</h1><p class="muted">Hosted by ${esc(host?.name ?? 'someone')}${host?.username ? ` (@${esc(host.username)})` : ''}${host?.verifiedAt ? ` · verified ${esc(host.campus ?? '')} student` : ''}</p>
+          `<h1>${esc(plan.name)}</h1><p class="muted">Hosted by ${esc(host?.name ?? 'someone')}${host?.username ? ` (@${esc(host.username)})` : ''}${host?.verifiedAt && !isReviewCampus(host.campus) ? ` · verified ${esc(host.campus ?? '')} student` : ''}</p>
 <dl>${stops}</dl>
 <p class="muted">Public venues only. Share this page with a friend before you meet someone new.</p>
 <a class="btn" href="https://apps.apple.com/">Open in the app</a>`,

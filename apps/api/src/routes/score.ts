@@ -13,7 +13,7 @@ import { displayStreak } from '../domain/streak.ts';
 import { authed, bearer } from '../plugins/auth.ts';
 import { boroughStats } from '../services/boroughs.ts';
 import { places } from '../services/places.ts';
-import { campusScores, computeScore, rankOf, scoreAt } from '../services/score.ts';
+import { boardCampus, campusScores, computeScore, rankOf, scoreAt } from '../services/score.ts';
 import { friendIds, friendships, toUserCard, visibleUser } from '../services/social.ts';
 import { getUser, users } from '../services/users.ts';
 import { errs } from './_util.ts';
@@ -64,10 +64,11 @@ export const scoreRoutes: FastifyPluginAsyncZod = async (app) => {
     async (req) => {
       const now = clock.now();
       const me = await getUser(db, req.userId);
+      const board = boardCampus(me);
       let list: { id: string; score: number }[];
       if (req.query.scope === 'campus') {
-        if (!me.campus) return { scope: 'campus' as const, campus: null, items: [], me: null };
-        list = await campusScores(db, tiger, me.campus, now);
+        if (!board) return { scope: 'campus' as const, campus: null, items: [], me: null };
+        list = await campusScores(db, tiger, board, now);
         if (!list.some((r) => r.id === me._id))
           list.push({ id: me._id, score: (await scoreAt(tiger, [me._id], now)).get(me._id) ?? 0 });
       } else {
@@ -100,7 +101,7 @@ export const scoreRoutes: FastifyPluginAsyncZod = async (app) => {
       const mine = list.find((r) => r.id === me._id);
       return {
         scope: req.query.scope,
-        campus: me.campus ?? null,
+        campus: board ?? null,
         items,
         me: mine ? { rank: rankOf(list, me._id).rank, score: mine.score } : null,
       };
