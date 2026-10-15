@@ -3,6 +3,7 @@ import { closeContext, createContext, ensureSchema } from './boot.ts';
 import { assertBootable, loadConfig } from './config.ts';
 import { handlers } from './jobs/handlers.ts';
 import { Worker } from './jobs/queue.ts';
+import { queueMissingErasures } from './services/accountErasure.ts';
 import { syncDevClock } from './services/devClock.ts';
 import { startGroupChat } from './services/groupChat.ts';
 import { scheduleWeeklyNudge } from './services/nudges.ts';
@@ -19,6 +20,7 @@ worker?.start();
 if (worker) {
   startGroupChat(ctx);
   await scheduleWeeklyNudge(ctx);
+  await queueMissingErasures(ctx);
 }
 
 const shutdown = async () => {

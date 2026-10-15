@@ -118,6 +118,13 @@ Open when running locally. On a deployment every dev affordance needs the header
   - **Environments:** Xcode debug builds register sandbox tokens; TestFlight and App Store builds register production ones. One server sends to one of them (`APNS_SANDBOX=1` for sandbox), and a token from the other is dropped as invalid (APNs answers `BadDeviceToken`). The app registers on every launch, so a dropped token comes back.
   - **Payload:** `aps.alert {title, body}` with the default sound, and the `data` keys (`kind`, `planId`, …) at the top level beside `aps`. All values are strings; `kind` values are unchanged.
   - **Deployment:** needs `APPLE_AUTH_KEY_ID` and `APPLE_AUTH_PRIVATE_KEY` (the one .p8 shared with Sign in with Apple), `APPLE_TEAM_ID` and `APPLE_BUNDLE_ID`; without them push stays faked and `/health` lists `push: fake`.
+- **v0.33.0** — Deleting an account now deletes it (App Store 5.1.1(v)). `DELETE /me` is unchanged on the wire (`{ok:true}`), and the token still stops working at once.
+  - **At once:** the account is hidden and its posts come down. Sign in with Apple is revoked; if Apple is unreachable the token is kept and a job retries.
+  - **A background job, within seconds, erases:** the profile (name, username, photo, school-email hash, phone numbers, push tokens, taste), posts and reviews, every photo, clip and profile picture in storage, saves and folders, friendships, plans they hosted, sessions and routes, check-ins, tag reads, hangouts, XP and location history. Only an empty placeholder with the id stays. Signing in with the same Apple ID afterwards starts a new, empty account.
+  - **What others see:** the person is simply gone from friend lists, plan members, the Feed and place pages (their `GET /profile/:id` is 404, as before). Plans they hosted are deleted, except a completed outing that others joined: it stays in those people's history with `hostId` pointing at nobody, the default name in place of the host's wording, and a new share link.
+  - **Kept, because it is not theirs alone:** reports they filed or that name them (closed when nothing is left to act on), blocks others placed against them, and counters such as a place's Been and Would-go-again.
+  - **App:** treat 200 as final: sign out and clear the Keychain. There is no undo.
+  - **Replaced photos:** a new profile photo deletes the one it replaces once it is live (with Reality Defender on, when the scan passes), so the old `photoUrl` stops loading. Take `photoUrl` from the latest `Me` or profile rather than keeping the old one.
 
 ## Additions beyond the plan's data model
 

@@ -65,6 +65,13 @@ const INDEXES: Record<string, IndexDescription[]> = {
         dedupeKey: { $type: 'string' },
       },
     },
+    // Finished jobs keep their payload (pushes quote people), so they expire. A dead job is the only record that
+    // something failed (the admin CLI reads it), so it stays until a person clears it.
+    {
+      key: { doneAt: 1 },
+      expireAfterSeconds: 14 * 86400,
+      partialFilterExpression: { status: 'done' },
+    },
   ],
   sessions: [{ key: { userId: 1, status: 1 } }],
   media: [{ key: { checkinId: 1 } }, { key: { sha256: 1 } }, { key: { userId: 1, createdAt: -1 } }],

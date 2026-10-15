@@ -1,3 +1,4 @@
+import { eraseAccount } from '../services/accountErasure.ts';
 import { revokeAppleToken } from '../services/appleRevoke.ts';
 import { groupSay } from '../services/groupChat.ts';
 import { matchNotify } from '../services/matching.ts';
@@ -27,4 +28,5 @@ export const handlers: Record<string, JobHandler> = {
   group_say: groupSay as JobHandler,
   summarize_reviews: summarizeReviews as JobHandler,
   revoke_apple_token: revokeAppleToken as JobHandler,
+  erase_account: eraseAccount as JobHandler,
 };

@@ -3,6 +3,7 @@ import { assertBootable, loadConfig } from './config.ts';
 import { registerHooks } from './hooks.ts';
 import { handlers } from './jobs/handlers.ts';
 import { Worker } from './jobs/queue.ts';
+import { queueMissingErasures } from './services/accountErasure.ts';
 import { followDevClock, syncDevClock } from './services/devClock.ts';
 import { startGroupChat } from './services/groupChat.ts';
 import { scheduleWeeklyNudge } from './services/nudges.ts';
@@ -20,6 +21,7 @@ const worker = new Worker(ctx, handlers);
 worker.start();
 startGroupChat(ctx);
 await scheduleWeeklyNudge(ctx);
+await queueMissingErasures(ctx);
 
 const stop = async () => {
   await worker.stop();

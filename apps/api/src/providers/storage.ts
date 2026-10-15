@@ -2,8 +2,10 @@ import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import type { Readable } from 'node:stream';
 import {
   CreateBucketCommand,
+  DeleteObjectCommand,
   GetObjectCommand,
   HeadBucketCommand,
+  ListObjectsV2Command,
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
@@ -33,8 +35,18 @@ export interface Storage {
   /** The object (or bytes start..end inclusive) for serving; null when there is no such object. */
   stream(key: string, range?: { start: number; end?: number }): Promise<StoredObject | null>;
   put(key: string, body: Buffer, contentType: string, opts?: { public?: boolean }): Promise<void>;
+  /** Removes the object. One that is already gone is not an error, so an erase job can run again. */
+  delete(key: string): Promise<void>;
+  /** Removes every object whose key starts with `prefix` (a folder, ending in "/") and returns how many. */
+  deletePrefix(prefix: string): Promise<number>;
   /** URL for public objects (feed renditions under unguessable keys). */
   publicUrl(key: string): string;
+}
+
+/** A prefix is a folder like "orig/<userId>/": anything shorter or without the slash could empty the bucket. */
+function assertFolder(prefix: string) {
+  if (prefix.length < 3 || !prefix.endsWith('/'))
+    throw new Error(`refusing to delete everything under "${prefix}": not a folder`);
 }
 
 export const sha256Hex = (b: Buffer) => createHash('sha256').update(b).digest('hex');
@@ -159,6 +171,33 @@ export class S3Storage implements Storage {
       }),
     );
   }
+  async delete(key: string) {
+    await this.ensureBucket();
+    // S3 answers 204 for a key that is not there.
+    await this.s3.send(new DeleteObjectCommand({ Bucket: this.c.S3_BUCKET, Key: key }));
+  }
+  async deletePrefix(prefix: string) {
+    assertFolder(prefix);
+    await this.ensureBucket();
+    let removed = 0;
+    let token: string | undefined;
+    do {
+      const page = await this.s3.send(
+        new ListObjectsV2Command({
+          Bucket: this.c.S3_BUCKET,
+          Prefix: prefix,
+          ContinuationToken: token,
+        }),
+      );
+      // One DeleteObject each: batch deletes need a checksum header that not every S3 implementation accepts.
+      for (const o of page.Contents ?? []) {
+        await this.delete(o.Key!);
+        removed++;
+      }
+      token = page.IsTruncated ? page.NextContinuationToken : undefined;
+    } while (token);
+    return removed;
+  }
   publicUrl(key: string) {
     const base = this.c.CDN_BASE_URL ?? `${this.c.S3_ENDPOINT}/${this.c.S3_BUCKET}`;
     return `${base.replace(/\/$/, '')}/${key}`;
@@ -201,6 +240,15 @@ export class MemoryStorage implements Storage {
   }
   async put(key: string, body: Buffer, contentType: string) {
     this.objects.set(key, { body, contentType });
+  }
+  async delete(key: string) {
+    this.objects.delete(key);
+  }
+  async deletePrefix(prefix: string) {
+    assertFolder(prefix);
+    const doomed = [...this.objects.keys()].filter((k) => k.startsWith(prefix));
+    for (const k of doomed) this.objects.delete(k);
+    return doomed.length;
   }
   publicUrl(key: string) {
     return `${this.base}/media/${key}`;
