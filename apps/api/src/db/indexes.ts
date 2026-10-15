@@ -16,6 +16,8 @@ const INDEXES: Record<string, IndexDescription[]> = {
     },
     { key: { tagId: 1 }, sparse: true },
     { key: { campus: 1 } },
+    // Push: registering a device token moves it off other accounts, and a dead token is pruned by value.
+    { key: { pushTokens: 1 }, sparse: true },
     // A handle texts as one account only.
     {
       key: { imessageHandles: 1 },

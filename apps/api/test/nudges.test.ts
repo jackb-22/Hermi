@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { newId, weekIndex } from '@itp/shared';
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import {
@@ -38,7 +39,7 @@ const login = async (username: string, name: string, token = true) => {
       method: 'POST',
       url: '/v1/me/push-token',
       headers: u.headers,
-      payload: { token: `ExponentPushToken[${username}]` },
+      payload: { token: createHash('sha256').update(username).digest('hex') },
     });
   return u;
 };

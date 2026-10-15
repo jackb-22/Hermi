@@ -51,6 +51,11 @@ const Env = z.object({
   APPLE_BUNDLE_ID: optStr,
   APPLE_MAPS_KEY_ID: optStr,
   APPLE_MAPS_PRIVATE_KEY: optStr,
+  /** The shared Sign in with Apple + APNs .p8: key id and PKCS#8 PEM (literal \n allowed). */
+  APPLE_AUTH_KEY_ID: optStr,
+  APPLE_AUTH_PRIVATE_KEY: optStr,
+  /** Send pushes through APNs's sandbox: Xcode debug builds register sandbox tokens; TestFlight and App Store builds use production. */
+  APNS_SANDBOX: bool.default(false),
   WEATHERKIT_KEY_ID: optStr,
   WEATHERKIT_PRIVATE_KEY: optStr,
 
