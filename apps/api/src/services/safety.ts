@@ -16,6 +16,27 @@ export const REPORTS_TO_REMOVE = 3;
 const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/heic', 'image/webp']);
 
 /**
+ * Deletes profile-photo objects that nothing refers to any more (the photo just replaced, a review that was
+ * replaced or has passed its scan). Only this user's own kinds of key (`p/…` renditions, `orig/profile/<id>/…`
+ * originals) are ever removed, and never one in `keep`. Best effort: a storage failure is logged, not thrown, so it
+ * cannot fail an upload or a scan; account deletion removes whatever is left (accountErasure.ts).
+ */
+async function dropPhotoObjects(
+  ctx: AppContext,
+  userId: string,
+  keys: (string | undefined)[],
+  keep: (string | undefined)[],
+) {
+  for (const key of new Set(keys)) {
+    if (!key || keep.includes(key)) continue;
+    if (!key.startsWith('p/') && !key.startsWith(`orig/profile/${userId}/`)) continue;
+    await ctx.providers.storage.delete(key).catch((e) => {
+      console.warn(`[photo] could not delete ${key}: ${(e as Error).message}`);
+    });
+  }
+}
+
+/**
  * Profile photos are the one upload from outside the camera, and an AI face is how catfishing starts. Read any
  * C2PA manifest first (AI generators declare it), then scan with Reality Defender before the photo goes live.
  */
@@ -44,18 +65,35 @@ export async function uploadProfilePhoto(
   const key = `p/${randomBytes(16).toString('hex')}.jpg`;
   await providers.storage.put(key, jpg, 'image/jpeg', { public: true });
 
+  // The document as it was before this upload says which objects the new state no longer needs.
+  const prev = { projection: { photoKey: 1, photoReview: 1 }, returnDocument: 'before' } as const;
   if (!providers.detector.enabled) {
-    await users(db).updateOne(
+    const was = await users(db).findOneAndUpdate(
       { _id: userId },
       { $set: { photoKey: key }, $unset: { photoReview: '' } },
+      prev,
+    );
+    await dropPhotoObjects(
+      ctx,
+      userId,
+      [was?.photoKey, was?.photoReview?.key, was?.photoReview?.origKey],
+      [key],
     );
     return 'live';
   }
   const origKey = `orig/profile/${userId}/${newId()}.${extFor(contentType)}`;
   await providers.storage.put(origKey, data, contentType);
-  await users(db).updateOne(
+  const was = await users(db).findOneAndUpdate(
     { _id: userId },
     { $set: { photoReview: { key, origKey, contentType, status: 'scanning', at: clock.now() } } },
+    prev,
+  );
+  // The live photo stays until the scan passes; only the review this one replaced is dropped.
+  await dropPhotoObjects(
+    ctx,
+    userId,
+    [was?.photoReview?.key, was?.photoReview?.origKey],
+    [key, origKey, was?.photoKey],
   );
   await enqueue(ctx, 'scan_photo', { userId, key }, { maxAttempts: 10 });
   return 'scanning';
@@ -122,10 +160,13 @@ export async function scanPhoto(
     return;
   }
   // Authentic, or the detector could not tell: the photo goes live (reports and blocks still apply).
-  await users(db).updateOne(
+  const was = await users(db).findOneAndUpdate(
     { _id: u._id, 'photoReview.key': r.key },
     { $set: { photoKey: r.key }, $unset: { photoReview: '' } },
+    { projection: { photoKey: 1 }, returnDocument: 'before' },
   );
+  // Matched only if this review was still current. The old photo and the scanned original are now unreferenced.
+  if (was) await dropPhotoObjects(ctx, u._id, [was.photoKey, r.origKey], [r.key]);
 }
 
 type Scanned = PostDoc & {
@@ -151,28 +192,30 @@ export async function reviewReport(ctx: AppContext, payload: { postId: string },
   const poster = docs.find((m) => m.kind === 'video' && m.rendition?.posterKey);
   const imageKey = photo?.key ?? poster?.rendition?.posterKey;
 
-  let reason: string | null = null;
-  if (providers.detector.enabled && imageKey) {
-    let verdict = p.reportScan?.verdict;
-    if (!verdict) {
-      const out = await detect(
-        ctx,
-        p.reportScan?.requestId,
-        async () => ({
-          data: (await providers.storage.get(imageKey)) ?? Buffer.alloc(0),
-          name: photo ? `post.${extFor(photo.contentType)}` : 'poster.jpg',
-        }),
-        (requestId) => col.updateOne({ _id: p._id }, { $set: { reportScan: { requestId } } }),
-      );
-      verdict = out.verdict;
-      await col.updateOne(
-        { _id: p._id },
-        { $set: { 'reportScan.verdict': out.verdict, 'reportScan.score': out.score } },
-      );
+  /** The automatic check: a reason to take the post down, or null. Throws when it cannot run. */
+  const scan = async (): Promise<string | null> => {
+    if (providers.detector.enabled && imageKey) {
+      let verdict = p.reportScan?.verdict;
+      if (!verdict) {
+        const out = await detect(
+          ctx,
+          p.reportScan?.requestId,
+          async () => ({
+            data: (await providers.storage.get(imageKey)) ?? Buffer.alloc(0),
+            name: photo ? `post.${extFor(photo.contentType)}` : 'poster.jpg',
+          }),
+          (requestId) => col.updateOne({ _id: p._id }, { $set: { reportScan: { requestId } } }),
+        );
+        verdict = out.verdict;
+        await col.updateOne(
+          { _id: p._id },
+          { $set: { 'reportScan.verdict': out.verdict, 'reportScan.score': out.score } },
+        );
+      }
+      return verdict === 'MANIPULATED'
+        ? 'Reported; Reality Defender flagged the media as manipulated'
+        : null;
     }
-    if (verdict === 'MANIPULATED')
-      reason = 'Reported; Reality Defender flagged the media as manipulated';
-  } else {
     const images = [];
     for (const m of docs.slice(0, 3)) {
       const key = m.kind === 'photo' ? (m.rendition?.key ?? m.key) : m.rendition?.posterKey;
@@ -184,7 +227,17 @@ export async function reviewReport(ctx: AppContext, payload: { postId: string },
         });
     }
     const v = await providers.llm.moderate({ text: p.text, images });
-    if (!v.allowed) reason = `Reported; failed the safety check again: ${v.reason}`;
+    return v.allowed ? null : `Reported; failed the safety check again: ${v.reason}`;
+  };
+
+  let reason: string | null = null;
+  try {
+    reason = await scan();
+  } catch (e) {
+    // The reporter count needs no model, so enough reporters still take the post down while Gemini or the detector
+    // is out. Otherwise retry; if every attempt fails the post stays up and its reports stay open in the admin CLI.
+    if (reporters < REPORTS_TO_REMOVE) throw e;
+    console.warn(`[reports] check unavailable for post ${p._id}: ${(e as Error).message}`);
   }
   if (!reason && reporters >= REPORTS_TO_REMOVE) reason = `Reported by ${reporters} people`;
 

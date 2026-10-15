@@ -11,6 +11,7 @@ import { parseArgs } from 'node:util';
 import { buildApp } from '../src/app.ts';
 import { closeContext, createContext } from '../src/boot.ts';
 import { loadConfig } from '../src/config.ts';
+import { refuseFakeData } from './lib/noFakeData.ts';
 
 const { values: args } = parseArgs({
   // --gap: ms between cases, for free-tier keys (their per-minute limits are low).
@@ -25,6 +26,7 @@ if (!/localhost|127\.0\.0\.1/.test(config.MONGO_URI)) {
   console.error('ai-eval writes plans: point MONGO_URI at the local docker database');
   process.exit(2);
 }
+refuseFakeData('ai-eval.ts', config);
 const ctx = await createContext(config);
 const app = await buildApp(ctx);
 await app.ready();

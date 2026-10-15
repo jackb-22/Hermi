@@ -1,14 +1,15 @@
 import { localDayKey } from '@itp/shared';
 import { FeedQuery, FeedResponse, OkSchema, SeenBody } from '@itp/shared/api';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
-import { FEED_DAILY_CAP, feedRank, interleave } from '../domain/feedRank.ts';
+import { FEED_DAILY_CAP, FEED_WINDOW_DAYS, feedRank, interleave } from '../domain/feedRank.ts';
 import { tasteMatch } from '../domain/taste.ts';
 import { authed, bearer } from '../plugins/auth.ts';
+import { isReviewCampus } from '../services/eduEmail.ts';
 import { openPlansFor } from '../services/matching.ts';
 import { places } from '../services/places.ts';
 import { type PlanDoc, plans, toPlanView } from '../services/plans.ts';
 import { hydratePosts, type PostDoc, posts } from '../services/posts.ts';
-import { blockedIds, friendIds } from '../services/social.ts';
+import { blockedIds, friendIds, reviewerIds } from '../services/social.ts';
 import { getUser } from '../services/users.ts';
 import { errs } from './_util.ts';
 
@@ -36,8 +37,7 @@ export const feedRoutes: FastifyPluginAsyncZod = async (app) => {
         tags: ['feed'],
         summary:
           'The finite feed: friends first, then places near you, then taste. At most 30 unseen posts a day, then "You\'re caught up. Go outside."',
-        description:
-          'Send lat/lng for the "near you" part. Mark posts seen with POST /feed/seen as cards become visible. Not reachable in Action mode (client rule).',
+        description: `Send lat/lng for the "near you" part. Posts are from the last ${FEED_WINDOW_DAYS} days; newer ones rank higher. Mark posts seen with POST /feed/seen as cards become visible. Not reachable in Action mode (client rule).`,
         security: bearer,
         querystring: FeedQuery,
         response: { 200: FeedResponse, ...errs(401) },
@@ -64,34 +64,41 @@ export const feedRoutes: FastifyPluginAsyncZod = async (app) => {
         status: 'live' as const,
         hiddenFrom: { $ne: me._id },
         authorId: { $nin: [me._id, ...blocked] },
-        createdAt: { $gte: new Date(now.getTime() - 7 * DAY) },
+        createdAt: { $gte: new Date(now.getTime() - FEED_WINDOW_DAYS * DAY) },
       };
 
       // Posts and joinable plans are independent: build both at once.
       const postsP = (async () => {
-        // Candidates: friends' posts from the last 7 days plus posts within 5 km.
+        // Posts within 5 km of the phone. App Review accounts meet no strangers: they get none, and
+        // theirs are left out of everyone else's. (Friends' posts come by consent, so they stay.)
+        const { lat, lng } = req.query;
+        const nearbyPosts = async () => {
+          if (lat === undefined || lng === undefined || isReviewCampus(me.campus))
+            return [] as (PostDoc & { d: number })[];
+          const reviewers = await reviewerIds(db);
+          return posts(db)
+            .aggregate<PostDoc & { d: number }>([
+              {
+                $geoNear: {
+                  near: { type: 'Point', coordinates: [lng, lat] },
+                  key: 'loc',
+                  distanceField: 'd',
+                  maxDistance: NEAR_M,
+                  query: { ...base, authorId: { $nin: [me._id, ...blocked, ...reviewers] } },
+                },
+              },
+              { $limit: 300 },
+            ])
+            .toArray();
+        };
+        // Candidates: friends' posts plus the nearby ones, both inside the feed window.
         const [fromFriends, nearby] = await Promise.all([
           posts(db)
             .find({ ...base, authorId: { $in: friends.filter((f) => !blocked.includes(f)) } })
             .sort({ createdAt: -1 })
             .limit(200)
             .toArray(),
-          req.query.lat !== undefined && req.query.lng !== undefined
-            ? posts(db)
-                .aggregate<PostDoc & { d: number }>([
-                  {
-                    $geoNear: {
-                      near: { type: 'Point', coordinates: [req.query.lng, req.query.lat] },
-                      key: 'loc',
-                      distanceField: 'd',
-                      maxDistance: NEAR_M,
-                      query: base,
-                    },
-                  },
-                  { $limit: 300 },
-                ])
-                .toArray()
-            : Promise.resolve([] as (PostDoc & { d: number })[]),
+          nearbyPosts(),
         ]);
         const cands = new Map<string, PostDoc & { d?: number }>();
         for (const p of [...fromFriends, ...nearby])

@@ -10,6 +10,8 @@ export function feedRank(o: {
 }
 
 export const FEED_DAILY_CAP = 30;
+/** Posts older than this never reach the feed. Wide so a small network's seeded posts last. */
+export const FEED_WINDOW_DAYS = 30;
 export const PLAN_EVERY = 5;
 
 /** Every fifth card is a joinable plan while any remain, so plans never get buried. */

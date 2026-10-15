@@ -22,7 +22,11 @@ describe('deployment with DEV_TOKEN', () => {
     const apple = {
       method: 'POST' as const,
       url: '/v1/auth/apple',
-      payload: { identityToken: 'fake:someone' },
+      payload: {
+        identityToken: 'fake:someone',
+        nonce: 'any-nonce-of-16-chars',
+        authorizationCode: 'any-code',
+      },
     };
     expect((await t.app.inject(apple)).statusCode).toBe(403);
     expect(

@@ -14,6 +14,9 @@ import { testSuffix } from './globalSetup.ts';
 const LIVE_KEYS = [
   'GEMINI_API_KEY',
   'GOOGLE_MAPS_KEY',
+  'APPLE_BUNDLE_ID',
+  'APPLE_AUTH_KEY_ID',
+  'APPLE_AUTH_PRIVATE_KEY',
   'APPLE_MAPS_KEY_ID',
   'APPLE_MAPS_PRIVATE_KEY',
   'WEATHERKIT_KEY_ID',
@@ -24,6 +27,9 @@ const LIVE_KEYS = [
   'PHOTON_AGENT_ADDRESS',
   'REALITY_DEFENDER_KEY',
   'RESEND_API_KEY',
+  // A review path left in someone's shell would make the "unset" tests lie.
+  'REVIEW_EMAIL',
+  'REVIEW_CODE',
 ];
 
 export function testEnv(env: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {

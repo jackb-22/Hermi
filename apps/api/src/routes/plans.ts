@@ -14,9 +14,10 @@ import {
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import type { Filter } from 'mongodb';
 import { z } from 'zod';
+import { assertNameAllowed } from '../domain/nameFilter.ts';
 import { authed, bearer } from '../plugins/auth.ts';
-import { openPlansFor } from '../services/matching.ts';
 import { places } from '../services/places.ts';
+import { assertCanView, plansOf } from '../services/planAccess.ts';
 import {
   assertHost,
   defaultName,
@@ -30,7 +31,7 @@ import {
   toPlanView,
 } from '../services/plans.ts';
 import { applyGhostChange, schedulePlan } from '../services/scheduler.ts';
-import { friendIds } from '../services/social.ts';
+import { visibleUser } from '../services/social.ts';
 import { getUser } from '../services/users.ts';
 import { errs } from './_util.ts';
 
@@ -38,22 +39,6 @@ const IdParams = z.object({ id: z.string() });
 
 export const planRoutes: FastifyPluginAsyncZod = async (app) => {
   const { db, config, clock } = app.ctx;
-
-  /** Host and anyone on the member list; friends of the host for friends-visible and open plans; matched students for open (find) plans. */
-  const assertCanView = async (plan: PlanDoc, userId: string) => {
-    if (plan.hostId === userId || plan.members.some((m) => m.userId === userId)) return;
-    if (
-      (plan.visibility === 'friends' || plan.visibility === 'find') &&
-      (await friendIds(db, plan.hostId)).includes(userId)
-    )
-      return;
-    if (
-      plan.visibility === 'find' &&
-      (await openPlansFor(app.ctx, await getUser(db, userId), [plan])).length
-    )
-      return;
-    throw new ApiError(404, 'NOT_FOUND', 'No such plan');
-  };
 
   const view = async (plan: PlanDoc, userId: string) => {
     const me = await getUser(db, userId);
@@ -70,12 +55,15 @@ export const planRoutes: FastifyPluginAsyncZod = async (app) => {
         tags: ['plans'],
         summary:
           'Create a plan (draft) from dropped pins; it is scheduled immediately with default stays and estimated legs',
+        description:
+          'A name that fails the name filter is 400 NAME_NOT_ALLOWED; the message does not say why.',
         security: bearer,
         body: CreatePlanBody,
         response: { 200: PlanSchema, ...errs(400, 401) },
       },
     },
     async (req) => {
+      if (req.body.name !== undefined) assertNameAllowed(req.body.name, 'planName');
       const now = clock.now();
       const byId = await loadPlaces(
         db,
@@ -111,26 +99,23 @@ export const planRoutes: FastifyPluginAsyncZod = async (app) => {
         summary: 'Plans you host or joined (profile Plans tab)',
         security: bearer,
         querystring: PlansListQuery,
-        response: { 200: Paged(PlanSchema), ...errs(401) },
+        response: { 200: Paged(PlanSchema), ...errs(401, 404) },
       },
     },
     async (req) => {
       const who = req.query.userId ?? req.userId;
-      const mine = who === req.userId;
-      const q: Filter<PlanDoc> = {
-        $or: [{ hostId: who }, { members: { $elemMatch: { userId: who, status: 'joined' } } }],
-        status: { $ne: 'cancelled' },
-      };
-      if (!mine) q.visibility = { $in: ['friends', 'find'] };
+      // Someone else's list follows the rules of their profile (deleted and blocked are 404) and of viewing one plan.
+      if (who !== req.userId) await visibleUser(db, req.userId, who);
       const now = clock.now();
-      if (req.query.scope === 'drafts') q.status = 'draft';
-      if (req.query.scope === 'completed') q.status = 'completed';
+      const filter: Filter<PlanDoc> = {};
+      if (req.query.scope === 'drafts') filter.status = 'draft';
+      if (req.query.scope === 'completed') filter.status = 'completed';
       if (req.query.scope === 'upcoming')
-        Object.assign(q, {
+        Object.assign(filter, {
           status: { $in: ['planned', 'active'] },
           startAt: { $gte: new Date(now.getTime() - 12 * 3600_000) },
         });
-      const docs = await plans(db).find(q).sort({ startAt: -1 }).limit(50).toArray();
+      const docs = await plansOf(app.ctx, req.userId, who, { filter });
       const me = await getUser(db, req.userId);
       const items = await Promise.all(
         docs.map((p) => toPlanView(db, config, p, req.userId, { pref: me.prefVector })),
@@ -152,7 +137,7 @@ export const planRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     async (req) => {
       const plan = await getPlan(db, req.params.id);
-      await assertCanView(plan, req.userId);
+      await assertCanView(app.ctx, plan, req.userId);
       return view(plan, req.userId);
     },
   );
@@ -164,6 +149,8 @@ export const planRoutes: FastifyPluginAsyncZod = async (app) => {
       schema: {
         tags: ['plans'],
         summary: 'Edit name, start/end time or plan mode (mode resets every leg)',
+        description:
+          'A new name that fails the name filter is 400 NAME_NOT_ALLOWED; the message does not say why. Sending the current name again is fine.',
         security: bearer,
         params: IdParams,
         body: PatchPlanBody,
@@ -174,6 +161,8 @@ export const planRoutes: FastifyPluginAsyncZod = async (app) => {
       const plan = await getPlan(db, req.params.id);
       assertHost(plan, req.userId);
       const b = req.body;
+      // An unchanged name passes, so a plan from before the filter can still change its time.
+      if (b.name && b.name !== plan.name) assertNameAllowed(b.name, 'planName');
       if (b.name) Object.assign(plan, { name: b.name, nameIsDefault: false });
       if (b.startAt) plan.startAt = new Date(b.startAt);
       if (b.endBy !== undefined) plan.endBy = b.endBy ? new Date(b.endBy) : undefined;

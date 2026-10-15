@@ -13,6 +13,7 @@ import { PREF_VECTOR_INDEX } from '../db/indexes.ts';
 import type { UserDoc } from '../db/types.ts';
 import { cosine, norm, tagVector, violatesDislikes } from '../domain/taste.ts';
 import type { JobDoc } from '../jobs/queue.ts';
+import { isReviewCampus } from './eduEmail.ts';
 import { notify } from './notify.ts';
 import { loadPlaces, type PlanDoc, plans } from './plans.ts';
 import { users } from './users.ts';
@@ -155,11 +156,14 @@ export async function viewerFacts(
 /**
  * The match test, shared by the push job and by every read of open plans. Verified, Open to plans, on the host's
  * campus and nearby, free at that time, not blocked, no disliked stop, 21+ where needed; then taste similarity.
+ * App Review accounts (Apple's reviewers) match nobody and nobody matches them, on either side.
  */
 export function matchScore(pf: PlanFacts, vf: ViewerFacts): number | null {
   const u = vf.user;
   const plan = pf.plan;
   if (u._id === plan.hostId || plan.members.some((m) => m.userId === u._id)) return null;
+  // Checked outright: the campus comparison below is skipped for a host with no campus.
+  if (isReviewCampus(u.campus) || isReviewCampus(pf.host?.campus)) return null;
   if (!u.verifiedAt || u.deletedAt || !u.openToPlans) return null;
   if (vf.blocked.has(plan.hostId)) return null;
   if (!u.is21 && pf.stops.some((s) => s.adultOnly)) return null;
@@ -208,7 +212,9 @@ export async function findMatches(
   limit = MATCH_LIMIT,
 ): Promise<{ userId: string; score: number }[]> {
   const [pf] = await planFacts(ctx, [plan]);
-  if (!pf || !norm(pf.vec)) return [];
+  if (!pf || !norm(pf.vec) || isReviewCampus(pf.host?.campus)) return [];
+  // The campus filter keeps App Review accounts out of a school's results. A host with no campus
+  // has no filter, so matchScore is what refuses them there.
   const filter: Document = { openToPlans: true };
   if (pf.host?.campus) filter.campus = pf.host.campus;
   const fetch = limit * 4;

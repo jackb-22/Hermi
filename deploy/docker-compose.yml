@@ -1,0 +1,82 @@
+# Hermi production stack (docs/DEPLOYMENT.md T2). Run from the repo root; see deploy/README.md.
+#   docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d --build
+#
+# Only caddy publishes ports (80, 443). Docker's published ports bypass ufw, so nothing else may get a `ports:`.
+# Exactly one api container: it runs the worker and the Photon listener inline, and the listener must be unique.
+# Never use --scale api=N.
+name: hermi
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: "3"
+
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    logging: *logging
+    env_file: .env
+    environment:
+      # Pinned here so the env file cannot turn dev routes on or move the port Caddy proxies to.
+      NODE_ENV: production
+      PORT: "8080"
+      # Internal Docker network only, so no TLS: the HA image runs with ssl off, and tiger.ts leaves other hosts alone.
+      TIGER_URL: postgres://postgres:${TIMESCALE_PASSWORD:?set TIMESCALE_PASSWORD in deploy/.env}@timescaledb:5432/hermi?sslmode=disable
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    healthcheck:
+      # The image has no curl; node 22 has fetch. /health is 503 when Mongo or Timescale is unreachable.
+      test:
+        - CMD
+        - node
+        - -e
+        - fetch('http://127.0.0.1:'+process.env.PORT+'/health',{signal:AbortSignal.timeout(4000)}).then(r=>process.exit(r.ok?0:1),()=>process.exit(1))
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 90s
+
+  timescaledb:
+    image: timescale/timescaledb-ha:pg17
+    restart: unless-stopped
+    logging: *logging
+    environment:
+      POSTGRES_PASSWORD: ${TIMESCALE_PASSWORD:?set TIMESCALE_PASSWORD in deploy/.env}
+      POSTGRES_DB: hermi
+    volumes:
+      # PGDATA is /home/postgres/pgdata/data in this image.
+      - tsdb_data:/home/postgres/pgdata
+    healthcheck:
+      # TCP, not the socket: the first-run init server listens on the socket only and would report ready too early.
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "postgres", "-d", "hermi"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    logging: *logging
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:-api.hermi.world}
+      ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL in deploy/.env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Certificates and the ACME account: losing these re-issues them and risks Let's Encrypt rate limits.
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+
+volumes:
+  tsdb_data:
+  caddy_data:
+  caddy_config:

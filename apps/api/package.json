@@ -8,6 +8,7 @@
     "start": "tsx src/server.ts",
     "worker": "tsx src/worker.ts",
     "migrate": "tsx --env-file-if-exists=../../.env scripts/migrate.ts",
+    "admin": "tsx --env-file-if-exists=../../.env scripts/admin.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },

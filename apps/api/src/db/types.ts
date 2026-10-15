@@ -8,6 +8,8 @@ export interface GeoPoint {
 export interface UserDoc {
   _id: string;
   appleSub?: string;
+  /** From the Sign in with Apple code exchange; only used to revoke on account deletion. Never serialized or logged. */
+  appleRefreshToken?: string;
   name?: string;
   username?: string;
   photoKey?: string;
@@ -42,4 +44,7 @@ export interface UserDoc {
   tasteDone: boolean;
   createdAt: Date;
   deletedAt?: Date;
+  /** Set by the admin CLI: every authenticated request is refused with 403 BANNED. */
+  bannedAt?: Date;
+  banReason?: string;
 }

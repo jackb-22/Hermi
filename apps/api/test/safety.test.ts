@@ -3,9 +3,10 @@ import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { newId } from '@itp/shared';
-import { afterAll, beforeAll, describe, expect, test } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from 'vitest';
 import { AI_SOURCE_TYPES } from '../src/providers/c2pa.ts';
 import { FakeDetector, OffDetector } from '../src/providers/detector.ts';
+import type { MemoryStorage } from '../src/providers/storage.ts';
 import type { PostDoc } from '../src/services/posts.ts';
 import { reviewReport, scanPhoto } from '../src/services/safety.ts';
 import { checkinWithMedia } from './fixtures/media.ts';
@@ -159,6 +160,178 @@ describe('profile photos', () => {
   });
 });
 
+describe('a replaced profile photo takes its objects with it', () => {
+  type PhotoUser = Awaited<ReturnType<typeof devLogin>>;
+  let who: PhotoUser;
+  let n = 0;
+  const memory = () => t.ctx.providers.storage as MemoryStorage;
+  const uploadAs = (body: Buffer) =>
+    t.app.inject({
+      method: 'POST',
+      url: '/v1/me/photo',
+      headers: { ...who.headers, 'content-type': 'image/jpeg' },
+      payload: body,
+    });
+  /** What the user document points at right now. */
+  const refs = async () => {
+    const d = (await t.ctx.db.collection('users').findOne({ _id: who.id as never }))!;
+    return {
+      live: d.photoKey as string | undefined,
+      review: d.photoReview?.key as string | undefined,
+      origKey: d.photoReview?.origKey as string | undefined,
+      status: d.photoReview?.status as string | undefined,
+    };
+  };
+  /** Every profile-photo object in storage (the renditions under p/ and the originals kept for the scan). */
+  const stored = () =>
+    [...memory().objects.keys()]
+      .filter((k) => k.startsWith('p/') || k.startsWith('orig/profile/'))
+      .sort();
+  /** Runs the scan job to its end: the first poll is still pending, the second answers. */
+  const scan = async (key: string) => {
+    await scanPhoto(t.ctx, { userId: who.id, key }).catch(() => {});
+    await scanPhoto(t.ctx, { userId: who.id, key });
+  };
+
+  beforeEach(async () => {
+    for (const k of stored()) memory().objects.delete(k);
+    who = await devLogin(t.app, `swapper_${++n}`);
+  });
+
+  test('no detector: the second upload goes live and the first photo is deleted', async () => {
+    t.ctx.providers.detector = new OffDetector();
+    expect((await uploadAs(selfie)).statusCode).toBe(200);
+    const first = (await refs()).live!;
+    expect(stored()).toEqual([first]);
+
+    const second = await uploadAs(selfie);
+    expect(second.statusCode).toBe(200);
+    const live = (await refs()).live!;
+    expect(live).not.toBe(first);
+    expect(second.json().photoUrl).toContain(live);
+    expect(stored()).toEqual([live]);
+  });
+
+  test('detector on, both scans pass: the live photo stays until the next one passes, and originals go once scanned', async () => {
+    t.ctx.providers.detector = new FakeDetector();
+    await uploadAs(selfie);
+    const a = await refs();
+    expect(a).toMatchObject({ live: undefined, status: 'scanning' });
+    expect(stored()).toEqual([a.review!, a.origKey!].sort());
+    await scan(a.review!);
+    expect(await refs()).toMatchObject({ live: a.review, review: undefined });
+    expect(stored()).toEqual([a.review]); // the original was only for the scan
+
+    await uploadAs(selfie);
+    const b = await refs();
+    expect(b).toMatchObject({ live: a.review, status: 'scanning' });
+    expect(stored()).toEqual([a.review!, b.review!, b.origKey!].sort()); // the live photo is still shown
+    await scan(b.review!);
+    expect(await refs()).toMatchObject({ live: b.review, review: undefined });
+    expect(stored()).toEqual([b.review]);
+  });
+
+  test('detector on, a second upload before the first scan finishes replaces the pending review, not the live photo', async () => {
+    t.ctx.providers.detector = new OffDetector();
+    await uploadAs(selfie);
+    const live = (await refs()).live!;
+    t.ctx.providers.detector = new FakeDetector();
+
+    await uploadAs(selfie);
+    const a = await refs();
+    await uploadAs(selfie);
+    const b = await refs();
+    expect(b.review).not.toBe(a.review);
+    expect(b.live).toBe(live);
+    expect(stored()).toEqual([live, b.review!, b.origKey!].sort());
+
+    // The scan queued for the first upload finds it replaced and leaves everything as it is.
+    await scanPhoto(t.ctx, { userId: who.id, key: a.review! });
+    expect(stored()).toEqual([live, b.review!, b.origKey!].sort());
+    await scan(b.review!);
+    expect(stored()).toEqual([b.review]);
+  });
+
+  test('scan refused: its objects stay while the app shows the reason, and the next upload clears them', async () => {
+    t.ctx.providers.detector = new OffDetector();
+    await uploadAs(selfie);
+    const live = (await refs()).live!;
+    t.ctx.providers.detector = new FakeDetector();
+
+    await uploadAs(deepfake);
+    const bad = await refs();
+    await scan(bad.review!);
+    expect(await refs()).toMatchObject({ live, review: bad.review, status: 'rejected' });
+    expect(stored()).toEqual([live, bad.review!, bad.origKey!].sort());
+
+    await uploadAs(selfie);
+    const good = await refs();
+    expect(good.review).not.toBe(bad.review);
+    expect(stored()).toEqual([live, good.review!, good.origKey!].sort());
+    await scan(good.review!);
+    expect(stored()).toEqual([good.review]);
+  });
+
+  test('scan refused twice in a row: only the latest refusal is kept', async () => {
+    t.ctx.providers.detector = new FakeDetector();
+    await uploadAs(deepfake);
+    const one = await refs();
+    await scan(one.review!);
+    await uploadAs(deepfake);
+    const two = await refs();
+    await scan(two.review!);
+    expect(await refs()).toMatchObject({ live: undefined, status: 'rejected' });
+    expect(stored()).toEqual([two.review!, two.origKey!].sort());
+  });
+
+  test('a storage failure is logged and never fails the upload or the scan', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const failing = vi.spyOn(memory(), 'delete').mockRejectedValue(new Error('bucket unavailable'));
+    try {
+      t.ctx.providers.detector = new OffDetector();
+      await uploadAs(selfie);
+      const first = (await refs()).live!;
+      const second = await uploadAs(selfie);
+      expect(second.statusCode).toBe(200);
+      expect(second.json().photoUrl).toContain((await refs()).live);
+      expect(stored()).toContain(first); // left behind for a clean-up to find
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining(`could not delete ${first}`));
+
+      t.ctx.providers.detector = new FakeDetector();
+      await uploadAs(selfie);
+      const review = await refs();
+      await scan(review.review!);
+      expect(await refs()).toMatchObject({ live: review.review, review: undefined });
+      expect(stored()).toContain(review.origKey);
+    } finally {
+      failing.mockRestore();
+      warn.mockRestore();
+    }
+  });
+
+  test('only profile-photo keys are ever deleted, whatever a user document says', async () => {
+    t.ctx.providers.detector = new OffDetector();
+    const foreign = [
+      'r/a-clip-rendition.mp4',
+      'orig/profile/someone-else/x.jpg',
+      'orig/me/cap.jpg',
+    ];
+    for (const k of foreign) await memory().put(k, Buffer.from('keep'), 'image/jpeg');
+    await t.ctx.db.collection('users').updateOne(
+      { _id: who.id as never },
+      {
+        $set: {
+          photoKey: foreign[0],
+          photoReview: { key: foreign[1], origKey: foreign[2], status: 'rejected', at: new Date() },
+        },
+      },
+    );
+    expect((await uploadAs(selfie)).statusCode).toBe(200);
+    for (const k of foreign) expect(await memory().get(k), k).not.toBeNull();
+    for (const k of foreign) memory().objects.delete(k);
+  });
+});
+
 describe('reported posts', () => {
   const livePost = async (text?: string, photoBytes?: Buffer) => {
     const [p] = await insertPlaces(t.ctx.db, [
@@ -222,6 +395,34 @@ describe('reported posts', () => {
       status: 'removed',
       moderationReason: 'Reported by 3 people',
     });
+  });
+
+  test('Gemini down: three reporters still take the post down; fewer retry and the post stays up', async () => {
+    t.ctx.providers.detector = new OffDetector();
+    const down = vi
+      .spyOn(t.ctx.providers.llm, 'moderate')
+      .mockRejectedValue(new Error('gemini 503'));
+    try {
+      const few = await livePost('Fine text');
+      await report(few);
+      await report(few);
+      await expect(reviewReport(t.ctx, { postId: few })).rejects.toThrow(/503/);
+      expect(await status(few)).toBe('live');
+      expect(await t.ctx.db.collection('reports').findOne({ postId: few })).toMatchObject({
+        status: 'open',
+      });
+
+      const many = await livePost('Fine text');
+      for (let i = 0; i < 3; i++) await report(many);
+      await reviewReport(t.ctx, { postId: many });
+      expect(await t.ctx.db.collection<PostDoc>('posts').findOne({ _id: many })).toMatchObject({
+        status: 'removed',
+        moderationReason: 'Reported by 3 people',
+      });
+      expect(down).toHaveBeenCalledTimes(2);
+    } finally {
+      down.mockRestore();
+    }
   });
 
   test('Reality Defender flags manipulated media on a reported post', async () => {

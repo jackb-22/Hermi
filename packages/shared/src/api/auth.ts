@@ -44,6 +44,20 @@ export const AuthResponse = z.object({
 
 export const AppleAuthBody = z.object({
   identityToken: z.string().min(10).describe('identityToken from Sign in with Apple'),
+  nonce: z
+    .string()
+    .min(16)
+    .max(256)
+    .describe(
+      'The raw random nonce (not hashed). Set request.nonce to its SHA-256, lowercase hex, before showing the Apple sheet; Apple copies that hash into the identity token and we check it',
+    ),
+  authorizationCode: z
+    .string()
+    .min(1)
+    .max(2048)
+    .describe(
+      "authorizationCode from the Apple credential, as a string. Single-use and valid 5 minutes: send it with the sign-in request; we trade it for Apple's refresh token",
+    ),
   name: z.string().max(80).optional().describe('Full name; Apple only sends it on first sign-in'),
 });
 
@@ -53,7 +67,14 @@ export const DevAuthBody = z.object({
 });
 
 export const EduStartBody = z.object({
-  email: z.email(),
+  email: z
+    .email()
+    .describe(
+      'A Columbia or Barnard address: columbia.edu, barnard.edu or a subdomain of either (cumc.columbia.edu). ' +
+        'Anything else is 400 EDU_DOMAIN_NOT_ALLOWED. A +tag is ignored (uni+1@columbia.edu is uni@columbia.edu), ' +
+        'and one school email verifies one account: another account holding it is 409 EDU_EMAIL_TAKEN. ' +
+        'Sends are limited per account and per IP: 429 RATE_LIMITED.',
+    ),
   gradYear: z.number().int().min(2000).max(2040),
 });
 export const EduStartResponse = z.object({
@@ -76,4 +97,15 @@ export const PatchMeBody = z.object({
   openToPlans: z.boolean().optional(),
 });
 
-export const PushTokenBody = z.object({ token: z.string().min(10).max(200) });
+/** An APNs device token: hex of 32 to 100 bytes. Apple has said the length may change, so no fixed 64. */
+export const APNS_TOKEN_RE = /^(?:[0-9a-f]{2}){32,100}$/i;
+
+export const PushTokenBody = z.object({
+  token: z
+    .string()
+    .regex(APNS_TOKEN_RE)
+    .describe(
+      'The APNs device token as hex (application(_:didRegisterForRemoteNotificationsWithDeviceToken:), each byte as two hex digits). ' +
+        'Debug builds from Xcode give sandbox tokens, which only work against a server with APNS_SANDBOX=1.',
+    ),
+});

@@ -5,24 +5,36 @@
  * Only places inside the five boroughs are kept (tile lookup in services/boroughs.ts, water excluded),
  * so a bbox that clips New Jersey or Nassau imports nothing from them.
  *
+ * Demo Hall (the demo table's live check-in venue) is added only with --demo-hall, so a production re-import
+ * cannot bring it back; with the flag the script refuses NODE_ENV=production and MONGO_DB=hermi.
+ *
  *   uvx --python 3.12 overturemaps download --no-stac --bbox=-74.26,40.49,-73.70,40.92 \
  *     -f geojsonseq --type=place -o apps/api/data/nyc_places.geojsonseq
- *   pnpm --filter @itp/api exec tsx --env-file=../../.env scripts/import-overture.ts data/nyc_places.geojsonseq
+ *   pnpm --filter @itp/api exec tsx --env-file=../../.env scripts/import-overture.ts data/nyc_places.geojsonseq [--demo-hall]
  */
 import { createReadStream } from 'node:fs';
 import { createInterface } from 'node:readline';
+import { parseArgs } from 'node:util';
 import { latLngToTile, newId } from '@itp/shared';
 import type { AnyBulkWriteOperation } from 'mongodb';
 import { closeContext, createContext, ensureSchema } from '../src/boot.ts';
+import { loadConfig } from '../src/config.ts';
 import type { PlaceDoc } from '../src/db/placeTypes.ts';
 import { mapOvertureCategory } from '../src/domain/overtureCategories.ts';
 import { boroughOf } from '../src/services/boroughs.ts';
+import { refuseFakeData } from './lib/noFakeData.ts';
 
 const MIN_CONFIDENCE = 0.6;
-const file = process.argv[2];
-if (!file) throw new Error('usage: import-overture.ts <file.geojsonseq>');
+const { positionals, values } = parseArgs({
+  allowPositionals: true,
+  options: { 'demo-hall': { type: 'boolean', default: false } },
+});
+const file = positionals[0];
+if (!file) throw new Error('usage: import-overture.ts <file.geojsonseq> [--demo-hall]');
 
-const ctx = await createContext();
+const config = loadConfig();
+if (values['demo-hall']) refuseFakeData('import-overture.ts --demo-hall', config);
+const ctx = await createContext(config);
 await ensureSchema(ctx);
 const places = ctx.db.collection<PlaceDoc>('places');
 
@@ -85,29 +97,31 @@ for await (const raw of rl) {
 }
 await flush();
 
-// The live check-in at the demo table needs a place at the venue's coordinates.
-const hallLat = Number(process.env.DEMO_HALL_LAT ?? 40.8069);
-const hallLng = Number(process.env.DEMO_HALL_LNG ?? -73.9639);
-await places.updateOne(
-  { overtureId: 'demo-hall' },
-  {
-    $set: {
-      name: 'Demo Hall',
-      category: 'culture',
-      tags: ['indoor'],
-      adultOnly: false,
-      confidence: 1,
-      loc: { type: 'Point', coordinates: [hallLng, hallLat] },
+// The live check-in at the demo table needs a place at the venue's coordinates. Opt-in: production has none.
+if (values['demo-hall']) {
+  const hallLat = Number(process.env.DEMO_HALL_LAT ?? 40.8069);
+  const hallLng = Number(process.env.DEMO_HALL_LNG ?? -73.9639);
+  await places.updateOne(
+    { overtureId: 'demo-hall' },
+    {
+      $set: {
+        name: 'Demo Hall',
+        category: 'culture',
+        tags: ['indoor'],
+        adultOnly: false,
+        confidence: 1,
+        loc: { type: 'Point', coordinates: [hallLng, hallLat] },
+      },
+      $setOnInsert: {
+        _id: newId(),
+        been: 0,
+        wouldGoAgain: { yes: 0, total: 0 },
+        createdAt: new Date(),
+      },
     },
-    $setOnInsert: {
-      _id: newId(),
-      been: 0,
-      wouldGoAgain: { yes: 0, total: 0 },
-      createdAt: new Date(),
-    },
-  },
-  { upsert: true },
-);
+    { upsert: true },
+  );
+}
 
 const byCat = await places
   .aggregate([{ $group: { _id: '$category', n: { $sum: 1 } } }, { $sort: { n: -1 } }])

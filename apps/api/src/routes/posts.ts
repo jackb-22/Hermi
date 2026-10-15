@@ -13,14 +13,22 @@ import {
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import type { Filter } from 'mongodb';
 import { z } from 'zod';
-import { enqueue } from '../jobs/queue.ts';
 import { authed, bearer } from '../plugins/auth.ts';
+import { isReviewCampus } from '../services/eduEmail.ts';
 import { getCheckin, media } from '../services/media.ts';
 import { remember } from '../services/memory.ts';
 import { places } from '../services/places.ts';
-import { enqueueReviewSummary, hydratePosts, type PostDoc, posts } from '../services/posts.ts';
+import {
+  enqueueModeration,
+  enqueueReviewSummary,
+  hydratePosts,
+  type PostDoc,
+  posts,
+} from '../services/posts.ts';
+import { fileReport } from '../services/reports.ts';
 import { sessions } from '../services/sessions.ts';
-import { blockedIds } from '../services/social.ts';
+import { blockedIds, endTies, friendIds, reviewerIds } from '../services/social.ts';
+import { users } from '../services/users.ts';
 import { errs } from './_util.ts';
 
 const IdParams = z.object({ id: z.string() });
@@ -33,13 +41,7 @@ export const postRoutes: FastifyPluginAsyncZod = async (app) => {
   const publish = async (doc: PostDoc) => {
     await posts(db).insertOne(doc);
     await media(db).updateMany({ _id: { $in: doc.mediaIds } }, { $set: { posted: true } });
-    // Clips wait for their rendition; 8 attempts of exponential backoff give the worker several minutes.
-    await enqueue(
-      app.ctx,
-      'moderate_post',
-      { postId: doc._id },
-      { dedupeKey: `moderate:${doc._id}`, maxAttempts: 8 },
-    );
+    await enqueueModeration(app.ctx, doc._id);
     return one(doc);
   };
 
@@ -257,11 +259,30 @@ export const postRoutes: FastifyPluginAsyncZod = async (app) => {
     },
   );
 
+  /** The reviewers this viewer has no friendship with. Friends are read only if there are reviewers. */
+  const unfriendedReviewers = async (viewerId: string) => {
+    const reviewers = await reviewerIds(db);
+    if (!reviewers.length) return [];
+    const friends = new Set(await friendIds(db, viewerId));
+    return reviewers.filter((id) => !friends.has(id));
+  };
+
+  /**
+   * What a viewer may read. App Review accounts and students stay apart, except through a friendship
+   * (a friend is there by consent, in practice the team account, REVIEW_FRIEND_ID): a real viewer
+   * sees no reviewer's posts unless they are friends, and a reviewer sees only their own and their
+   * friends'. Every post read goes through here, so the place sheet and ?authorId= cannot get
+   * around it.
+   */
   const visible = async (viewerId: string): Promise<Filter<PostDoc>> => {
     const blocked = await blockedIds(db, viewerId);
+    const viewer = await users(db).findOne({ _id: viewerId }, { projection: { campus: 1 } });
+    const authors = isReviewCampus(viewer?.campus)
+      ? { $in: [viewerId, ...(await friendIds(db, viewerId))], $nin: blocked }
+      : { $nin: [...blocked, ...(await unfriendedReviewers(viewerId))] };
     return {
       hiddenFrom: { $ne: viewerId },
-      authorId: { $nin: blocked },
+      authorId: authors,
       $or: [{ status: 'live' }, { authorId: viewerId, status: 'pending' }],
     };
   };
@@ -344,36 +365,14 @@ export const postRoutes: FastifyPluginAsyncZod = async (app) => {
       schema: {
         tags: ['safety'],
         summary:
-          'Report a post or a user. A reported post disappears for you at once and is queued for review.',
+          'Report a post or a user. A reported post disappears for you at once and is queued for review; the team is emailed about every report.',
         security: bearer,
         body: ReportBody,
-        response: { 200: OkSchema, ...errs(400, 401) },
+        response: { 200: OkSchema, ...errs(400, 401, 404, 429) },
       },
     },
     async (req) => {
-      if (!req.body.postId && !req.body.userId)
-        throw new ApiError(400, 'BAD_REQUEST', 'postId or userId required');
-      if (req.body.postId)
-        await posts(db).updateOne(
-          { _id: req.body.postId },
-          { $addToSet: { hiddenFrom: req.userId } },
-        );
-      await db.collection('reports').insertOne({
-        _id: newId() as never,
-        reporterId: req.userId,
-        postId: req.body.postId,
-        userId: req.body.userId,
-        reason: req.body.reason,
-        status: 'open',
-        createdAt: clock.now(),
-      });
-      if (req.body.postId)
-        await enqueue(
-          app.ctx,
-          'review_report',
-          { postId: req.body.postId },
-          { dedupeKey: `report:${req.body.postId}` },
-        );
+      await fileReport(app.ctx, req.userId, req.body);
       return { ok: true as const };
     },
   );
@@ -384,7 +383,8 @@ export const postRoutes: FastifyPluginAsyncZod = async (app) => {
       ...authed,
       schema: {
         tags: ['safety'],
-        summary: 'Block a user (both directions disappear)',
+        summary:
+          'Block a user: both directions disappear, any friendship ends (unblocking does not restore it) and invites waiting between you are withdrawn',
         security: bearer,
         body: BlockBody,
         response: { 200: OkSchema, ...errs(400, 401) },
@@ -400,6 +400,7 @@ export const postRoutes: FastifyPluginAsyncZod = async (app) => {
           { $setOnInsert: { createdAt: clock.now() } },
           { upsert: true },
         );
+      await endTies(db, req.userId, req.body.userId);
       return { ok: true as const };
     },
   );

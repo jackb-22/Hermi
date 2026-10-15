@@ -100,7 +100,7 @@ async function finish(ctx: AppContext, job: JobDoc, err?: unknown) {
 }
 
 /**
- * Jobs one worker runs at a time. Most jobs wait on the network (Gemini, Reality Defender polls, Expo, S3), so one
+ * Jobs one worker runs at a time. Most jobs wait on the network (Gemini, Reality Defender polls, APNs, S3), so one
  * slow job must not hold up a recap behind it; claims are atomic, so loops never share a job.
  */
 export const WORKER_CONCURRENCY = 4;

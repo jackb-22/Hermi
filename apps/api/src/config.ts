@@ -7,6 +7,14 @@ const optStr = z
   .string()
   .optional()
   .transform((v) => (v ? v : undefined));
+/** Like optStr, and surrounding whitespace is dropped (a pasted code or address often has some). */
+const optTrimmed = z
+  .string()
+  .optional()
+  .transform((v) => v?.trim() || undefined);
+
+/** Local development only: a production boot refuses it (productionGaps). */
+export const DEV_JWT_SECRET = 'dev-secret-change-me-please-32chars!!';
 
 const Env = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -14,7 +22,8 @@ const Env = z.object({
   HOST: z.string().default('0.0.0.0'),
   LOG_LEVEL: z.string().default('info'),
   PUBLIC_BASE_URL: z.string().url().default('http://localhost:3000'),
-  JWT_SECRET: z.string().min(16).default('dev-secret-change-me-please-32chars!!'),
+  /** Blank counts as unset, so an unfilled env template gets the boot check's message, not a zod error. */
+  JWT_SECRET: optStr.pipe(z.string().min(16).default(DEV_JWT_SECRET)),
   DEV_ROUTES: bool.default(false),
   /** Required (as header x-dev-token) for dev routes on any deployment; share it only with the team. */
   DEV_TOKEN: optStr,
@@ -46,8 +55,13 @@ const Env = z.object({
 
   APPLE_TEAM_ID: optStr,
   APPLE_BUNDLE_ID: optStr,
+  /** The one .p8 (PEM, literal \n allowed) shared by Sign in with Apple (client secret for code exchange and revocation) and APNs (provider token). */
+  APPLE_AUTH_KEY_ID: optStr,
+  APPLE_AUTH_PRIVATE_KEY: optStr,
   APPLE_MAPS_KEY_ID: optStr,
   APPLE_MAPS_PRIVATE_KEY: optStr,
+  /** Send pushes through APNs's sandbox: Xcode debug builds register sandbox tokens; TestFlight and App Store builds use production. */
+  APNS_SANDBOX: bool.default(false),
   WEATHERKIT_KEY_ID: optStr,
   WEATHERKIT_PRIVATE_KEY: optStr,
 
@@ -66,13 +80,82 @@ const Env = z.object({
   REALITY_DEFENDER_KEY: optStr,
   RESEND_API_KEY: optStr,
   EMAIL_FROM: optStr,
+  /**
+   * App Review sign-in (docs/DEPLOYMENT.md T6): this address takes this 6-digit code in place of a
+   * school inbox, and its account gets the campus "App Review". Both or neither; unset is off.
+   */
+  REVIEW_EMAIL: optTrimmed.pipe(
+    z
+      .email()
+      .transform((v) => v.toLowerCase())
+      .optional(),
+  ),
+  REVIEW_CODE: optTrimmed.pipe(
+    z
+      .string()
+      .regex(/^\d{6}$/, 'REVIEW_CODE must be exactly 6 digits')
+      .optional(),
+  ),
+  /**
+   * The team's own account (a user id). Each reviewer who verifies becomes its friend, so their
+   * Feed has real posts and plans to try Report and Block on. Without REVIEW_EMAIL it does nothing.
+   */
+  REVIEW_FRIEND_ID: optTrimmed,
+  /** Where every user report is emailed (App Store 1.2: a person reads each one). Forwarded to both founders. */
+  REPORTS_EMAIL_TO: z
+    .string()
+    .optional()
+    .transform((v) => v || 'support@hermi.world'),
+});
+
+/** Env plus the rules that span fields. */
+const CheckedEnv = Env.refine((e) => !e.REVIEW_EMAIL === !e.REVIEW_CODE, {
+  message: 'REVIEW_EMAIL and REVIEW_CODE must be set together (or both left empty)',
+  path: ['REVIEW_CODE'],
 });
 
 export type Config = z.infer<typeof Env> & { devRoutes: boolean };
 
 export function loadConfig(env: Record<string, string | undefined> = process.env): Config {
-  const c = Env.parse(env);
+  const c = CheckedEnv.parse(env);
   // Served by the API: every public media URL (renditions, profile photos) is /media/<key> on this server.
   if (c.MEDIA_DELIVERY === 'api') c.CDN_BASE_URL = `${c.PUBLIC_BASE_URL.replace(/\/$/, '')}/media`;
   return { ...c, devRoutes: c.DEV_ROUTES || c.NODE_ENV !== 'production' };
+}
+
+/** Without these, production would not fail but quietly downgrade, so production refuses to boot without them. */
+const PRODUCTION_KEYS = [
+  'APPLE_TEAM_ID',
+  'APPLE_BUNDLE_ID',
+  'APPLE_AUTH_KEY_ID',
+  'APPLE_AUTH_PRIVATE_KEY',
+  'GEMINI_API_KEY',
+  'RESEND_API_KEY',
+  'EMAIL_FROM',
+  'S3_ENDPOINT',
+  'S3_KEY',
+  'S3_SECRET',
+] as const;
+
+/**
+ * Why this config must not serve real users (empty outside production). Each gap would silently downgrade
+ * instead of failing: anyone could mint tokens, sign in as anyone, codes would only be logged, media held in
+ * memory, moderation and push faked, and links would point at localhost.
+ */
+export function productionGaps(c: Config): string[] {
+  if (c.NODE_ENV !== 'production') return [];
+  const gaps: string[] = [];
+  if (c.JWT_SECRET === DEV_JWT_SECRET) gaps.push('JWT_SECRET is the built-in development secret');
+  if (c.DEV_ROUTES || c.DEV_TOKEN) gaps.push('DEV_ROUTES and DEV_TOKEN must be unset');
+  if (c.FAKE_PROVIDERS) gaps.push('FAKE_PROVIDERS must be 0');
+  if (new URL(c.PUBLIC_BASE_URL).protocol !== 'https:') gaps.push('PUBLIC_BASE_URL must be https');
+  const missing = PRODUCTION_KEYS.filter((k) => !c[k]);
+  if (missing.length) gaps.push(`missing ${missing.join(', ')}`);
+  return gaps;
+}
+
+/** Server and worker call this before connecting, so a bad production env stops boot with the reasons. */
+export function assertBootable(c: Config) {
+  const gaps = productionGaps(c);
+  if (gaps.length) throw new Error(`Refusing to start in production:\n- ${gaps.join('\n- ')}`);
 }

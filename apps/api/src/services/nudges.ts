@@ -1,6 +1,7 @@
 import { weekIndex, weekKey } from '@itp/shared';
 import type { AppContext } from '../context.ts';
 import type { UserDoc } from '../db/types.ts';
+import { safeDisplayName } from '../domain/nameFilter.ts';
 import { displayStreak } from '../domain/streak.ts';
 import { nyLocal, nyLocalToUtc } from '../domain/weatherDay.ts';
 import { enqueue, type JobDoc } from '../jobs/queue.ts';
@@ -49,8 +50,7 @@ export async function nudgeFor(ctx: AppContext, u: UserDoc): Promise<PushMessage
   for (const l of lapsing) {
     const friend = await users(ctx.db).findOne({ _id: l.friendId, deletedAt: { $exists: false } });
     if (!friend) continue;
-    const name =
-      friend.name?.split(' ')[0] ?? (friend.username ? `@${friend.username}` : 'your friend');
+    const name = safeDisplayName(friend, { none: 'your friend', first: true });
     return {
       title: `Your ${l.s.weeks}-week streak with ${name} ends Sunday`,
       body: 'Make a plan to keep it going.',

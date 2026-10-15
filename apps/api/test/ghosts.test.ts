@@ -263,13 +263,13 @@ describe('plan ghosts', () => {
       method: 'POST',
       url: '/v1/ghosts/skip',
       headers: u.headers,
-      payload: { placeIds: [ids['Gym']], planId: plan.id },
+      payload: { placeIds: [ids.Gym], planId: plan.id },
     });
     expect(s.statusCode).toBe(200);
     expect(
       await t.ctx.db
         .collection('behavior_events')
-        .findOne({ userId: u.id, kind: 'ghost_skipped', placeId: ids['Gym'] }),
+        .findOne({ userId: u.id, kind: 'ghost_skipped', placeId: ids.Gym }),
     ).toMatchObject({ category: 'sports' });
   });
 });

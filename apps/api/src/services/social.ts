@@ -1,11 +1,13 @@
-import { haversineM, type LatLng, newId } from '@itp/shared';
+import { ApiError, haversineM, type LatLng, newId } from '@itp/shared';
 import type { StreakSchema, UserCardSchema } from '@itp/shared/api';
 import type { Db } from 'mongodb';
 import type { z } from 'zod';
 import type { AppContext } from '../context.ts';
 import type { UserDoc } from '../db/types.ts';
 import { applyHangout, displayStreak, newStreak, type StreakState } from '../domain/streak.ts';
-import { publicUrl } from './users.ts';
+import { REVIEW_CAMPUS } from './eduEmail.ts';
+import { plans } from './plans.ts';
+import { publicUrl, users } from './users.ts';
 
 export interface FriendshipDoc {
   _id: string; // "a:b" with a < b
@@ -36,7 +38,80 @@ export async function blockedIds(db: Db, userId: string): Promise<string[]> {
   return rows.map((b) => (b.blocker === userId ? b.blocked : b.blocker));
 }
 
+/**
+ * Everyone verified through the App Review path. Real users are not shown them among strangers, only
+ * as friends (and they are shown no strangers): the Feed's nearby posts and the post reads filter on
+ * this. A few rows per App Store submission, found through the `campus` index.
+ */
+export async function reviewerIds(db: Db): Promise<string[]> {
+  const rows = await users(db)
+    .find({ campus: REVIEW_CAMPUS }, { projection: { _id: 1 } })
+    .toArray();
+  return rows.map((u) => u._id);
+}
+
+/**
+ * Another person's profile data (header, Score) is open to any signed-in user, except a deleted account or one
+ * blocked in either direction. Both read as "no such user", the same as an id that never existed.
+ */
+export async function visibleUser(db: Db, viewerId: string, id: string): Promise<UserDoc> {
+  const u = await users(db).findOne({ _id: id, deletedAt: { $exists: false } });
+  if (!u || (id !== viewerId && (await blockedIds(db, viewerId)).includes(id)))
+    throw new ApiError(404, 'NOT_FOUND', 'No such user');
+  return u;
+}
+
 export const friendships = (db: Db) => db.collection<FriendshipDoc>('friendships');
+
+/**
+ * What a block cuts, beyond hiding the two from each other: the friendship (unblocking does not bring it back, and a
+ * new one starts a new streak), and the invites and join requests waiting on either one's plans, which could no longer
+ * be accepted anyway. The hangouts log in Tiger is kept: it is only read next to a friendship.
+ */
+export async function endTies(db: Db, x: string, y: string) {
+  const waiting = { $in: ['invited', 'requested'] as ('invited' | 'requested')[] };
+  const withdraw = (hostId: string, guestId: string) =>
+    plans(db).updateMany(
+      { hostId, members: { $elemMatch: { userId: guestId, status: waiting } } },
+      { $pull: { members: { userId: { $eq: guestId }, status: waiting } } },
+    );
+  await Promise.all([
+    friendships(db).deleteOne({ _id: pairKey(x, y) }),
+    withdraw(x, y),
+    withdraw(y, x),
+  ]);
+}
+
+export type BefriendOutcome = 'made' | 'exists' | 'unavailable' | 'blocked';
+
+/**
+ * App Review: a new reviewer gets one real friend, the team's own account (REVIEW_FRIEND_ID), so
+ * their Feed has real posts and plans to try Report and Block on (App Store 1.2). Idempotent: an
+ * existing friendship is left exactly as it is. It is stored as logHangout would, but with no
+ * hangout counted and no streak, since none happened. Skipped, not thrown, when the account is
+ * missing, deleted or banned ("unavailable"), or when either side has blocked the other.
+ */
+export async function befriendReviewer(
+  db: Db,
+  reviewerId: string,
+  teamId: string,
+  now: Date,
+): Promise<BefriendOutcome> {
+  if (reviewerId === teamId) return 'unavailable';
+  const team = await users(db).findOne(
+    { _id: teamId, deletedAt: { $exists: false }, bannedAt: { $exists: false } },
+    { projection: { _id: 1 } },
+  );
+  if (!team) return 'unavailable';
+  if ((await blockedIds(db, reviewerId)).includes(teamId)) return 'blocked';
+  const [a, b] = reviewerId < teamId ? [reviewerId, teamId] : [teamId, reviewerId];
+  const r = await friendships(db).updateOne(
+    { _id: pairKey(a, b) },
+    { $setOnInsert: { a, b, since: now, hangouts: 0, streakWeeks: 0, lastHangoutWeek: 0 } },
+    { upsert: true },
+  );
+  return r.upsertedCount ? 'made' : 'exists';
+}
 
 export function toUserCard(u: UserDoc, c: AppContext['config']): z.infer<typeof UserCardSchema> {
   return {
@@ -105,6 +180,11 @@ export async function logHangout(
 
 export const TAP_WINDOW_MS = 120_000;
 export const TAP_RADIUS_M = 50;
+/**
+ * How long after your tap you may still poll that person's card (GET /taps/pending): the 2-minute window, plus the
+ * 10 minutes a tap's own time may be off the server clock (POST /taps accepts that much).
+ */
+export const PENDING_LOOKBACK_MS = TAP_WINDOW_MS + 10 * 60_000;
 
 /** Finds the reciprocal personal-tag read: the tag's owner read the reader's tag within 2 minutes and 50 m. */
 export async function findReciprocal(

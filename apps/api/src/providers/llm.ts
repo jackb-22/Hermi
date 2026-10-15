@@ -1,6 +1,7 @@
 import { type Content, type GenerateContentParameters, GoogleGenAI } from '@google/genai';
 import { DEFAULT_STAY_MIN, type LatLng, type PinType } from '@itp/shared';
 import type { Config } from '../config.ts';
+import { checkName } from '../domain/nameFilter.ts';
 import { clampStay } from '../domain/schedule.ts';
 
 /** A function tool the model may call: JSON-schema parameters, executed by our code. */
@@ -67,6 +68,7 @@ export interface Llm {
    * or fewer. Returns candidate ids only: unknown ids are dropped and missing ones keep code's order.
    */
   rerankGhosts(cands: GhostCandidate[], context: string): Promise<{ id: string; label: string }[]>;
+  /** Throws when it cannot decide: the one method with no fallback, because "unknown" must never read as "allowed". */
   moderate(o: {
     text?: string;
     images?: { mimeType: string; data: Buffer }[];
@@ -323,7 +325,9 @@ ${stops.map((s) => `- id=${s.id} "${s.name}" (${s.category}) arriving ${s.arriva
         [],
         5000,
       );
-      return sixWords(out.name);
+      // The name goes on the public /p/ page: one that fails the name filter is replaced, not shown.
+      const name = sixWords(out.name);
+      return checkName(name, 'planName').ok ? name : this.fallback.planName(names);
     } catch {
       return this.fallback.planName(names);
     }
@@ -379,27 +383,29 @@ ${cands.map((c) => `- id=${c.id} "${c.name}" (${c.category}; ${c.tags.join(', ')
     }
   }
 
+  /**
+   * Fails closed: an outage, a timeout or an answer without a verdict throws. The moderation job retries, and a post
+   * that never gets a verdict stays pending for a person (admin CLI) instead of going live unchecked.
+   */
   async moderate(o: { text?: string; images?: { mimeType: string; data: Buffer }[] }) {
-    try {
-      const parts = (o.images ?? []).map((i) => ({
-        inlineData: { mimeType: i.mimeType, data: i.data.toString('base64') },
-      }));
-      return await this.json<ModerationResult>(
-        `You moderate a social app where people post photos, short clips and reviews from places they visited. Decide if this content is allowed.
+    const parts = (o.images ?? []).map((i) => ({
+      inlineData: { mimeType: i.mimeType, data: i.data.toString('base64') },
+    }));
+    const verdict = await this.json<ModerationResult | null>(
+      `You moderate a social app where people post photos, short clips and reviews from places they visited. Decide if this content is allowed.
 Disallow: sexual content, graphic violence, hate or harassment, doxxing, illegal activity, self-harm. Allow ordinary nightlife, food, crowds and mild language.
 Text: ${JSON.stringify(o.text ?? '')}`,
-        {
-          type: 'object',
-          properties: { allowed: { type: 'boolean' }, reason: { type: 'string' } },
-          required: ['allowed', 'reason'],
-        },
-        parts,
-        20_000,
-      );
-    } catch (e) {
-      // Fail open for the demo, but say so in the reason so it is visible in logs and the review queue.
-      return { allowed: true, reason: `moderation unavailable: ${(e as Error).message}` };
-    }
+      {
+        type: 'object',
+        properties: { allowed: { type: 'boolean' }, reason: { type: 'string' } },
+        required: ['allowed', 'reason'],
+      },
+      parts,
+      20_000,
+    );
+    // An empty or blocked response parses as null; never read that as "allowed" or "rejected".
+    if (typeof verdict?.allowed !== 'boolean') throw new Error('moderation returned no verdict');
+    return verdict;
   }
 }
 

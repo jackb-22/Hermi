@@ -1,13 +1,16 @@
 import { ApiError } from '@itp/shared';
 import { MeSchema, OkSchema, PatchMeBody, PushTokenBody } from '@itp/shared/api';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
+import { assertNameAllowed } from '../domain/nameFilter.ts';
 import { authed, bearer, requireAuth } from '../plugins/auth.ts';
+import { queueAccountErasure } from '../services/accountErasure.ts';
+import { queueAppleRevoke } from '../services/appleRevoke.ts';
 import { uploadProfilePhoto } from '../services/safety.ts';
 import { getUser, isDupKey, toMe, users } from '../services/users.ts';
 import { errs } from './_util.ts';
 
 export const meRoutes: FastifyPluginAsyncZod = async (app) => {
-  const { db, config, clock } = app.ctx;
+  const { db, config, clock, providers } = app.ctx;
 
   app.get(
     '/me',
@@ -25,6 +28,8 @@ export const meRoutes: FastifyPluginAsyncZod = async (app) => {
       schema: {
         tags: ['me'],
         summary: 'Edit profile fields and settings (ghost mode, open to plans)',
+        description:
+          'A username or name that fails the name filter (profanity, or one that passes for Hermi, staff or the schools) is 400 NAME_NOT_ALLOWED; the message does not say why. Sending your current username or name again is fine.',
         security: bearer,
         body: PatchMeBody,
         response: { 200: MeSchema, ...errs(400, 401, 409) },
@@ -34,6 +39,14 @@ export const meRoutes: FastifyPluginAsyncZod = async (app) => {
       try {
         // photoKey is ignored: photos arrive through POST /me/photo, which scans them first.
         const { photoKey: _ignored, ...fields } = req.body;
+        // An unchanged name or username passes, so an account from before the filter can still edit its other fields.
+        if (fields.username !== undefined || fields.name !== undefined) {
+          const current = await getUser(db, req.userId);
+          if (fields.username !== undefined && fields.username !== current.username)
+            assertNameAllowed(fields.username, 'username');
+          if (fields.name !== undefined && fields.name !== current.name)
+            assertNameAllowed(fields.name, 'displayName');
+        }
         await users(db).updateOne({ _id: req.userId }, { $set: fields });
       } catch (e) {
         if (isDupKey(e)) throw new ApiError(409, 'USERNAME_TAKEN', 'Username is taken');
@@ -88,14 +101,23 @@ export const meRoutes: FastifyPluginAsyncZod = async (app) => {
       ...authed,
       schema: {
         tags: ['me'],
-        summary: 'Register an Expo push token',
+        summary: 'Register an APNs device token',
         security: bearer,
         body: PushTokenBody,
         response: { 200: OkSchema },
       },
     },
     async (req) => {
-      await users(db).updateOne({ _id: req.userId }, { $addToSet: { pushTokens: req.body.token } });
+      // Lowercased so a client that formats the hex in capitals cannot register one device twice.
+      const token = req.body.token.toLowerCase();
+      // A device belongs to whoever registered it last: after a sign-out and another sign-in on the
+      // same phone, the first account must stop getting its invites and nudges there. Pull before
+      // adding so a crash in between leaves the token on nobody (the app re-registers) rather than two.
+      await users(db).updateMany(
+        { _id: { $ne: req.userId }, pushTokens: token },
+        { $pull: { pushTokens: token } },
+      );
+      await users(db).updateOne({ _id: req.userId }, { $addToSet: { pushTokens: token } });
       return { ok: true as const };
     },
   );
@@ -107,21 +129,52 @@ export const meRoutes: FastifyPluginAsyncZod = async (app) => {
       schema: {
         tags: ['me'],
         summary: 'Delete account',
+        description:
+          'Signs the account out at once and hides it. A background job then erases the profile, posts, photos, plans, ' +
+          'friendships, check-ins and location history; only an empty placeholder with the id is kept.',
         security: bearer,
         response: { 200: OkSchema },
       },
     },
     async (req) => {
+      // Apple requires revoking Sign in with Apple when the account is deleted. Try now. If Apple refuses,
+      // the user is deleted anyway and the token stays on the doc for a job that retries (appleRevoke.ts).
+      const stored = await users(db).findOne(
+        { _id: req.userId },
+        { projection: { appleRefreshToken: 1 } },
+      );
+      let revoked = true;
+      if (stored?.appleRefreshToken) {
+        try {
+          await providers.appleIdentity.revoke(stored.appleRefreshToken);
+        } catch (e) {
+          revoked = false;
+          req.log.warn(
+            { userId: req.userId, reason: (e as Error).message },
+            'Apple token revocation failed; deleting the account and retrying from the queue',
+          );
+        }
+      }
       await users(db).updateOne(
         { _id: req.userId },
         {
           $set: { deletedAt: clock.now(), openToPlans: false, ghostMode: true },
-          $unset: { username: '', appleSub: '', pushTokens: '' },
+          $unset: {
+            username: '',
+            appleSub: '',
+            pushTokens: '',
+            // The school email can verify a new account.
+            eduEmailHash: '',
+            ...(revoked ? { appleRefreshToken: '' } : {}),
+          },
         },
       );
+      if (!revoked) await queueAppleRevoke(app.ctx, req.userId);
       await db
         .collection('posts')
         .updateMany({ authorId: req.userId }, { $set: { status: 'removed' } });
+      // The hiding above is instant; the erase of everything else is a job because storage deletes can fail.
+      await queueAccountErasure(app.ctx, req.userId);
       return { ok: true as const };
     },
   );

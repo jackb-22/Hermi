@@ -155,6 +155,13 @@ describe('saves and folders', () => {
         payload: { name: 'Pal plan', stops: [{ placeId: ids[0] }, { placeId: ids[2] }] },
       })
     ).json();
+    // Friends can copy a plan shared with friends; a private one is 404 (see access.test.ts).
+    await t.app.inject({
+      method: 'POST',
+      url: `/v1/plans/${theirs.id}/save`,
+      headers: pal.headers,
+      payload: { visibility: 'friends' },
+    });
     const r = (
       await t.app.inject({
         method: 'POST',

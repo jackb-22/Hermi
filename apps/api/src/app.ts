@@ -25,7 +25,10 @@ export async function buildApp(ctx: AppContext): Promise<FastifyInstance> {
   registerHooks();
   const app = Fastify({
     logger: ctx.config.NODE_ENV === 'test' ? false : { level: ctx.config.LOG_LEVEL },
-    trustProxy: true,
+    // Caddy is the only proxy in front (DEPLOYMENT.md T2/T3), so trust exactly one hop: req.ip is the entry
+    // Caddy appended to X-Forwarded-For. With `true` it would be the leftmost entry, which the client controls.
+    // A function, not the number 1: Fastify 5 treats a bare number as "trust nothing" (req.ip = Caddy's address).
+    trustProxy: (_address: string, hop: number) => hop < 1,
     bodyLimit: 5 * 1024 * 1024,
   }).withTypeProvider<ZodTypeProvider>();
 

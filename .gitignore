@@ -31,3 +31,7 @@ env.yaml
 
 # iOS CI screenshots downloaded by scripts/ios-ci.sh
 .ci-shots/
+
+# Credentials and private planning files kept beside the repo (docs/DEPLOYMENT.md T14)
+mongodb.txt
+Files/

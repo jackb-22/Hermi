@@ -1,0 +1,13 @@
+{
+	email {$ACME_EMAIL}
+	# 443/udp is not published, so do not advertise HTTP/3.
+	servers {
+		protocols h1 h2
+	}
+}
+
+{$DOMAIN:api.hermi.world} {
+	# No trusted_proxies, on purpose: Caddy then replaces any client-sent X-Forwarded-For with the real peer
+	# address, which the API's trustProxy and its per-IP rate limits depend on. Keep Caddy the only hop.
+	reverse_proxy api:8080
+}

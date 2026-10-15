@@ -20,7 +20,7 @@ export async function createContext(config: Config = loadConfig()): Promise<AppC
 }
 
 export async function closeContext(ctx: AppContext) {
-  await Promise.allSettled([ctx.mongo.close(), ctx.tiger.end()]);
+  await Promise.allSettled([ctx.mongo.close(), ctx.tiger.end(), ctx.providers.push.close?.()]);
 }
 
 export async function ensureSchema(ctx: AppContext, log: (m: string) => void = () => {}) {

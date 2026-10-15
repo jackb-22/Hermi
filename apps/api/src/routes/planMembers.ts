@@ -8,6 +8,7 @@ import {
 } from '@itp/shared/api';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { z } from 'zod';
+import { safeDisplayName } from '../domain/nameFilter.ts';
 import { authed, bearer } from '../plugins/auth.ts';
 import { openPlansFor } from '../services/matching.ts';
 import { notify } from '../services/notify.ts';
@@ -26,7 +27,7 @@ import {
   toPlanView,
 } from '../services/plans.ts';
 import { blockedIds, friendIds } from '../services/social.ts';
-import { getUser } from '../services/users.ts';
+import { getUser, users } from '../services/users.ts';
 import { errs } from './_util.ts';
 
 const IdParams = z.object({ id: z.string() });
@@ -147,7 +148,7 @@ export const planMemberRoutes: FastifyPluginAsyncZod = async (app) => {
       await setMember(plan._id, req.userId, 'joined');
       const me = await getUser(db, req.userId);
       await notify(app.ctx, [plan.hostId], {
-        title: `${me.name ?? 'Someone'} is in`,
+        title: `${safeDisplayName(me, { none: 'Someone' })} is in`,
         body: plan.name,
         data: { kind: 'plan_join', planId: plan._id },
       });
@@ -207,7 +208,7 @@ export const planMemberRoutes: FastifyPluginAsyncZod = async (app) => {
         );
       await setMember(plan._id, req.userId, 'requested');
       await notify(app.ctx, [plan.hostId], {
-        title: `${me.name ?? 'A student'} wants to join`,
+        title: `${safeDisplayName(me, { none: 'A student' })} wants to join`,
         body: plan.name,
         data: { kind: 'plan_request', planId: plan._id, userId: me._id },
       });
@@ -266,6 +267,16 @@ export const planMemberRoutes: FastifyPluginAsyncZod = async (app) => {
         status: { $ne: 'cancelled' },
       });
       if (!plan) throw new ApiError(404, 'NOT_FOUND', 'Link expired');
+      // A link whose host is deleted, or blocked either way with you, is as dead as an expired one.
+      const [host, blocked] = await Promise.all([
+        users(db).findOne(
+          { _id: plan.hostId, deletedAt: { $exists: false } },
+          { projection: { _id: 1 } },
+        ),
+        blockedIds(db, req.userId),
+      ]);
+      if (!host || blocked.includes(plan.hostId))
+        throw new ApiError(404, 'NOT_FOUND', 'Link expired');
       return view(plan, req.userId);
     },
   );

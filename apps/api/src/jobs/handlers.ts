@@ -1,8 +1,11 @@
+import { eraseAccount } from '../services/accountErasure.ts';
+import { revokeAppleToken } from '../services/appleRevoke.ts';
 import { groupSay } from '../services/groupChat.ts';
 import { matchNotify } from '../services/matching.ts';
 import { sendPush } from '../services/notify.ts';
 import { reviewReminder, weeklyNudge } from '../services/nudges.ts';
 import { moderatePost, summarizeReviews } from '../services/posts.ts';
+import { sendReportAlert } from '../services/reports.ts';
 import { reviewReport, scanPhoto } from '../services/safety.ts';
 import { finalizeSession } from './finalizeSession.ts';
 import { processMedia } from './processMedia.ts';
@@ -19,8 +22,11 @@ export const handlers: Record<string, JobHandler> = {
   match_notify: matchNotify as JobHandler,
   scan_photo: scanPhoto as JobHandler,
   review_report: reviewReport as JobHandler,
+  report_alert: sendReportAlert as JobHandler,
   weekly_nudge: weeklyNudge as JobHandler,
   review_reminder: reviewReminder as JobHandler,
   group_say: groupSay as JobHandler,
   summarize_reviews: summarizeReviews as JobHandler,
+  revoke_apple_token: revokeAppleToken as JobHandler,
+  erase_account: eraseAccount as JobHandler,
 };

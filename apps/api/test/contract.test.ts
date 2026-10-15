@@ -42,6 +42,7 @@ const EXPECTED = [
   'post /v1/taps',
   'get /v1/taps/pending',
   'post /v1/me/tag',
+  'post /v1/me/code',
   'get /v1/score',
   'get /v1/leaderboard',
   'get /v1/tiles',

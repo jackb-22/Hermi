@@ -81,7 +81,7 @@ describe('GET /feed', () => {
     await mkPost(me.id);
     await mkPost(stranger.id, { hiddenFrom: [me.id] });
     await mkPost(stranger.id, { status: 'pending' });
-    await mkPost(stranger.id, { createdAt: new Date(Date.now() - 8 * 86_400_000) });
+    await mkPost(stranger.id, { createdAt: new Date(Date.now() - 31 * 86_400_000) });
     const f = await feed();
     expect(
       f.cards.map((c: { kind: string; post?: { id: string } }) => c.post?.id ?? c.kind),
@@ -100,6 +100,39 @@ describe('GET /feed', () => {
     ).toEqual([fp]);
     await t.app.inject({ method: 'DELETE', url: `/v1/blocks/${stranger.id}`, headers: me.headers });
     void blocker;
+  });
+
+  test('a 20-day-old post still shows; a 31-day-old one is past the 30-day window', async () => {
+    // A reader 100 km away sees only their friend's posts and what they pin near themselves, so the
+    // other tests' posts do not interfere.
+    const remote = offset(ORIGIN, 100_000, 0);
+    const reader = await devLogin(t.app, 'windowreader');
+    const pal = await devLogin(t.app, 'windowpal');
+    const [a, b] = [reader.id, pal.id].sort();
+    await t.ctx.db.collection('friendships').insertOne({
+      _id: `${a}:${b}`,
+      a,
+      b,
+      since: new Date(),
+      hangouts: 1,
+      streakWeeks: 1,
+      lastHangoutWeek: 0,
+    } as never);
+    const ago = (days: number) => ({ createdAt: new Date(Date.now() - days * 86_400_000) });
+    const friend20 = await mkPost(pal.id, ago(20));
+    const friend31 = await mkPost(pal.id, ago(31));
+    const near20 = await mkPost(stranger.id, ago(20), remote);
+    const near31 = await mkPost(stranger.id, ago(31), remote);
+    const r = await t.app.inject({
+      url: '/v1/feed',
+      query: { lat: String(remote.lat), lng: String(remote.lng) },
+      headers: reader.headers,
+    });
+    const ids = r.json().cards.map((c: { post?: { id: string } }) => c.post?.id);
+    expect(ids).toContain(friend20);
+    expect(ids).toContain(near20);
+    expect(ids).not.toContain(friend31);
+    expect(ids).not.toContain(near31);
   });
 
   test('a friend’s shared plan takes the fifth slot with a Join action', async () => {
