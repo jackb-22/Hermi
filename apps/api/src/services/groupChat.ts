@@ -1,5 +1,6 @@
 import { newId } from '@itp/shared';
 import type { AppContext } from '../context.ts';
+import { safeDisplayName } from '../domain/nameFilter.ts';
 import { enqueue } from '../jobs/queue.ts';
 import type { InboundMessage } from '../providers/messenger.ts';
 import type { CheckinHook } from './checkins.ts';
@@ -118,7 +119,7 @@ export async function handleGroupMessage(ctx: AppContext, m: InboundMessage) {
       ctx,
       m.spaceId,
       r.ok
-        ? `Linked to @${r.user.username ?? r.user.name ?? 'you'} ✅ Text me a plan anytime, like: "Sat 2pm: Hungarian Pastry Shop, then Riverside Park with ben".`
+        ? `Linked to ${safeDisplayName(r.user, { none: 'you', handleFirst: true })} ✅ Text me a plan anytime, like: "Sat 2pm: Hungarian Pastry Shop, then Riverside Park with ben".`
         : r.reason === 'expired'
           ? 'That code has expired or was already used. Get a new one in Hermi: Profile → ⚙︎ → Text Hermi.'
           : "I can't link this kind of address.",
@@ -239,7 +240,7 @@ export const groupChatCheckin: CheckinHook = async (ctx, c) => {
     users(ctx.db).findOne({ _id: c.userId }),
     places(ctx.db).findOne({ _id: c.placeId }),
   ]);
-  const who = u?.name ?? (u?.username ? `@${u.username}` : 'Someone');
+  const who = safeDisplayName(u, { none: 'Someone' });
   await postToPlanThread(
     ctx,
     plan,

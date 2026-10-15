@@ -1,7 +1,9 @@
 import { ApiError, newId } from '@itp/shared';
 import type { AppContext } from '../context.ts';
+import { assertNameAllowed, checkName, safeDisplayName } from '../domain/nameFilter.ts';
 import { notify } from './notify.ts';
 import {
+  defaultName,
   enqueueMatch,
   loadPlaces,
   type MemberStatus,
@@ -56,22 +58,29 @@ async function pushInvites(
   if (!ids.length) return;
   const host = await getUser(ctx.db, hostId);
   await notify(ctx, ids, {
-    title: `${host.name ?? 'A friend'} invited you`,
+    title: `${safeDisplayName(host, { none: 'A friend' })} invited you`,
     body: title,
     data: { kind: 'plan_invite', planId: plan._id },
   });
 }
 
+/**
+ * The AI's name for the plan, unless it fails the name filter (it can echo a place name): then the name a new plan
+ * gets, so the model can never put a bad name on the public /p/ page.
+ */
 export async function suggestPlanName(ctx: AppContext, plan: PlanDoc) {
   const byId = await loadPlaces(
     ctx.db,
     plan.stops.map((s) => s.placeId),
   );
-  return ctx.providers.llm.planName(
+  const suggested = await ctx.providers.llm.planName(
     plan.stops.flatMap((s) =>
       s.placeId && byId.get(s.placeId) ? [byId.get(s.placeId)!.name] : [],
     ),
   );
+  if (checkName(suggested, 'planName').ok) return suggested;
+  const fallback = defaultName(plan.stops, byId);
+  return checkName(fallback, 'planName').ok ? fallback : 'New plan';
 }
 
 /**
@@ -84,6 +93,7 @@ export async function savePlan(
   hostId: string,
   body: { name?: string; visibility: Visibility; inviteeIds: string[] },
 ) {
+  if (body.name !== undefined && body.name !== plan.name) assertNameAllowed(body.name, 'planName');
   await assertFriends(ctx, hostId, body.inviteeIds);
   if (body.visibility === 'find') {
     const me = await getUser(ctx.db, hostId);

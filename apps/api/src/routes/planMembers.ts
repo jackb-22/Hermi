@@ -8,6 +8,7 @@ import {
 } from '@itp/shared/api';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { z } from 'zod';
+import { safeDisplayName } from '../domain/nameFilter.ts';
 import { authed, bearer } from '../plugins/auth.ts';
 import { openPlansFor } from '../services/matching.ts';
 import { notify } from '../services/notify.ts';
@@ -147,7 +148,7 @@ export const planMemberRoutes: FastifyPluginAsyncZod = async (app) => {
       await setMember(plan._id, req.userId, 'joined');
       const me = await getUser(db, req.userId);
       await notify(app.ctx, [plan.hostId], {
-        title: `${me.name ?? 'Someone'} is in`,
+        title: `${safeDisplayName(me, { none: 'Someone' })} is in`,
         body: plan.name,
         data: { kind: 'plan_join', planId: plan._id },
       });
@@ -207,7 +208,7 @@ export const planMemberRoutes: FastifyPluginAsyncZod = async (app) => {
         );
       await setMember(plan._id, req.userId, 'requested');
       await notify(app.ctx, [plan.hostId], {
-        title: `${me.name ?? 'A student'} wants to join`,
+        title: `${safeDisplayName(me, { none: 'A student' })} wants to join`,
         body: plan.name,
         data: { kind: 'plan_request', planId: plan._id, userId: me._id },
       });

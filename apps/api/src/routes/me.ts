@@ -1,6 +1,7 @@
 import { ApiError } from '@itp/shared';
 import { MeSchema, OkSchema, PatchMeBody, PushTokenBody } from '@itp/shared/api';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
+import { assertNameAllowed } from '../domain/nameFilter.ts';
 import { authed, bearer, requireAuth } from '../plugins/auth.ts';
 import { queueAppleRevoke } from '../services/appleRevoke.ts';
 import { uploadProfilePhoto } from '../services/safety.ts';
@@ -26,6 +27,8 @@ export const meRoutes: FastifyPluginAsyncZod = async (app) => {
       schema: {
         tags: ['me'],
         summary: 'Edit profile fields and settings (ghost mode, open to plans)',
+        description:
+          'A username or name that fails the name filter (profanity, or one that passes for Hermi, staff or the schools) is 400 NAME_NOT_ALLOWED; the message does not say why. Sending your current username or name again is fine.',
         security: bearer,
         body: PatchMeBody,
         response: { 200: MeSchema, ...errs(400, 401, 409) },
@@ -35,6 +38,14 @@ export const meRoutes: FastifyPluginAsyncZod = async (app) => {
       try {
         // photoKey is ignored: photos arrive through POST /me/photo, which scans them first.
         const { photoKey: _ignored, ...fields } = req.body;
+        // An unchanged name or username passes, so an account from before the filter can still edit its other fields.
+        if (fields.username !== undefined || fields.name !== undefined) {
+          const current = await getUser(db, req.userId);
+          if (fields.username !== undefined && fields.username !== current.username)
+            assertNameAllowed(fields.username, 'username');
+          if (fields.name !== undefined && fields.name !== current.name)
+            assertNameAllowed(fields.name, 'displayName');
+        }
         await users(db).updateOne({ _id: req.userId }, { $set: fields });
       } catch (e) {
         if (isDupKey(e)) throw new ApiError(409, 'USERNAME_TAKEN', 'Username is taken');
