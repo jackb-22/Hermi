@@ -1,5 +1,5 @@
 import { ApiError, parseTagUrl } from '@itp/shared';
-import { BindTagBody, MeSchema, TapBody, TapResponse } from '@itp/shared/api';
+import { BindTagBody, MeSchema, MyCodeResponse, TapBody, TapResponse } from '@itp/shared/api';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { attestGuard } from '../plugins/attest.ts';
@@ -17,7 +17,7 @@ import {
   toUserCard,
   visibleUser,
 } from '../services/social.ts';
-import { tags, verifyTag } from '../services/tags.ts';
+import { personalCode, tags, verifyTag } from '../services/tags.ts';
 import { getUser, toMe, users } from '../services/users.ts';
 import { errs } from './_util.ts';
 
@@ -34,7 +34,8 @@ export const tapRoutes: FastifyPluginAsyncZod = async (app) => {
           'A tag was read (NFC tap or QR scan): venue tags check in; personal tags pair two phones',
         description:
           'Both people tap each other\'s personal tag within 2 minutes and 50 m. First tap returns status "waiting"; ' +
-          'the second completes it: "friends" (new) or "hangout" (streak moved). Tapping tags is the only way to add a friend.',
+          'the second completes it: "friends" (new) or "hangout" (streak moved). Tapping tags is the only way to add a friend. ' +
+          'A personal tag whose owner is deleted, or blocked either way, is 404 like an unknown user.',
         security: bearer,
         body: TapBody,
         response: { 200: TapResponse, ...errs(400, 401, 403, 404, 409, 429) },
@@ -48,6 +49,12 @@ export const tapRoutes: FastifyPluginAsyncZod = async (app) => {
       const at = { lat: b.lat, lng: b.lng };
       const kind = b.url ? parseTagUrl(b.url)?.kind : undefined;
       const tag = await verifyTag(db, { tagUrl: b.url, tagId: b.tagId, k: b.k }, kind);
+      // An owner who is deleted, or blocked either way, is "no such user" like everywhere else: the tap never
+      // pairs, shows no card and is not recorded (a stored read could pair the two after an unblock).
+      const owner =
+        tag.kind === 'personal' && tag.ownerId && tag.ownerId !== req.userId
+          ? await visibleUser(db, req.userId, tag.ownerId)
+          : undefined;
       await recordTagRead(app.ctx, {
         userId: req.userId,
         tagId: tag._id,
@@ -77,16 +84,12 @@ export const tapRoutes: FastifyPluginAsyncZod = async (app) => {
         throw new ApiError(400, 'TAG_INVALID', 'This tag is not bound to anyone yet');
       if (tag.ownerId === req.userId)
         throw new ApiError(400, 'TAG_INVALID', 'That is your own tag: tap your friend’s');
-      const [me, owner] = await Promise.all([
-        getUser(db, req.userId),
-        users(db).findOne({ _id: tag.ownerId }),
-      ]);
-      if (!owner || owner.deletedAt) throw new ApiError(404, 'NOT_FOUND', 'Tag owner not found');
-      const friend = toUserCard(owner, config);
+      const me = await getUser(db, req.userId);
+      const friend = toUserCard(owner!, config); // set above for any bound tag that is not yours
       const reciprocal = me.tagId
         ? await findReciprocal(app.ctx, {
             readerId: me._id,
-            ownerId: owner._id,
+            ownerId: tag.ownerId,
             readerTagId: me.tagId,
             at,
             time,
@@ -102,7 +105,7 @@ export const tapRoutes: FastifyPluginAsyncZod = async (app) => {
           expiresAt: new Date(time.getTime() + TAP_WINDOW_MS).toISOString(),
         };
       }
-      const h = await logHangout(app.ctx, me._id, owner._id, time, 'tap');
+      const h = await logHangout(app.ctx, me._id, tag.ownerId, time, 'tap');
       return {
         ...empty,
         kind: 'personal' as const,
@@ -167,6 +170,24 @@ export const tapRoutes: FastifyPluginAsyncZod = async (app) => {
   );
 
   app.post(
+    '/me/code',
+    {
+      ...authed,
+      schema: {
+        tags: ['social'],
+        summary: 'Your personal QR code: made on the first call, the same URL on every call after',
+        description:
+          "Send no body. The URL is a /t universal link, so a friend's Camera app opens it in the app, which sends it to " +
+          'POST /taps like an NFC tap. Binding a sticker (POST /me/tag) replaces the code; from then on this answers ' +
+          '`kind: "sticker"` with no URL.',
+        security: bearer,
+        response: { 200: MyCodeResponse, ...errs(401) },
+      },
+    },
+    async (req) => personalCode(app.ctx, req.userId),
+  );
+
+  app.post(
     '/me/tag',
     {
       ...authed,
@@ -180,6 +201,8 @@ export const tapRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     async (req) => {
       const tag = await verifyTag(db, { tagUrl: req.body.url }, 'personal');
+      // A code unbound by a sticker would otherwise be up for grabs to anyone who photographed its QR.
+      if (tag.derived) throw new ApiError(400, 'TAG_INVALID', 'That is a code, not a sticker');
       if (tag.ownerId && tag.ownerId !== req.userId)
         throw new ApiError(409, 'CONFLICT', 'This tag belongs to someone else');
       await tags(db).updateOne({ _id: tag._id }, { $set: { ownerId: req.userId } });

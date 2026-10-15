@@ -55,3 +55,18 @@ export const TapResponse = z.object({
 export const BindTagBody = z.object({
   url: z.string().describe('The personal sticker handed out at onboarding'),
 });
+
+export const MyCodeResponse = z.object({
+  kind: z
+    .enum(['code', 'sticker'])
+    .describe(
+      'code: show `url` as a QR code. sticker: you bound an NFC sticker, which replaced the code; the server keeps only a hash of its secret, so it has no URL to give back (show "Use your sticker", or the QR of the URL the app scanned when it bound it)',
+    ),
+  tagId: IdSchema,
+  url: z
+    .string()
+    .nullable()
+    .describe(
+      'Universal link /t/<tagId>?k=<secret>; the same every time until a sticker replaces it. Null for a sticker',
+    ),
+});

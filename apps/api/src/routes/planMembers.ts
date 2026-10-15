@@ -26,7 +26,7 @@ import {
   toPlanView,
 } from '../services/plans.ts';
 import { blockedIds, friendIds } from '../services/social.ts';
-import { getUser } from '../services/users.ts';
+import { getUser, users } from '../services/users.ts';
 import { errs } from './_util.ts';
 
 const IdParams = z.object({ id: z.string() });
@@ -266,6 +266,16 @@ export const planMemberRoutes: FastifyPluginAsyncZod = async (app) => {
         status: { $ne: 'cancelled' },
       });
       if (!plan) throw new ApiError(404, 'NOT_FOUND', 'Link expired');
+      // A link whose host is deleted, or blocked either way with you, is as dead as an expired one.
+      const [host, blocked] = await Promise.all([
+        users(db).findOne(
+          { _id: plan.hostId, deletedAt: { $exists: false } },
+          { projection: { _id: 1 } },
+        ),
+        blockedIds(db, req.userId),
+      ]);
+      if (!host || blocked.includes(plan.hostId))
+        throw new ApiError(404, 'NOT_FOUND', 'Link expired');
       return view(plan, req.userId);
     },
   );

@@ -191,11 +191,9 @@ export const webRoutes: FastifyPluginAsyncZod = async (app) => {
         shareToken: req.params.token,
         status: { $ne: 'cancelled' },
       });
-      if (!plan)
-        return reply
-          .status(404)
-          .type('text/html')
-          .send(page('Plan not found', '<h1>Link expired</h1>'));
+      const expired = () =>
+        reply.status(404).type('text/html').send(page('Plan not found', '<h1>Link expired</h1>'));
+      if (!plan) return expired();
       const [host, byId] = await Promise.all([
         users(db).findOne({ _id: plan.hostId }),
         loadPlaces(
@@ -203,6 +201,8 @@ export const webRoutes: FastifyPluginAsyncZod = async (app) => {
           plan.stops.map((s) => s.placeId),
         ),
       ]);
+      // A deleted host kills the link like a cancelled plan. Blocks cannot apply: nobody is signed in here.
+      if (!host || host.deletedAt) return expired();
       const fmt = (d: Date) =>
         d.toLocaleString('en-US', {
           timeZone: 'America/New_York',
