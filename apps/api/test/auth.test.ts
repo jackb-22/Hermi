@@ -1,5 +1,6 @@
-import { createHash } from 'node:crypto';
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from 'vitest';
+import { createHmac, hkdfSync } from 'node:crypto';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test, vi } from 'vitest';
+import { banUser, unbanUser } from '../src/services/admin.ts';
 import { studentStatus, users } from '../src/services/users.ts';
 import { devLogin, setupTestApp } from './helpers.ts';
 
@@ -75,6 +76,74 @@ describe('sign in', () => {
     const r = await t.app.inject('/v1/me');
     expect(r.statusCode).toBe(401);
     expect(r.json().error.code).toBe('UNAUTHORIZED');
+  });
+});
+
+describe('banned accounts cannot sign in', () => {
+  const apple = (sub: string) =>
+    t.app.inject({
+      method: 'POST',
+      url: '/v1/auth/apple',
+      payload: { identityToken: `fake:${sub}`, ...proof },
+    });
+  const dev = (username: string) =>
+    t.app.inject({ method: 'POST', url: '/v1/auth/dev', payload: { username } });
+
+  test('apple: 403 BANNED and no token; Apple is not asked for a refresh token; unbanning restores it', async () => {
+    const created = await apple('banned-apple-1');
+    expect(created.statusCode).toBe(200);
+    const id: string = created.json().user.id;
+    const stored = (await users(t.ctx.db).findOne({ _id: id }))!.appleRefreshToken;
+    expect(stored).toBe('fake-refresh:banned-apple-1');
+    await banUser(t.ctx, id, 'spam');
+
+    const exchange = vi.spyOn(t.ctx.providers.appleIdentity, 'exchangeCode');
+    try {
+      const r = await apple('banned-apple-1');
+      expect(r.statusCode).toBe(403);
+      expect(r.json().error.code).toBe('BANNED');
+      expect(r.json()).not.toHaveProperty('token');
+      expect(exchange).not.toHaveBeenCalled();
+      // No second account was made for the same Apple user, and the stored token is untouched.
+      expect(await users(t.ctx.db).countDocuments({ appleSub: 'banned-apple-1' })).toBe(1);
+      expect((await users(t.ctx.db).findOne({ _id: id }))!.appleRefreshToken).toBe(stored);
+
+      await unbanUser(t.ctx, id);
+      const back = await apple('banned-apple-1');
+      expect(back.statusCode).toBe(200);
+      expect(back.json()).toMatchObject({ isNew: false, user: { id } });
+      expect(exchange).toHaveBeenCalledTimes(1);
+    } finally {
+      exchange.mockRestore();
+    }
+  });
+
+  test('apple: an identity token that does not verify is still a 401, so a ban cannot be probed', async () => {
+    const created = await apple('banned-apple-2');
+    await banUser(t.ctx, created.json().user.id, 'spam');
+    const r = await t.app.inject({
+      method: 'POST',
+      url: '/v1/auth/apple',
+      payload: { identityToken: 'not-a-token', ...proof },
+    });
+    expect(r.statusCode).toBe(401);
+  });
+
+  test('dev: 403 BANNED and no token; unbanning restores it', async () => {
+    const created = await dev('banned_dev_1');
+    expect(created.statusCode).toBe(200);
+    const id: string = created.json().user.id;
+    await banUser(t.ctx, id, 'harassment');
+    const r = await dev('banned_dev_1');
+    expect(r.statusCode).toBe(403);
+    expect(r.json().error.code).toBe('BANNED');
+    expect(r.json()).not.toHaveProperty('token');
+    expect(await users(t.ctx.db).countDocuments({ username: 'banned_dev_1' })).toBe(1);
+
+    await unbanUser(t.ctx, id);
+    const back = await dev('banned_dev_1');
+    expect(back.statusCode).toBe(200);
+    expect(back.json()).toMatchObject({ isNew: false, user: { id } });
   });
 });
 
@@ -197,7 +266,14 @@ describe('edu verification', () => {
 describe('school email rules', () => {
   type Dev = Awaited<ReturnType<typeof devLogin>>;
   const mail = () => t.ctx.providers.email as unknown as { sent: { to: string }[] };
-  const sha = (x: string) => createHash('sha256').update(x).digest('hex');
+  /** What the server stores for an address, rebuilt from its documented parts: HMAC under an HKDF key. */
+  const schoolHash = (address: string) =>
+    createHmac(
+      'sha256',
+      Buffer.from(hkdfSync('sha256', t.ctx.config.JWT_SECRET, '', 'hermi school email v1', 32)),
+    )
+      .update(address)
+      .digest('hex');
   let nextIp = 1;
   /** Each caller gets its own IP unless it passes one: the per-IP cap is shared by the whole file. */
   const start = (u: Dev, email: string, ip = `198.51.100.${nextIp++}`) =>
@@ -278,6 +354,17 @@ describe('school email rules', () => {
       ]) {
         const r = await start(u, email);
         expect(r.statusCode, email).toBe(400);
+      }
+      expect(mail().sent.length).toBe(before);
+    });
+
+    test('with no REVIEW_EMAIL set, a would-be review address is refused like any other', async () => {
+      const u = await devLogin(t.app, 'no_review_path');
+      const before = mail().sent.length;
+      for (const email of ['review@hermi.world', 'appreview@example.com']) {
+        const r = await start(u, email);
+        expect(r.statusCode, email).toBe(400);
+        expect(r.json().error.code, email).toBe('EDU_DOMAIN_NOT_ALLOWED');
       }
       expect(mail().sent.length).toBe(before);
     });
@@ -381,7 +468,7 @@ describe('school email rules', () => {
       // Only the allowed sends stored a code: the last one is for the subdomain address.
       const pending = t.ctx.db.collection<{ _id: string; emailHash: string }>('edu_codes');
       expect(await pending.findOne({ _id: b.id })).toMatchObject({
-        emailHash: sha('owned@cumc.columbia.edu'),
+        emailHash: schoolHash('owned@cumc.columbia.edu'),
       });
     });
 
@@ -401,7 +488,7 @@ describe('school email rules', () => {
       expect(r.statusCode, r.body).toBe(200);
       expect(mail().sent[before]?.to).toBe('tagged+housing@columbia.edu');
       expect((await users(t.ctx.db).findOne({ _id: a.id }))?.eduEmailHash).toBe(
-        sha('tagged@columbia.edu'),
+        schoolHash('tagged@columbia.edu'),
       );
       const b = await devLogin(t.app, 'tag_b');
       expect((await start(b, 'tagged@columbia.edu')).json().error.code).toBe('EDU_EMAIL_TAKEN');
@@ -445,9 +532,9 @@ describe('school email rules', () => {
       const cb = (await start(b, 'tie+b@columbia.edu')).json().devCode;
       const res = await Promise.all([verify(a, ca), verify(b, cb)]);
       expect(res.map((r) => r.statusCode).sort()).toEqual([200, 409]);
-      expect(await users(t.ctx.db).countDocuments({ eduEmailHash: sha('tie@columbia.edu') })).toBe(
-        1,
-      );
+      expect(
+        await users(t.ctx.db).countDocuments({ eduEmailHash: schoolHash('tie@columbia.edu') }),
+      ).toBe(1);
     });
 
     test('deleting the account frees the address for a new one', async () => {
@@ -470,7 +557,7 @@ describe('school email rules', () => {
       expect((await verify(a, pending)).statusCode).toBe(401);
       expect(await users(t.ctx.db).findOne({ _id: a.id })).not.toHaveProperty('eduEmailHash');
       expect((await users(t.ctx.db).findOne({ _id: b.id }))?.eduEmailHash).toBe(
-        sha('gone@columbia.edu'),
+        schoolHash('gone@columbia.edu'),
       );
     });
   });

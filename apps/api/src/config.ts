@@ -7,6 +7,11 @@ const optStr = z
   .string()
   .optional()
   .transform((v) => (v ? v : undefined));
+/** Like optStr, and surrounding whitespace is dropped (a pasted code or address often has some). */
+const optTrimmed = z
+  .string()
+  .optional()
+  .transform((v) => v?.trim() || undefined);
 
 /** Local development only: a production boot refuses it (productionGaps). */
 export const DEV_JWT_SECRET = 'dev-secret-change-me-please-32chars!!';
@@ -75,6 +80,27 @@ const Env = z.object({
   REALITY_DEFENDER_KEY: optStr,
   RESEND_API_KEY: optStr,
   EMAIL_FROM: optStr,
+  /**
+   * App Review sign-in (docs/DEPLOYMENT.md T6): this address takes this 6-digit code in place of a
+   * school inbox, and its account gets the campus "App Review". Both or neither; unset is off.
+   */
+  REVIEW_EMAIL: optTrimmed.pipe(
+    z
+      .email()
+      .transform((v) => v.toLowerCase())
+      .optional(),
+  ),
+  REVIEW_CODE: optTrimmed.pipe(
+    z
+      .string()
+      .regex(/^\d{6}$/, 'REVIEW_CODE must be exactly 6 digits')
+      .optional(),
+  ),
+  /**
+   * The team's own account (a user id). Each reviewer who verifies becomes its friend, so their
+   * Feed has real posts and plans to try Report and Block on. Without REVIEW_EMAIL it does nothing.
+   */
+  REVIEW_FRIEND_ID: optTrimmed,
   /** Where every user report is emailed (App Store 1.2: a person reads each one). Forwarded to both founders. */
   REPORTS_EMAIL_TO: z
     .string()
@@ -82,10 +108,16 @@ const Env = z.object({
     .transform((v) => v || 'support@hermi.world'),
 });
 
+/** Env plus the rules that span fields. */
+const CheckedEnv = Env.refine((e) => !e.REVIEW_EMAIL === !e.REVIEW_CODE, {
+  message: 'REVIEW_EMAIL and REVIEW_CODE must be set together (or both left empty)',
+  path: ['REVIEW_CODE'],
+});
+
 export type Config = z.infer<typeof Env> & { devRoutes: boolean };
 
 export function loadConfig(env: Record<string, string | undefined> = process.env): Config {
-  const c = Env.parse(env);
+  const c = CheckedEnv.parse(env);
   // Served by the API: every public media URL (renditions, profile photos) is /media/<key> on this server.
   if (c.MEDIA_DELIVERY === 'api') c.CDN_BASE_URL = `${c.PUBLIC_BASE_URL.replace(/\/$/, '')}/media`;
   return { ...c, devRoutes: c.DEV_ROUTES || c.NODE_ENV !== 'production' };

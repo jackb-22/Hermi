@@ -5,6 +5,7 @@ import type pg from 'pg';
 import type { z } from 'zod';
 import type { AppContext } from '../context.ts';
 import type { UserDoc } from '../db/types.ts';
+import { isReviewCampus } from './eduEmail.ts';
 import { friendIds } from './social.ts';
 
 const DAY = 86_400_000;
@@ -23,9 +24,14 @@ export async function scoreAt(
   return new Map(rows.map((r) => [r.user_id, r.xp]));
 }
 
+/** The campus board this user is on, if any. App Review accounts are on none, even their own. */
+export const boardCampus = (u: Pick<UserDoc, 'campus'>) =>
+  u.campus && !isReviewCampus(u.campus) ? u.campus : undefined;
+
 /**
  * Campus board: every verified user on the campus, with all of their XP. Membership comes from the user's
  * verified campus (not the campus stamped on each XP row), so XP earned before verifying still counts.
+ * There is no App Review board: those accounts are on no board, so asking for it gets nobody.
  */
 export async function campusScores(
   db: Db,
@@ -33,6 +39,7 @@ export async function campusScores(
   campus: string,
   at: Date,
 ): Promise<{ id: string; score: number }[]> {
+  if (isReviewCampus(campus)) return [];
   const ids = (
     await db
       .collection<UserDoc>('users')
@@ -89,9 +96,9 @@ export async function computeScore(
   ]);
   const score = nowScores.get(u._id) ?? 0;
   let campus = null;
-  if (u.campus && u.verifiedAt) {
-    campus = { ...rankOf(await campusScores(db, tiger, u.campus, now), u._id), campus: u.campus };
-  }
+  const board = u.verifiedAt ? boardCampus(u) : undefined;
+  if (board)
+    campus = { ...rankOf(await campusScores(db, tiger, board, now), u._id), campus: board };
   return {
     userId: u._id,
     score,

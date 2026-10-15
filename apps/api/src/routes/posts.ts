@@ -14,6 +14,7 @@ import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import type { Filter } from 'mongodb';
 import { z } from 'zod';
 import { authed, bearer } from '../plugins/auth.ts';
+import { isReviewCampus } from '../services/eduEmail.ts';
 import { getCheckin, media } from '../services/media.ts';
 import { remember } from '../services/memory.ts';
 import { places } from '../services/places.ts';
@@ -26,7 +27,8 @@ import {
 } from '../services/posts.ts';
 import { fileReport } from '../services/reports.ts';
 import { sessions } from '../services/sessions.ts';
-import { blockedIds, endTies } from '../services/social.ts';
+import { blockedIds, endTies, friendIds, reviewerIds } from '../services/social.ts';
+import { users } from '../services/users.ts';
 import { errs } from './_util.ts';
 
 const IdParams = z.object({ id: z.string() });
@@ -257,11 +259,30 @@ export const postRoutes: FastifyPluginAsyncZod = async (app) => {
     },
   );
 
+  /** The reviewers this viewer has no friendship with. Friends are read only if there are reviewers. */
+  const unfriendedReviewers = async (viewerId: string) => {
+    const reviewers = await reviewerIds(db);
+    if (!reviewers.length) return [];
+    const friends = new Set(await friendIds(db, viewerId));
+    return reviewers.filter((id) => !friends.has(id));
+  };
+
+  /**
+   * What a viewer may read. App Review accounts and students stay apart, except through a friendship
+   * (a friend is there by consent, in practice the team account, REVIEW_FRIEND_ID): a real viewer
+   * sees no reviewer's posts unless they are friends, and a reviewer sees only their own and their
+   * friends'. Every post read goes through here, so the place sheet and ?authorId= cannot get
+   * around it.
+   */
   const visible = async (viewerId: string): Promise<Filter<PostDoc>> => {
     const blocked = await blockedIds(db, viewerId);
+    const viewer = await users(db).findOne({ _id: viewerId }, { projection: { campus: 1 } });
+    const authors = isReviewCampus(viewer?.campus)
+      ? { $in: [viewerId, ...(await friendIds(db, viewerId))], $nin: blocked }
+      : { $nin: [...blocked, ...(await unfriendedReviewers(viewerId))] };
     return {
       hiddenFrom: { $ne: viewerId },
-      authorId: { $nin: blocked },
+      authorId: authors,
       $or: [{ status: 'live' }, { authorId: viewerId, status: 'pending' }],
     };
   };

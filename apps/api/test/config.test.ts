@@ -56,3 +56,75 @@ describe('production boot checks', () => {
     );
   });
 });
+
+describe('App Review sign-in (REVIEW_EMAIL, REVIEW_CODE)', () => {
+  test('unset or blank leaves the path off, and production boots either way', () => {
+    for (const env of [{}, { REVIEW_EMAIL: '', REVIEW_CODE: '' }, { REVIEW_EMAIL: '  ' }]) {
+      const c = loadConfig({ ...ready, ...env });
+      expect(c.REVIEW_EMAIL).toBeUndefined();
+      expect(c.REVIEW_CODE).toBeUndefined();
+      expect(productionGaps(c)).toEqual([]);
+    }
+  });
+
+  test('both set: the address is trimmed and lowercased, the code trimmed', () => {
+    const c = loadConfig({
+      ...ready,
+      REVIEW_EMAIL: ' App.Review@Hermi.World ',
+      REVIEW_CODE: ' 048213 ',
+    });
+    expect(c.REVIEW_EMAIL).toBe('app.review@hermi.world');
+    expect(c.REVIEW_CODE).toBe('048213');
+    expect(productionGaps(c)).toEqual([]);
+  });
+
+  test.each(['12345', '1234567', 'abcdef', '12 456', '１２３４５６'])(
+    'a code that is not exactly 6 digits is refused, without echoing it: %s',
+    (code) => {
+      let message = '';
+      try {
+        loadConfig({ ...ready, REVIEW_EMAIL: 'review@hermi.world', REVIEW_CODE: code });
+      } catch (e) {
+        message = (e as Error).message;
+      }
+      expect(message).toMatch(/REVIEW_CODE must be exactly 6 digits/);
+      expect(message).not.toContain(code);
+    },
+  );
+
+  test('the address must be an email address', () => {
+    expect(() => loadConfig({ REVIEW_EMAIL: 'not-an-email', REVIEW_CODE: '123456' })).toThrow(
+      /REVIEW_EMAIL/,
+    );
+  });
+
+  test('one without the other is refused, so a half-set path cannot go unnoticed', () => {
+    for (const env of [{ REVIEW_EMAIL: 'review@hermi.world' }, { REVIEW_CODE: '123456' }]) {
+      expect(() => loadConfig({ ...ready, ...env })).toThrow(
+        /REVIEW_EMAIL and REVIEW_CODE must be set together/,
+      );
+    }
+  });
+});
+
+describe('REVIEW_FRIEND_ID', () => {
+  test('unset or blank is off; a value is trimmed; production boots either way', () => {
+    for (const REVIEW_FRIEND_ID of [undefined, '', '   ']) {
+      const c = loadConfig({ ...ready, REVIEW_FRIEND_ID });
+      expect(c.REVIEW_FRIEND_ID).toBeUndefined();
+      expect(productionGaps(c)).toEqual([]);
+    }
+    const c = loadConfig({
+      ...ready,
+      REVIEW_EMAIL: 'review@hermi.world',
+      REVIEW_CODE: '123456',
+      REVIEW_FRIEND_ID: ' abc123 ',
+    });
+    expect(c.REVIEW_FRIEND_ID).toBe('abc123');
+    expect(productionGaps(c)).toEqual([]);
+  });
+
+  test('it is independent of the review address: alone it loads, and does nothing', () => {
+    expect(loadConfig({ ...ready, REVIEW_FRIEND_ID: 'abc123' }).REVIEW_FRIEND_ID).toBe('abc123');
+  });
+});

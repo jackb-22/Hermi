@@ -27,6 +27,9 @@ const LIVE_KEYS = [
   'PHOTON_AGENT_ADDRESS',
   'REALITY_DEFENDER_KEY',
   'RESEND_API_KEY',
+  // A review path left in someone's shell would make the "unset" tests lie.
+  'REVIEW_EMAIL',
+  'REVIEW_CODE',
 ];
 
 export function testEnv(env: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
