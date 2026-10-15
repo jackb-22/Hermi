@@ -14,6 +14,7 @@ import {
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import type { Filter } from 'mongodb';
 import { z } from 'zod';
+import { assertNameAllowed } from '../domain/nameFilter.ts';
 import { authed, bearer } from '../plugins/auth.ts';
 import { places } from '../services/places.ts';
 import { assertCanView, plansOf } from '../services/planAccess.ts';
@@ -54,12 +55,15 @@ export const planRoutes: FastifyPluginAsyncZod = async (app) => {
         tags: ['plans'],
         summary:
           'Create a plan (draft) from dropped pins; it is scheduled immediately with default stays and estimated legs',
+        description:
+          'A name that fails the name filter is 400 NAME_NOT_ALLOWED; the message does not say why.',
         security: bearer,
         body: CreatePlanBody,
         response: { 200: PlanSchema, ...errs(400, 401) },
       },
     },
     async (req) => {
+      if (req.body.name !== undefined) assertNameAllowed(req.body.name, 'planName');
       const now = clock.now();
       const byId = await loadPlaces(
         db,
@@ -145,6 +149,8 @@ export const planRoutes: FastifyPluginAsyncZod = async (app) => {
       schema: {
         tags: ['plans'],
         summary: 'Edit name, start/end time or plan mode (mode resets every leg)',
+        description:
+          'A new name that fails the name filter is 400 NAME_NOT_ALLOWED; the message does not say why. Sending the current name again is fine.',
         security: bearer,
         params: IdParams,
         body: PatchPlanBody,
@@ -155,6 +161,8 @@ export const planRoutes: FastifyPluginAsyncZod = async (app) => {
       const plan = await getPlan(db, req.params.id);
       assertHost(plan, req.userId);
       const b = req.body;
+      // An unchanged name passes, so a plan from before the filter can still change its time.
+      if (b.name && b.name !== plan.name) assertNameAllowed(b.name, 'planName');
       if (b.name) Object.assign(plan, { name: b.name, nameIsDefault: false });
       if (b.startAt) plan.startAt = new Date(b.startAt);
       if (b.endBy !== undefined) plan.endBy = b.endBy ? new Date(b.endBy) : undefined;

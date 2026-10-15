@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto';
 import { newId } from '@itp/shared';
 import type { AppContext } from '../context.ts';
 import type { UserDoc } from '../db/types.ts';
+import { safeDisplayName } from '../domain/nameFilter.ts';
 import { nyLocal, nyLocalToUtc } from '../domain/weatherDay.ts';
 import { shareUrl } from './groupChat.ts';
 import { resolveStops } from './placeLookup.ts';
@@ -104,7 +105,9 @@ async function whoToInvite(
   return {
     ids: [...ids],
     missing,
-    names: friends.filter((f) => ids.has(f._id)).map((f) => f.name ?? `@${f.username}`),
+    names: friends
+      .filter((f) => ids.has(f._id))
+      .map((f) => safeDisplayName(f, { none: 'a friend' })),
   };
 }
 

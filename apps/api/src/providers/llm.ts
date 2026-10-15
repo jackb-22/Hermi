@@ -1,6 +1,7 @@
 import { type Content, type GenerateContentParameters, GoogleGenAI } from '@google/genai';
 import { DEFAULT_STAY_MIN, type LatLng, type PinType } from '@itp/shared';
 import type { Config } from '../config.ts';
+import { checkName } from '../domain/nameFilter.ts';
 import { clampStay } from '../domain/schedule.ts';
 
 /** A function tool the model may call: JSON-schema parameters, executed by our code. */
@@ -324,7 +325,9 @@ ${stops.map((s) => `- id=${s.id} "${s.name}" (${s.category}) arriving ${s.arriva
         [],
         5000,
       );
-      return sixWords(out.name);
+      // The name goes on the public /p/ page: one that fails the name filter is replaced, not shown.
+      const name = sixWords(out.name);
+      return checkName(name, 'planName').ok ? name : this.fallback.planName(names);
     } catch {
       return this.fallback.planName(names);
     }

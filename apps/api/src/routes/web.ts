@@ -1,5 +1,6 @@
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { z } from 'zod';
+import { checkName, safeDisplayName } from '../domain/nameFilter.ts';
 import { PUBLIC_MEDIA_PREFIXES, verifyMediaSig } from '../providers/storage.ts';
 import { isReviewCampus } from '../services/eduEmail.ts';
 import { loadPlaces, plans } from '../services/plans.ts';
@@ -160,6 +161,11 @@ export const webRoutes: FastifyPluginAsyncZod = async (app) => {
         timeZone: 'America/New_York',
         timeStyle: 'short',
       });
+      // A username from before the name filter may be bad; the page is public.
+      const by =
+        info.author.username && checkName(info.author.username, 'username').ok
+          ? `@${info.author.username}`
+          : 'a verified user';
       return reply.type('text/html').send(
         page(
           `Verified IRL · ${info.place.name}`,
@@ -169,7 +175,7 @@ export const webRoutes: FastifyPluginAsyncZod = async (app) => {
 <dl>
 <dt>Captured</dt><dd>${esc(when)}</dd>
 <dt>Check-in</dt><dd>${info.checkin.tier === 'tag' ? 'Venue tag scan' : 'GPS, 5 min on site'} at ${esc(checkin)}${info.checkin.attested ? ' · genuine app on a real device' : ''}</dd>
-<dt>By</dt><dd>${esc(info.author.username ? `@${info.author.username}` : 'a verified user')}</dd>
+<dt>By</dt><dd>${esc(by)}</dd>
 <dt>Fingerprint</dt><dd style="word-break:break-all;font-family:monospace;font-size:12px">sha256 ${info.sha256}</dd>
 <dt>Credential</dt><dd>${
             info.credential.c2pa && info.credential.manifestUrl
@@ -204,6 +210,16 @@ export const webRoutes: FastifyPluginAsyncZod = async (app) => {
       ]);
       // A deleted host kills the link like a cancelled plan. Blocks cannot apply: nobody is signed in here.
       if (!host || host.deletedAt) return expired();
+      // Anyone with the link sees this page, and names saved before the name filter may be bad: show a neutral
+      // title, "@username" for the host's name, and no handle for those instead of the stored text.
+      const title = checkName(plan.name, 'planName').ok ? plan.name : 'A plan on Hermi';
+      const hostName = safeDisplayName(host, { none: 'someone' });
+      const handle =
+        host?.username &&
+        checkName(host.username, 'username').ok &&
+        hostName !== `@${host.username}`
+          ? host.username
+          : undefined;
       const fmt = (d: Date) =>
         d.toLocaleString('en-US', {
           timeZone: 'America/New_York',
@@ -219,8 +235,8 @@ export const webRoutes: FastifyPluginAsyncZod = async (app) => {
         .join('');
       return reply.type('text/html').send(
         page(
-          plan.name,
-          `<h1>${esc(plan.name)}</h1><p class="muted">Hosted by ${esc(host?.name ?? 'someone')}${host?.username ? ` (@${esc(host.username)})` : ''}${host?.verifiedAt && !isReviewCampus(host.campus) ? ` · verified ${esc(host.campus ?? '')} student` : ''}</p>
+          title,
+          `<h1>${esc(title)}</h1><p class="muted">Hosted by ${esc(hostName)}${handle ? ` (@${esc(handle)})` : ''}${host?.verifiedAt && !isReviewCampus(host.campus) ? ` · verified ${esc(host.campus ?? '')} student` : ''}</p>
 <dl>${stops}</dl>
 <p class="muted">Public venues only. Share this page with a friend before you meet someone new.</p>
 <a class="btn" href="https://apps.apple.com/">Open in the app</a>`,
