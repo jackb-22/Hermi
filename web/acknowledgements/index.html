@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Acknowledgements · Hermi</title>
+    <meta name="description" content="Map data, attributions and open-source software used by Hermi." />
+    <meta name="theme-color" content="#f4efe2" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#16140f" media="(prefers-color-scheme: dark)" />
+    <meta property="og:title" content="Acknowledgements · Hermi" />
+    <meta property="og:description" content="Map data, attributions and open-source software used by Hermi." />
+    <meta property="og:type" content="website" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <header class="site-header">
+      <div class="wrap">
+        <a class="brand" href="/">Hermi</a>
+        <nav class="nav" aria-label="Main">
+          <ul>
+            <li><a href="/download/">Join the waitlist</a></li>
+            <li><a href="/support/">Support</a></li>
+          </ul>
+        </nav>
+      </div>
+    </header>
+    <main id="main" class="wrap legal">
+<h1>Acknowledgements</h1>
+      <p class="lead">
+        Hermi is built on other people’s work. Here is who we thank, and what we are required to
+        say.
+      </p>
+
+      <h2 id="map">Map and place data</h2>
+      <ul>
+        <li>
+          <strong>Map data © OpenStreetMap contributors.</strong> The data is available under the
+          <a href="https://opendatacommons.org/licenses/odbl/">Open Database License (ODbL)</a>.
+          See <a href="https://www.openstreetmap.org/copyright">openstreetmap.org/copyright</a>.
+        </li>
+        <li>
+          <strong>Map tiles:</strong> <a href="https://openfreemap.org/">OpenFreeMap</a>
+          © <a href="https://www.openmaptiles.org/">OpenMapTiles</a>. Data from
+          <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>.
+        </li>
+        <li>
+          <strong>Place information:</strong> places such as names, categories and addresses come
+          from <a href="https://overturemaps.org/">Overture Maps Foundation</a> data. Overture
+          assembles its Places data from several contributors, including Meta, Microsoft and
+          Foursquare, each under its own licence (CDLA Permissive 2.0, Apache 2.0 or CC0 1.0). The
+          Foursquare data was transformed to the Overture schema. See
+          <a href="https://docs.overturemaps.org/attribution/">Overture’s attribution page</a> for
+          the full list.
+        </li>
+        <li>
+          <strong>Borough outlines</strong> used for your Adventures progress are derived from
+          Overture Maps division and water data, which includes © OpenStreetMap contributors data
+          under the ODbL.
+        </li>
+        <li>
+          <strong>Shoreline mask:</strong> the offline mask that keeps pins on land is built from
+          data the City of New York publishes on
+          <a href="https://opendata.cityofnewyork.us/">NYC Open Data</a>: the DCP Borough
+          Boundaries and the OTI NYC Planimetric Database (Hydrography).
+        </li>
+        <li>
+          <strong>Grounding with Google Maps.</strong> Some answers about places use Google Maps.
+          Where Hermi shows them, it shows the Google Maps sources. Google Maps is a trademark of
+          Google LLC.
+        </li>
+      </ul>
+
+      <h2 id="weather">Weather</h2>
+      <p>
+        Weather forecasts are provided by <strong>Apple Weather</strong>. See
+        <a href="https://developer.apple.com/weatherkit/data-source-attribution/"
+          >Apple Weather data sources</a
+        >
+        for the sources behind them. Apple Weather and Weather are trademarks of Apple Inc.
+      </p>
+      <p>
+        If Apple’s forecast is unavailable, Hermi can use
+        <a href="https://open-meteo.com/">Weather data by Open-Meteo.com</a>, licensed under
+        <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>.
+      </p>
+
+      <h2 id="software">Open-source software</h2>
+      <h3>In the app</h3>
+      <p>
+        The iPhone app uses no third-party Swift packages. It bundles
+        <strong>MapLibre GL JS 5.6.0</strong> to draw the map, under the BSD 3-Clause licence.
+        MapLibre’s licence file also covers code from mapbox-gl-js (version 1.13 and earlier,
+        BSD-3-Clause, © 2020 Mapbox), glfx.js (MIT, © 2011 Evan Wallace) and d3-color
+        (BSD-3-Clause, © 2010–2016 Mike Bostock). The complete licence file is at
+        <a href="https://github.com/maplibre/maplibre-gl-js/blob/main/LICENSE.txt"
+          >github.com/maplibre/maplibre-gl-js</a
+        >, and ships inside the app.
+      </p>
+      <details>
+        <summary>MapLibre GL JS licence text</summary>
+        <pre>Copyright (c) 2023, MapLibre contributors
+
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+    * Redistributions of source code must retain the above copyright notice,
+      this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above copyright notice,
+      this list of conditions and the following disclaimer in the documentation
+      and/or other materials provided with the distribution.
+    * Neither the name of MapLibre GL JS nor the names of its contributors
+      may be used to endorse or promote products derived from this software
+      without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</pre>
+      </details>
+
+      <h3>On our servers</h3>
+      <p>
+        Hermi’s servers run these open-source packages. We list the direct dependencies and their
+        licences.
+      </p>
+      <table>
+        <caption class="muted">
+          Server software
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">Package</th>
+            <th scope="col">Licence</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">Fastify, @fastify/cors, @fastify/jwt, @fastify/swagger, fastify-plugin</th>
+            <td data-label="Licence">MIT</td>
+          </tr>
+          <tr>
+            <th scope="row">fastify-type-provider-zod, @scalar/fastify-api-reference, zod</th>
+            <td data-label="Licence">MIT</td>
+          </tr>
+          <tr>
+            <th scope="row">jose, ulid, pg, node-app-attest, spectrum-ts, tsx</th>
+            <td data-label="Licence">MIT</td>
+          </tr>
+          <tr>
+            <th scope="row">@contentauth/c2pa-node (Content Authenticity Initiative)</th>
+            <td data-label="Licence">MIT</td>
+          </tr>
+          <tr>
+            <th scope="row">mongodb (Node.js driver)</th>
+            <td data-label="Licence">Apache-2.0</td>
+          </tr>
+          <tr>
+            <th scope="row">@aws-sdk/client-s3, @aws-sdk/s3-request-presigner</th>
+            <td data-label="Licence">Apache-2.0</td>
+          </tr>
+          <tr>
+            <th scope="row">@google/genai</th>
+            <td data-label="Licence">Apache-2.0</td>
+          </tr>
+          <tr>
+            <th scope="row">@realitydefender/realitydefender</th>
+            <td data-label="Licence">Apache-2.0</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>
+        They run on Node.js, with FFmpeg, PostgreSQL with TimescaleDB, and Caddy, each under its own
+        open-source licence. The packages also depend on many others, whose licences you can find in
+        their own packages.
+      </p>
+
+      <h2 id="trademarks">Trademarks</h2>
+      <p>
+        Apple, the Apple logo, iPhone, App Store, Sign in with Apple and Apple Weather are
+        trademarks of Apple Inc. Google, Gemini and Google Maps are trademarks of Google LLC.
+        Columbia and Barnard are names of their respective institutions, used only to describe which
+        school email addresses Hermi accepts. Hermi is not affiliated with either institution.
+      </p>
+
+      <p class="muted">
+        Something missing? Email <a href="mailto:support@hermi.world">support@hermi.world</a>.
+      </p>
+    </main>
+    <footer class="site-footer">
+      <div class="wrap">
+        <nav aria-label="Footer">
+          <ul class="foot-links">
+            <li><a href="/privacy/">Privacy</a></li>
+            <li><a href="/terms/">Terms</a></li>
+            <li><a href="/support/">Support</a></li>
+            <li><a href="/acknowledgements/">Acknowledgements</a></li>
+            <li><a href="/download/">Waitlist</a></li>
+          </ul>
+        </nav>
+        <p>
+          Hermi is an independent project. It is not affiliated with, endorsed by or sponsored by
+          Columbia University or Barnard College.
+        </p>
+        <p>© 2026 Hermi · <a href="mailto:support@hermi.world">support@hermi.world</a></p>
+      </div>
+    </footer>
+  </body>
+</html>

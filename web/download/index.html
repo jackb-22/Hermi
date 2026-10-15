@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Get Hermi · Join the waitlist</title>
+    <meta name="description" content="Hermi is launching soon on the App Store. Join the waitlist and we will email you when it is ready." />
+    <meta name="theme-color" content="#f4efe2" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#16140f" media="(prefers-color-scheme: dark)" />
+    <meta property="og:title" content="Get Hermi · Join the waitlist" />
+    <meta property="og:description" content="Hermi is launching soon on the App Store. Join the waitlist and we will email you when it is ready." />
+    <meta property="og:type" content="website" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <header class="site-header">
+      <div class="wrap">
+        <a class="brand" href="/">Hermi</a>
+        <nav class="nav" aria-label="Main">
+          <ul>
+            <li><a href="/download/">Join the waitlist</a></li>
+            <li><a href="/support/">Support</a></li>
+          </ul>
+        </nav>
+      </div>
+    </header>
+    <main id="main" class="wrap">
+<!--
+        WAITLIST MODE until Nov 2, 2026.
+
+        ON NOV 2 (launch day), do ONE of these:
+          A) Edit this page: delete the "Join the waitlist" section below, and un-comment the
+             "AFTER LAUNCH" block, replacing APP_STORE_URL with the real App Store link
+             (https://apps.apple.com/us/app/...). Also change the <h1>, the <title> and the
+             description in <head> if you like.
+          B) Or leave this page alone and add one line to a new file web/_redirects:
+               /download/  APP_STORE_URL  302
+             Cloudflare Pages then sends everyone, including flier QR codes, straight to the store.
+
+        TALLY_FORM_URL: replace with the Tally waitlist form link (also in index.html).
+        Find every spot with:  grep -rn "TALLY_FORM_URL\|APP_STORE_URL" web
+      -->
+      <h1>Get Hermi</h1>
+      <p class="lead">
+        Hermi is not on the App Store yet. Join the waitlist and we will email you once, when it is
+        ready to download.
+      </p>
+      <p><a class="btn" href="TALLY_FORM_URL">Join the waitlist</a></p>
+      <p class="muted">
+        Hermi is for iPhone, for people 18 and older, in the United States. You will need to sign
+        in with Apple and verify a Columbia or Barnard email address.
+      </p>
+
+      <!-- AFTER LAUNCH (APP_STORE_URL)
+      <p><a class="btn" href="APP_STORE_URL">Download on the App Store</a></p>
+      -->
+
+      <p>
+        Questions? Read the <a href="/support/">support page</a> or email
+        <a href="mailto:support@hermi.world">support@hermi.world</a>.
+      </p>
+    </main>
+    <footer class="site-footer">
+      <div class="wrap">
+        <nav aria-label="Footer">
+          <ul class="foot-links">
+            <li><a href="/privacy/">Privacy</a></li>
+            <li><a href="/terms/">Terms</a></li>
+            <li><a href="/support/">Support</a></li>
+            <li><a href="/acknowledgements/">Acknowledgements</a></li>
+            <li><a href="/download/">Waitlist</a></li>
+          </ul>
+        </nav>
+        <p>
+          Hermi is an independent project. It is not affiliated with, endorsed by or sponsored by
+          Columbia University or Barnard College.
+        </p>
+        <p>© 2026 Hermi · <a href="mailto:support@hermi.world">support@hermi.world</a></p>
+      </div>
+    </footer>
+  </body>
+</html>

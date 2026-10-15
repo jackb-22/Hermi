@@ -1,0 +1,343 @@
+/* Hermi website: one small stylesheet, no web fonts, no scripts. Mobile first. */
+:root {
+  color-scheme: light dark;
+  --bg: #f4efe2;
+  --card: #fbf8ef;
+  --fg: #1d1b16;
+  --muted: #5a554a;
+  --accent: #2f6f48;
+  --on-accent: #fbf8ef;
+  --line: #8a8470;
+  --warn-bg: #ffe9a8;
+  --warn-fg: #4a3200;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #16140f;
+    --card: #1f1c15;
+    --fg: #efe9da;
+    --muted: #b3ad9c;
+    --accent: #7fc79a;
+    --on-accent: #10200f;
+    --line: #6f6a5a;
+    --warn-bg: #3a2d00;
+    --warn-fg: #ffe9a8;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font:
+    1.0625rem / 1.6 system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+}
+
+.wrap {
+  width: 100%;
+  max-width: 42rem;
+  margin: 0 auto;
+  padding-right: 1rem;
+  padding-left: 1rem;
+}
+
+a {
+  color: var(--accent);
+  text-underline-offset: 0.15em;
+}
+
+a:hover {
+  text-decoration-thickness: 0.15em;
+}
+
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.skip {
+  position: absolute;
+  left: 0.5rem;
+  top: -4rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--fg);
+  color: var(--bg);
+  z-index: 10;
+}
+
+.skip:focus {
+  top: 0.5rem;
+}
+
+/* Text */
+main {
+  padding: 2rem 0 0;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--mono);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+h1 {
+  margin: 0 0 0.75rem;
+  font-size: 2rem;
+}
+
+h2 {
+  margin: 2.5rem 0 0.75rem;
+  font-size: 1.4rem;
+}
+
+h3 {
+  margin: 1.75rem 0 0.5rem;
+  font-size: 1.1rem;
+}
+
+p,
+ul,
+ol,
+dl {
+  margin: 0.75rem 0;
+}
+
+li {
+  margin: 0.35rem 0;
+}
+
+.lead {
+  font-size: 1.25rem;
+  line-height: 1.5;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.stamp {
+  display: inline-block;
+  margin: 0 0 1rem;
+  padding: 0.25rem 0.6rem;
+  border: 3px solid var(--accent);
+  color: var(--accent);
+  font: 700 0.85rem / 1.2 var(--mono);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Header and footer */
+.site-header {
+  padding: 1rem 0;
+  border-bottom: 2px solid var(--line);
+}
+
+.site-header .wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1.5rem;
+}
+
+.brand {
+  font: 700 1.5rem / 1 var(--mono);
+  letter-spacing: -0.02em;
+  color: var(--fg);
+  text-decoration: none;
+}
+
+.nav ul,
+.foot-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nav a,
+.foot-links a {
+  display: inline-block;
+  padding: 0.35rem 0;
+  min-height: 2.75rem;
+  line-height: 2.1rem;
+}
+
+.site-footer {
+  margin-top: 3rem;
+  padding: 1.5rem 0 2.5rem;
+  border-top: 2px solid var(--line);
+  color: var(--muted);
+  font-size: 0.9375rem;
+}
+
+.site-footer p {
+  margin: 0.5rem 0;
+}
+
+/* Buttons and cards */
+.btn {
+  display: inline-block;
+  min-height: 2.75rem;
+  padding: 0.7rem 1.25rem;
+  background: var(--accent);
+  color: var(--on-accent);
+  border: 3px solid var(--accent);
+  font: 700 1rem / 1.4 var(--mono);
+  text-decoration: none;
+}
+
+.btn:hover {
+  background: var(--card);
+  color: var(--accent);
+}
+
+.card {
+  margin: 1.5rem 0;
+  padding: 1rem 1.25rem;
+  background: var(--card);
+  border: 2px solid var(--line);
+}
+
+.card > :first-child {
+  margin-top: 0;
+}
+
+.card > :last-child {
+  margin-bottom: 0;
+}
+
+.steps {
+  padding-left: 1.5rem;
+}
+
+.steps li {
+  margin: 0.9rem 0;
+  padding-left: 0.25rem;
+}
+
+.steps li::marker {
+  font-family: var(--mono);
+  font-weight: 700;
+  color: var(--accent);
+}
+
+/* Legal pages */
+.draft-banner {
+  margin: 0 0 1.5rem;
+  padding: 0.75rem 1rem;
+  background: var(--warn-bg);
+  color: var(--warn-fg);
+  border: 2px solid var(--warn-fg);
+  font-weight: 700;
+}
+
+.toc ol {
+  columns: 1;
+  padding-left: 1.25rem;
+}
+
+.legal h2 {
+  scroll-margin-top: 1rem;
+}
+
+.legal table {
+  width: 100%;
+  margin: 1rem 0;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+
+.legal caption {
+  padding-bottom: 0.5rem;
+  text-align: left;
+  font-weight: 700;
+}
+
+.legal th,
+.legal td {
+  padding: 0.6rem 0.5rem;
+  border-top: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+
+.legal thead th {
+  border-top: 0;
+  border-bottom: 2px solid var(--line);
+}
+
+.legal dt {
+  margin-top: 1rem;
+  font-weight: 700;
+}
+
+.legal dd {
+  margin: 0.25rem 0 0;
+}
+
+/* Small screens: each table row becomes a labelled block, so nothing scrolls sideways. */
+@media (max-width: 40rem) {
+  .legal thead {
+    position: absolute;
+    left: -999rem;
+  }
+
+  .legal tr,
+  .legal td,
+  .legal tbody th {
+    display: block;
+  }
+
+  .legal tr {
+    padding: 0.5rem 0;
+    border-top: 2px solid var(--line);
+  }
+
+  .legal td,
+  .legal tbody th {
+    padding: 0.2rem 0;
+    border: 0;
+  }
+
+  .legal td::before {
+    content: attr(data-label) ": ";
+    font-weight: 700;
+  }
+}
+
+@media (min-width: 40rem) {
+  h1 {
+    font-size: 2.5rem;
+  }
+
+  .toc ol {
+    columns: 2;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
