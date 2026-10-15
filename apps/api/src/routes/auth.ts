@@ -10,6 +10,7 @@ import {
   MeSchema,
 } from '@itp/shared/api';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
+import { checkName } from '../domain/nameFilter.ts';
 import { authed, bannedError, bearer } from '../plugins/auth.ts';
 import { devGuard, hasDevAccess } from '../plugins/devGuard.ts';
 import {
@@ -132,7 +133,13 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
           user: toMe(existing, config, clock.now()),
         };
       }
-      const u = newUser(clock.now(), { appleSub: sub, name, appleRefreshToken });
+      // Apple sends the name once, on the first sign-in, so a refusal must not fail the request: the account is
+      // made without a name, which the person can set later. An existing user's name is never taken from Apple.
+      const u = newUser(clock.now(), {
+        appleSub: sub,
+        name: name !== undefined && checkName(name, 'displayName').ok ? name : undefined,
+        appleRefreshToken,
+      });
       await users(db).insertOne(u);
       return { token: sign(u._id), isNew: true, user: toMe(u, config, clock.now()) };
     },

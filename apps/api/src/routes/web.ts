@@ -14,7 +14,6 @@ export function page(title: string, body: string): string {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(title)}</title>
-<link href="https://fonts.googleapis.com/css2?family=Silkscreen&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#f4efe2;--fg:#1d1b16;--accent:#3d8b5a;--muted:#6b665a}
 @media (prefers-color-scheme:dark){:root{--bg:#16140f;--fg:#efe9da;--muted:#a39d8c}}

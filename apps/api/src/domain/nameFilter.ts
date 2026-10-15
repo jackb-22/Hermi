@@ -358,9 +358,9 @@ export function assertNameAllowed(text: string, kind: NameKind): void {
 
 /**
  * The name to show for a person on a public page or in a push or text to someone else. Names saved before the
- * filter, and Apple's sign-in name, were never checked: a bad name becomes "@username" if that passes, else `none`.
- * A missing name is treated the same way. `first` shows the first word of the name, checked on its own ("Hermi
- * Patel" is a person, "Hermi" is not); `handleFirst` prefers "@username" over the name.
+ * filter (Apple's sign-in names among them) were never checked: a bad name becomes "@username" if that passes,
+ * else `none`. A missing name is treated the same way. `first` shows the first word of the name, checked on its
+ * own ("Hermi Patel" is a person, "Hermi" is not); `handleFirst` prefers "@username" over the name.
  */
 export function safeDisplayName(
   u: { name?: string | null; username?: string | null } | null | undefined,

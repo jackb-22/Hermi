@@ -223,6 +223,37 @@ describe('real provider', () => {
     );
   });
 
+  describe('the name from Apple', () => {
+    test('an ordinary name is stored', async () => {
+      const res = await signIn({ ...(await credential('sub-name-ok')), name: 'Hermione Granger' });
+      expect(res.statusCode).toBe(200);
+      expect(res.json().user.name).toBe('Hermione Granger');
+      expect((await userBySub('sub-name-ok'))?.name).toBe('Hermione Granger');
+    });
+
+    // Apple sends the name once, so a refused one must not cost the person their sign-in.
+    test.each([
+      ['a slur', 'Fuck Face'],
+      ['a name that passes for Hermi', 'Hermi Team'],
+    ])('%s creates the account with no name', async (_why, name) => {
+      const sub = `sub-name-${name.replace(/\W/g, '')}`;
+      const res = await signIn({ ...(await credential(sub)), name });
+      expect(res.statusCode).toBe(200);
+      expect(res.json()).toMatchObject({ isNew: true, user: { name: null } });
+      const doc = await userBySub(sub);
+      expect(doc).not.toBeNull();
+      expect(doc?.name).toBeUndefined();
+      expect(doc?.appleRefreshToken).toBeDefined();
+    });
+
+    test('a later sign-in never changes the name, whatever Apple sends', async () => {
+      await signIn({ ...(await credential('sub-name-keep')), name: 'Ada Lovelace' });
+      const res = await signIn({ ...(await credential('sub-name-keep')), name: 'Grace Hopper' });
+      expect(res.json()).toMatchObject({ isNew: false, user: { name: 'Ada Lovelace' } });
+      expect((await userBySub('sub-name-keep'))?.name).toBe('Ada Lovelace');
+    });
+  });
+
   describe('the nonce', () => {
     test('a different raw nonce is a 401, creates nobody and never reaches Apple', async () => {
       const cred = await credential('sub-nonce-1');

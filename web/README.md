@@ -75,7 +75,7 @@ They are drafts, not legal advice. The founders, and ideally a lawyer, should re
 - Raw location points: 90-day retention (`db/migrations/001_timeline.sql`). Check-ins, tag reads, outing recaps and tiles have no expiry and rely on account deletion.
 - Gemini paid tier, and what each call sends (`providers/llm.ts`, `services/planner.ts`, `services/textExtract.ts`, `services/posts.ts`, `services/safety.ts`).
 - The provider list: Apple (Sign in, APNs, Maps Server API, WeatherKit, App Attest), Google (Gemini, Routes, Places), Resend, Photon, Cloudflare (R2, Pages, email routing), DigitalOcean, MongoDB Atlas, Open-Meteo (weather fallback), OpenFreeMap, Tally. Adding Sentry, Better Stack, analytics, Reality Defender (`REALITY_DEFENDER_KEY`), video or audio capture, or any new vendor means a policy update first.
-- Public pages served by the API: `/p/:token` and `/verify/:hash` (`routes/web.ts`). They load Google Fonts today; the policy says so.
+- Public pages served by the API: `/p/:token` and `/verify/:hash` (`routes/web.ts`). They load nothing from third parties (no web fonts, scripts or images), so a visitor's IP address reaches only us. Keep it so, or update the policy first.
 - Ghost mode, plan visibility and who can see profiles and posts (`services/planAccess.ts`, `services/social.ts`, `routes/profile.ts`, `routes/feed.ts`).
 
 ### What account deletion must cover
