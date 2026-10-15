@@ -26,7 +26,7 @@ import {
 } from '../services/posts.ts';
 import { fileReport } from '../services/reports.ts';
 import { sessions } from '../services/sessions.ts';
-import { blockedIds } from '../services/social.ts';
+import { blockedIds, endTies } from '../services/social.ts';
 import { errs } from './_util.ts';
 
 const IdParams = z.object({ id: z.string() });
@@ -362,7 +362,8 @@ export const postRoutes: FastifyPluginAsyncZod = async (app) => {
       ...authed,
       schema: {
         tags: ['safety'],
-        summary: 'Block a user (both directions disappear)',
+        summary:
+          'Block a user: both directions disappear, any friendship ends (unblocking does not restore it) and invites waiting between you are withdrawn',
         security: bearer,
         body: BlockBody,
         response: { 200: OkSchema, ...errs(400, 401) },
@@ -378,6 +379,7 @@ export const postRoutes: FastifyPluginAsyncZod = async (app) => {
           { $setOnInsert: { createdAt: clock.now() } },
           { upsert: true },
         );
+      await endTies(db, req.userId, req.body.userId);
       return { ok: true as const };
     },
   );

@@ -10,6 +10,7 @@ import { plans } from '../services/plans.ts';
 import { posts } from '../services/posts.ts';
 import { computeScore, scoreAt } from '../services/score.ts';
 import {
+  blockedIds,
   friendIds,
   friendships,
   pairKey,
@@ -121,10 +122,16 @@ export const profileRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     async (req) => {
       const now = clock.now();
-      const fs = await friendships(db)
-        .find({ $or: [{ a: req.userId }, { b: req.userId }] })
-        .toArray();
-      const ids = fs.map((f) => (f.a === req.userId ? f.b : f.a));
+      const [fs, blocked] = await Promise.all([
+        friendships(db)
+          .find({ $or: [{ a: req.userId }, { b: req.userId }] })
+          .toArray(),
+        blockedIds(db, req.userId),
+      ]);
+      // Blocking ends a friendship, so this only catches one left from before that rule (or a tap that raced it).
+      const ids = fs
+        .map((f) => (f.a === req.userId ? f.b : f.a))
+        .filter((id) => !blocked.includes(id));
       const docs = new Map(
         (
           await users(db)

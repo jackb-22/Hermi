@@ -5,6 +5,7 @@ import type { z } from 'zod';
 import type { AppContext } from '../context.ts';
 import type { UserDoc } from '../db/types.ts';
 import { applyHangout, displayStreak, newStreak, type StreakState } from '../domain/streak.ts';
+import { plans } from './plans.ts';
 import { publicUrl, users } from './users.ts';
 
 export interface FriendshipDoc {
@@ -48,6 +49,25 @@ export async function visibleUser(db: Db, viewerId: string, id: string): Promise
 }
 
 export const friendships = (db: Db) => db.collection<FriendshipDoc>('friendships');
+
+/**
+ * What a block cuts, beyond hiding the two from each other: the friendship (unblocking does not bring it back, and a
+ * new one starts a new streak), and the invites and join requests waiting on either one's plans, which could no longer
+ * be accepted anyway. The hangouts log in Tiger is kept: it is only read next to a friendship.
+ */
+export async function endTies(db: Db, x: string, y: string) {
+  const waiting = { $in: ['invited', 'requested'] as ('invited' | 'requested')[] };
+  const withdraw = (hostId: string, guestId: string) =>
+    plans(db).updateMany(
+      { hostId, members: { $elemMatch: { userId: guestId, status: waiting } } },
+      { $pull: { members: { userId: { $eq: guestId }, status: waiting } } },
+    );
+  await Promise.all([
+    friendships(db).deleteOne({ _id: pairKey(x, y) }),
+    withdraw(x, y),
+    withdraw(y, x),
+  ]);
+}
 
 export function toUserCard(u: UserDoc, c: AppContext['config']): z.infer<typeof UserCardSchema> {
   return {

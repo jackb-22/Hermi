@@ -148,13 +148,18 @@ describe('saving a plan', () => {
   });
 
   test('a blocked friend, a deleted host and a cancelled plan are all 404', async () => {
+    // A block ends the friendship and withdraws invites, and unblocking restores neither: put them back.
     await call(pal, 'POST', '/v1/blocks', { userId: host.id });
     expect((await save(pal, plan.friends)).statusCode).toBe(404);
     await call(pal, 'DELETE', `/v1/blocks/${host.id}`);
+    expect((await save(pal, plan.friends)).statusCode).toBe(404);
+    await befriend(host.id, pal.id);
     expect((await save(pal, plan.friends)).statusCode).toBe(200);
     await call(host, 'POST', '/v1/blocks', { userId: invitee.id }); // the other direction
     expect((await save(invitee, plan.friends)).statusCode).toBe(404);
     await call(host, 'DELETE', `/v1/blocks/${invitee.id}`);
+    await befriend(host.id, invitee.id);
+    await call(host, 'POST', `/v1/plans/${plan.invite}/invite`, { userIds: [invitee.id] });
     expect((await save(invitee, plan.friends)).statusCode).toBe(200);
 
     await setUser(host.id, { deletedAt: new Date() });
@@ -258,6 +263,7 @@ describe('listing someone else’s plans', () => {
     expect((await call(host, 'GET', `/v1/plans?userId=${pal.id}`)).statusCode).toBe(404);
     expect((await call(pal, 'GET', `/v1/profile/${host.id}`)).statusCode).toBe(404);
     await call(pal, 'DELETE', `/v1/blocks/${host.id}`);
+    await befriend(host.id, pal.id); // the block ended the friendship
     await setUser(host.id, { deletedAt: new Date() });
     expect((await call(pal, 'GET', `/v1/plans?userId=${host.id}`)).statusCode).toBe(404);
     await t.ctx.db
@@ -361,6 +367,7 @@ describe('GET /taps/pending', () => {
     expect((await pending(pal, maya.id)).statusCode).toBe(404);
     expect((await pending(maya, pal.id)).statusCode).toBe(404);
     await call(pal, 'DELETE', `/v1/blocks/${maya.id}`);
+    await befriend(maya.id, pal.id); // the block ended the friendship
     expect((await pending(pal, maya.id)).statusCode).toBe(200);
     await setUser(maya.id, { deletedAt: new Date() });
     expect((await pending(pal, maya.id)).statusCode).toBe(404);
