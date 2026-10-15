@@ -89,14 +89,23 @@ export const meRoutes: FastifyPluginAsyncZod = async (app) => {
       ...authed,
       schema: {
         tags: ['me'],
-        summary: 'Register an Expo push token',
+        summary: 'Register an APNs device token',
         security: bearer,
         body: PushTokenBody,
         response: { 200: OkSchema },
       },
     },
     async (req) => {
-      await users(db).updateOne({ _id: req.userId }, { $addToSet: { pushTokens: req.body.token } });
+      // Lowercased so a client that formats the hex in capitals cannot register one device twice.
+      const token = req.body.token.toLowerCase();
+      // A device belongs to whoever registered it last: after a sign-out and another sign-in on the
+      // same phone, the first account must stop getting its invites and nudges there. Pull before
+      // adding so a crash in between leaves the token on nobody (the app re-registers) rather than two.
+      await users(db).updateMany(
+        { _id: { $ne: req.userId }, pushTokens: token },
+        { $pull: { pushTokens: token } },
+      );
+      await users(db).updateOne({ _id: req.userId }, { $addToSet: { pushTokens: token } });
       return { ok: true as const };
     },
   );

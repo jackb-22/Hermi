@@ -97,4 +97,15 @@ export const PatchMeBody = z.object({
   openToPlans: z.boolean().optional(),
 });
 
-export const PushTokenBody = z.object({ token: z.string().min(10).max(200) });
+/** An APNs device token: hex of 32 to 100 bytes. Apple has said the length may change, so no fixed 64. */
+export const APNS_TOKEN_RE = /^(?:[0-9a-f]{2}){32,100}$/i;
+
+export const PushTokenBody = z.object({
+  token: z
+    .string()
+    .regex(APNS_TOKEN_RE)
+    .describe(
+      'The APNs device token as hex (application(_:didRegisterForRemoteNotificationsWithDeviceToken:), each byte as two hex digits). ' +
+        'Debug builds from Xcode give sandbox tokens, which only work against a server with APNS_SANDBOX=1.',
+    ),
+});

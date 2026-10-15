@@ -7,6 +7,10 @@ import { createCheckin } from '../src/services/checkins.ts';
 import { insertPlaces, ORIGIN, offset, placeDoc } from './fixtures/places.ts';
 import { devLogin, setupTestApp } from './helpers.ts';
 
+// APNs device tokens are hex; any 64 hex digits will do for a fake device.
+const PAL_DEVICE = 'a'.repeat(64);
+const HOST_DEVICE = 'b'.repeat(64);
+
 let t: Awaited<ReturnType<typeof setupTestApp>>;
 let host: Awaited<ReturnType<typeof devLogin>>;
 let pal: Awaited<ReturnType<typeof devLogin>>;
@@ -67,8 +71,8 @@ beforeAll(async () => {
   await t.ctx.db.collection('users').updateOne({ _id: student.id } as never, {
     $set: { openToPlans: true, prefVector: new Array(TAG_DIMS).fill(1 / Math.sqrt(TAG_DIMS)) },
   });
-  await call(pal, 'POST', '/v1/me/push-token', { token: 'ExponentPushToken[pal-device]' });
-  await call(host, 'POST', '/v1/me/push-token', { token: 'ExponentPushToken[host-device]' });
+  await call(pal, 'POST', '/v1/me/push-token', { token: PAL_DEVICE });
+  await call(host, 'POST', '/v1/me/push-token', { token: HOST_DEVICE });
 });
 afterAll(() => t.teardown());
 
@@ -98,7 +102,7 @@ describe('save and invite', () => {
     await worker.drain();
     const push = t.ctx.providers.push as FakePush;
     expect(push.sent.at(-1)).toMatchObject({
-      tokens: ['ExponentPushToken[pal-device]'],
+      tokens: [PAL_DEVICE],
       msg: { data: { kind: 'plan_invite', planId: p.id } },
     });
 
