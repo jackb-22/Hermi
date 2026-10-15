@@ -101,3 +101,11 @@ test('a slow job does not hold up the jobs behind it (a recap behind a clip tran
   expect(serial).toBeGreaterThan(1500);
   expect(parallel).toBeLessThan(500);
 });
+
+test('finished jobs expire two weeks after doneAt; the partial filter leaves dead ones alone', async () => {
+  const idx = (await t.ctx.db.collection('jobs').indexes()).find((i) => i.key.doneAt === 1);
+  expect(idx).toMatchObject({
+    expireAfterSeconds: 14 * 86400,
+    partialFilterExpression: { status: 'done' },
+  });
+});

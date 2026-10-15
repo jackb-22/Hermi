@@ -2,6 +2,7 @@ import { ApiError } from '@itp/shared';
 import { MeSchema, OkSchema, PatchMeBody, PushTokenBody } from '@itp/shared/api';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { authed, bearer, requireAuth } from '../plugins/auth.ts';
+import { queueAccountErasure } from '../services/accountErasure.ts';
 import { queueAppleRevoke } from '../services/appleRevoke.ts';
 import { uploadProfilePhoto } from '../services/safety.ts';
 import { getUser, isDupKey, toMe, users } from '../services/users.ts';
@@ -117,6 +118,9 @@ export const meRoutes: FastifyPluginAsyncZod = async (app) => {
       schema: {
         tags: ['me'],
         summary: 'Delete account',
+        description:
+          'Signs the account out at once and hides it. A background job then erases the profile, posts, photos, plans, ' +
+          'friendships, check-ins and location history; only an empty placeholder with the id is kept.',
         security: bearer,
         response: { 200: OkSchema },
       },
@@ -158,6 +162,8 @@ export const meRoutes: FastifyPluginAsyncZod = async (app) => {
       await db
         .collection('posts')
         .updateMany({ authorId: req.userId }, { $set: { status: 'removed' } });
+      // The hiding above is instant; the erase of everything else is a job because storage deletes can fail.
+      await queueAccountErasure(app.ctx, req.userId);
       return { ok: true as const };
     },
   );

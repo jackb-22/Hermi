@@ -427,7 +427,7 @@ describe('real provider', () => {
             dedupeKey: `revoke-apple:${id}`,
             maxAttempts: 8,
           });
-          // The jobs collection is never pruned, so nothing secret may go in it.
+          // A dead job is never pruned, so nothing secret may go in it.
           expect(JSON.stringify(job)).not.toContain(token);
           expect(await queueAppleRevoke(t.ctx, id)).toBe(job!._id);
           expect(await revokeJobs(id)).toHaveLength(1);

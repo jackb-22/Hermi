@@ -6,8 +6,8 @@ export const REVOKE_APPLE_JOB = 'revoke_apple_token';
 
 /**
  * Apple requires Sign in with Apple to be revoked when an account is deleted. If the attempt inside DELETE /me
- * fails, the token stays on the soft-deleted user and this job retries it. The payload is the user id only: the
- * jobs collection is never pruned, so it must not hold the token.
+ * fails, the token stays on the soft-deleted user and this job retries it. The payload is the user id only: a dead
+ * job is never pruned, so it must not hold the token.
  */
 export const queueAppleRevoke = (ctx: Pick<AppContext, 'db' | 'clock'>, userId: string) =>
   enqueue(
