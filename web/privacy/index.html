@@ -1,0 +1,855 @@
+<!doctype html>
+<!-- Draft — pending review. Do not publish until a founder (ideally a lawyer) has read it.
+     Before publishing: delete this comment, the visible .draft-banner paragraph and the noindex meta tag,
+     fill in every [bracketed placeholder], and set the Effective date. See web/README.md. -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Privacy Policy · Hermi</title>
+    <meta name="description" content="What Hermi collects, why, who else sees it, and how to delete it." />
+    <!-- noindex while this is a draft or an error page. Remove it for privacy and terms when publishing. -->
+    <meta name="robots" content="noindex" />
+    <meta name="theme-color" content="#f4efe2" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#16140f" media="(prefers-color-scheme: dark)" />
+    <meta property="og:title" content="Privacy Policy · Hermi" />
+    <meta property="og:description" content="What Hermi collects, why, who else sees it, and how to delete it." />
+    <meta property="og:type" content="website" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <header class="site-header">
+      <div class="wrap">
+        <a class="brand" href="/">Hermi</a>
+        <nav class="nav" aria-label="Main">
+          <ul>
+            <li><a href="/download/">Join the waitlist</a></li>
+            <li><a href="/support/">Support</a></li>
+          </ul>
+        </nav>
+      </div>
+    </header>
+    <main id="main" class="wrap legal">
+<p class="draft-banner" role="note">Draft — pending review. This policy is not in effect yet.</p>
+      <h1>Privacy Policy</h1>
+      <p class="muted">Effective: [date of publication]</p>
+      <p class="lead">
+        This policy explains what Hermi collects, why, who else can see it, and how to delete it. We
+        tried to say it plainly.
+      </p>
+
+      <nav class="card toc" aria-label="On this page">
+        <p><strong>On this page</strong></p>
+        <ol>
+          <li><a href="#short">The short version</a></li>
+          <li><a href="#who">Who we are</a></li>
+          <li><a href="#collect">What we collect</a></li>
+          <li><a href="#use">How we use it</a></li>
+          <li><a href="#sharing">Who sees your information</a></li>
+          <li><a href="#ai">AI features</a></li>
+          <li><a href="#keep">How long we keep it</a></li>
+          <li><a href="#deleting">Deleting your account</a></li>
+          <li><a href="#choices">Your choices</a></li>
+          <li><a href="#more">Security, age, location and changes</a></li>
+          <li><a href="#contact">Contact</a></li>
+        </ol>
+      </nav>
+
+      <h2 id="short">1. The short version</h2>
+      <ul>
+        <li>
+          Hermi helps you plan outings and prove you went. To do that it uses your
+          <strong>precise location during outings</strong>, your check-ins, photos and posts, and
+          your plans.
+        </li>
+        <li>
+          <strong>We do not sell your data.</strong> We do not show ads, and we do not track you
+          across other companies’ apps or websites.
+        </li>
+        <li>
+          Hermi uses <strong>Google’s Gemini AI</strong> to help plan outings and to check posts
+          before they go live. <a href="#ai">See what is sent</a>.
+        </li>
+        <li>Raw location points are deleted automatically after <strong>90 days</strong>.</li>
+        <li>
+          You can <strong>delete your account in the app</strong>. That deletes your account and
+          personal data, including photos, location history and check-ins.
+        </li>
+        <li>Hermi is for people 18 or older, in the United States.</li>
+        <li>
+          Hermi is not affiliated with Columbia University or Barnard College.
+        </li>
+      </ul>
+
+      <h2 id="who">2. Who we are</h2>
+      <!-- [OPERATOR NAME]: the individuals or company legally responsible for Hermi. The Apple
+           Developer account is an Individual one (DEPLOYMENT.md T1), so this is likely the founders
+           by name until Hermi is incorporated (D6). A lawyer should confirm. -->
+      <p>
+        Hermi is run by [OPERATOR NAME] (“Hermi”, “we”, “us”). You can reach us at
+        <a href="mailto:support@hermi.world">support@hermi.world</a>.
+      </p>
+      <p>
+        Hermi is an independent project. It is not affiliated with, endorsed by or sponsored by
+        Columbia University or Barnard College. We use their names only to say which school email
+        addresses we accept.
+      </p>
+
+      <h2 id="collect">3. What we collect</h2>
+
+      <h3>Your account and profile</h3>
+      <table>
+        <caption class="muted">
+          Account and profile information
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">What</th>
+            <th scope="col">Details</th>
+            <th scope="col">Why</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">Sign in with Apple</th>
+            <td data-label="Details">
+              The user identifier Apple gives Hermi, and your name if you let Apple share it.
+              Apple may put your email address in the sign-in token; we do not save it. We also keep
+              a token from Apple so we can disconnect Hermi from your Apple account when you delete
+              your account.
+            </td>
+            <td data-label="Why">To create and secure your account.</td>
+          </tr>
+          <tr>
+            <th scope="row">School email</th>
+            <td data-label="Details">
+              You type a Columbia or Barnard address and we email you a six-digit code. We store
+              only a one-way hash (SHA-256) of the address, never the address itself, and the code
+              is stored hashed and expires after 10 minutes. We also keep the school (Columbia or
+              Barnard) and the class year you enter.
+            </td>
+            <td data-label="Why">
+              To check you are a student, and so one school email verifies only one account.
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">Profile and settings</th>
+            <td data-label="Details">
+              Username, name, profile photo, and your settings: Ghost mode, Open to plans, and
+              whether you confirmed you are 21 or older.
+            </td>
+            <td data-label="Why">
+              To show your profile, and to keep 21+ places away from people who have not confirmed.
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">Taste</th>
+            <td data-label="Details">
+              Your answers in the taste deck, saved as a list of numbers (a preference vector) and a
+              list of things you dislike.
+            </td>
+            <td data-label="Why">
+              To rank places and suggestions for you, and to match you with open plans.
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">Notifications</th>
+            <td data-label="Details">The push token Apple gives your device.</td>
+            <td data-label="Why">
+              To send invites, join requests, reminders and the occasional nudge.
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">App integrity</th>
+            <td data-label="Details">
+              If your iPhone supports Apple’s App Attest, an identifier and public key for your copy
+              of the app.
+            </td>
+            <td data-label="Why">
+              To help confirm that check-ins come from the real Hermi app, not a script.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Where you go</h3>
+      <table>
+        <caption class="muted">
+          Location and outing information
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">What</th>
+            <th scope="col">Details</th>
+            <th scope="col">Why</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">Location during an outing</th>
+            <td data-label="Details">
+              While an outing is running, the app sends your precise GPS location (time, latitude,
+              longitude, accuracy and speed) regularly, and in the background if you allow it. We drop points that look wrong. <strong>Raw points are deleted automatically
+              after 90 days.</strong>
+            </td>
+            <td data-label="Why">
+              To confirm check-ins, draw your route, work out distance and steps, and award XP.
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">Location when you browse</th>
+            <td data-label="Details">
+              When you open the Feed, the map or suggestions, the app can send the point it is
+              showing so we can find things nearby. We do not save these as location history, but
+              they can appear in our technical logs (see below).
+            </td>
+            <td data-label="Why">To show places and posts near you.</td>
+          </tr>
+          <tr>
+            <th scope="row">Check-ins</th>
+            <td data-label="Details">
+              The time, the place, how you checked in (venue tag or GPS), and the precise
+              coordinates and accuracy reported with it. Tapping a tag (including a friend’s
+              personal tag) records the time, the tag and your coordinates.
+            </td>
+            <td data-label="Why">To prove you were there, award XP and build streaks.</td>
+          </tr>
+          <tr>
+            <th scope="row">Outing summary</th>
+            <td data-label="Details">
+              After an outing: a simplified route, distance by walking, transit or other mode, your
+              step count if you allow motion data, the map squares you explored, and your stops.
+            </td>
+            <td data-label="Why">Your recap, your Score and your Adventures map.</td>
+          </tr>
+          <tr>
+            <th scope="row">Hangouts</th>
+            <td data-label="Details">
+              When two friends check in at the same venue or tap each other’s tags: the pair, the
+              time and the place.
+            </td>
+            <td data-label="Why">Streaks.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>What you create</h3>
+      <table>
+        <caption class="muted">
+          Content you make or share
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">What</th>
+            <th scope="col">Details</th>
+            <th scope="col">Why</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">Photos</th>
+            <td data-label="Details">
+              Photos you take with the Hermi camera at a stop, with the capture time, the place they
+              were taken, a file fingerprint (SHA-256) and the result of our check against your
+              check-in. We also keep the profile photo you choose.
+            </td>
+            <td data-label="Why">To verify photos and show your posts and profile.</td>
+          </tr>
+          <tr>
+            <th scope="row">Posts and reviews</th>
+            <td data-label="Details">
+              Captions, review text and your “would you go again?” answers.
+            </td>
+            <td data-label="Why">To publish what you choose to share.</td>
+          </tr>
+          <tr>
+            <th scope="row">Plans</th>
+            <td data-label="Details">
+              Plan names, stops, times, travel mode, who is invited, who joined, the plan’s
+              visibility setting and share link, and what you save to folders.
+            </td>
+            <td data-label="Why">To run your plans.</td>
+          </tr>
+          <tr>
+            <th scope="row">Friends, blocks and reports</th>
+            <td data-label="Details">
+              Your friends and streaks, people you block, and reports you file or that are filed
+              about you.
+            </td>
+            <td data-label="Why">To run social features and keep Hermi safe.</td>
+          </tr>
+          <tr>
+            <th scope="row">How you use Hermi</th>
+            <td data-label="Details">
+              Your XP and Score history, suggestions you accept or skip, and which posts you have
+              already seen in the Feed.
+            </td>
+            <td data-label="Why">
+              To personalise suggestions and stop the Feed repeating itself.
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">What you tell the AI</th>
+            <td data-label="Details">
+              Your requests to the planning assistant, and short notes Hermi saves so it can
+              remember you, such as places you would not go to again, suggestions you passed on,
+              and preferences you stated.
+            </td>
+            <td data-label="Why">So the assistant respects your preferences.</td>
+          </tr>
+          <tr>
+            <th scope="row">Messages to us</th>
+            <td data-label="Details">Emails you send to support@hermi.world.</td>
+            <td data-label="Why">To help you.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Text Hermi (iMessage), only if you link a phone</h3>
+      <!-- Text Hermi is hidden in the public 1.0 (DEPLOYMENT.md T13). The server code (groupChat.ts,
+           imessage.ts) still exists, so this stays in the policy until that is removed. -->
+      <p>
+        Some versions of Hermi let you link a phone number or Apple Messages address and text Hermi
+        a plan. If you link one, we store it on your account until you unlink it or delete your
+        account. Messages you send Hermi are read to build the plan, and are sent to Gemini together
+        with the sender’s phone number or address as it appears in the chat. If Hermi is added to a
+        group chat, it keeps the chat’s recent lines for about two days so it can read them when
+        someone asks it to plan, and it posts check-in notes (your name or username and the place)
+        into the chat of a plan that is linked to it. If you never link a phone, we collect nothing
+        from this feature about you.
+      </p>
+
+      <h3>Collected automatically</h3>
+      <ul>
+        <li>
+          <strong>Technical logs.</strong> Our servers log each request: the IP address, the time,
+          the address requested (which can include the map area or coordinates the app was showing,
+          for example when you open the Feed) and any error. We use logs to keep Hermi running and
+          secure.
+        </li>
+        <li>
+          <strong>Abuse counters.</strong> To stop abuse we count requests by account and by IP
+          address for up to about an hour, for example how many school-email codes one account can
+          ask for.
+        </li>
+        <li>
+          <strong>Crash reports from Apple.</strong> If you choose to share diagnostics with app
+          developers in iOS Settings, Apple may show us crash reports. We do not add our own
+          analytics or advertising tools to the app.
+        </li>
+      </ul>
+      <p>
+        We do not collect your contacts, your advertising identifier, or anything from your photo
+        library other than a profile photo you choose.
+      </p>
+
+      <h2 id="use">4. How we use it</h2>
+      <p>We use your information only to run and protect Hermi:</p>
+      <ul>
+        <li>to sign you in, verify you are a student and show your profile;</li>
+        <li>to confirm check-ins, award XP, build recaps, streaks and your Score;</li>
+        <li>to show you places, plans and posts, and to power the AI features;</li>
+        <li>to deliver notifications and the emails you ask for;</li>
+        <li>
+          to review posts and reports, remove content, and suspend or ban accounts that break the
+          <a href="/terms/#rules">rules</a>;
+        </li>
+        <li>to find and fix problems, and to keep Hermi secure and prevent abuse;</li>
+        <li>to meet legal obligations.</li>
+      </ul>
+      <p>
+        <strong>We do not sell your information, we do not use it for advertising, and we do not
+        track you</strong> across apps and websites owned by other companies.
+      </p>
+
+      <h2 id="sharing">5. Who sees your information</h2>
+
+      <h3>Other Hermi users</h3>
+      <table>
+        <caption class="muted">
+          What other people in Hermi can see
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">What</th>
+            <th scope="col">Who can see it</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">Profile</th>
+            <td data-label="Who can see it">
+              Name (if Apple shared it), username, photo or avatar, school, class year, verified
+              badge, Score, and the number of your posts, plans and places visited. Any signed-in
+              Hermi user who finds your profile can see it, for example through your posts or plans.
+              People you blocked, or who blocked you, cannot.
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">Your latest check-in</th>
+            <td data-label="Who can see it">
+              The place and how long ago, on your profile and in friends’ lists. On the social map,
+              friends see check-ins from the last three hours. <strong>Ghost mode</strong> hides
+              your check-ins from all of this.
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">Posts</th>
+            <td data-label="Who can see it">
+              Photos, captions, reviews and recaps, with the place and time. Any signed-in Hermi user
+              can see a live post on its place page or on your profile, and friends and people near
+              the place see it in their Feed. If you include your route in a recap post, the route
+              is part of the post. Ghost mode does not hide posts. A post you delete, or a person
+              reports, stops being shown.
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">Counts</th>
+            <td data-label="Who can see it">
+              Place pages show how many people have been there, how many would go again, how many are
+              there now and how many are going in the next week. These are numbers only, with no
+              names.
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">Plans</th>
+            <td data-label="Who can see it">
+              It depends on the setting you pick. <strong>Just me</strong>: only you.
+              <strong>Invite</strong>: the friends you invite. <strong>Friends</strong>: your
+              friends. <strong>Find</strong>: your friends, and students with Open to plans on who
+              match by school, taste, availability and where they last checked in. They can see the
+              plan and ask to join. People on a plan see each other. Anyone with a
+              plan’s share link can see a summary, as described below.
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">Open to plans</th>
+            <td data-label="Who can see it">
+              If you turn it on, Hermi compares open plans with your school, your taste, the times of
+              your other plans and where you last checked in (in the past 30 days), and can notify you
+              about matches. A host sees you only if you ask to join.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Anyone with a link</h3>
+      <p>
+        Two kinds of web page open without signing in, for anyone who has the address:
+      </p>
+      <ul>
+        <li>
+          <strong>Plan share links</strong> (<code>/p/…</code>). Every plan has a share link,
+          whatever its visibility setting. The page shows the plan’s name, the host’s name and
+          username, a “verified student” note with the school, and each stop’s time, place name and
+          address. Share the link only with people you trust. A cancelled plan’s link stops
+          working.
+        </li>
+        <li>
+          <strong>Verification pages</strong> (<code>/verify/…</code>). When a photo you posted
+          carries a “verified in person” stamp, its page shows the place, when it was captured, how
+          you checked in, your username and the photo’s fingerprint.
+        </li>
+      </ul>
+      <p>
+        Photos and profile pictures are served from long random web addresses. They are hard to
+        guess but not password-protected, so anyone who has the exact address can open them.
+      </p>
+      <!-- REVIEW: web.ts page() loads the Silkscreen typeface from fonts.googleapis.com, so a visitor's
+           IP address reaches Google when opening /p, /verify, /c or /t. Delete the next paragraph if
+           that font is bundled or removed. -->
+      <p>
+        These pages load a typeface from Google Fonts, so Google can see the IP address of anyone
+        who opens one.
+      </p>
+
+      <h3>Companies that help us run Hermi</h3>
+      <p>
+        These companies process information for us, or provide a service you use through Hermi.
+        We give each only what its job needs.
+      </p>
+      <table>
+        <caption class="muted">
+          Service providers
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">Company</th>
+            <th scope="col">What it does</th>
+            <th scope="col">What it receives</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">Apple</th>
+            <td data-label="What it does">
+              Sign in with Apple; push notifications; Apple Maps travel times; Apple Weather
+              forecasts; App Attest; the App Store and TestFlight.
+            </td>
+            <td data-label="What it receives">
+              Your sign-in token and code; your device’s push token with the notification text (for
+              example “Maya invited you”); the coordinates of two stops, the travel mode and the
+              time, to work out a travel time; the coordinates of a stop or map point, to get a
+              forecast.
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">Google</th>
+            <td data-label="What it does">
+              Gemini API (AI features); Google Maps Platform for backup travel times and for opening
+              hours.
+            </td>
+            <td data-label="What it receives">
+              What the <a href="#ai">AI features</a> section lists; for travel times, the
+              coordinates of two stops, the mode and the time; for opening hours, a venue’s name and
+              coordinates.
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">Resend</th>
+            <td data-label="What it does">Sends email for us.</td>
+            <td data-label="What it receives">
+              Your school email address and the code we send it. Also the alerts our system emails
+              to our team when someone reports a post or a person (the username, an excerpt of the
+              caption and the reason).
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">Photon</th>
+            <td data-label="What it does">
+              Carries iMessage for Text Hermi, only if you link a phone or add Hermi to a chat.
+            </td>
+            <td data-label="What it receives">
+              Your phone number or address, your messages with Hermi or in chats where Hermi is
+              added, and Hermi’s replies.
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">Cloudflare</th>
+            <td data-label="What it does">
+              R2 storage for photos; hosting for this website; forwarding for support@hermi.world.
+            </td>
+            <td data-label="What it receives">
+              Your photos and profile pictures; emails you send to support; the IP address and
+              requests of people who visit this website.
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">DigitalOcean</th>
+            <td data-label="What it does">
+              Hosts the servers (in New York) that run Hermi and its location database.
+            </td>
+            <td data-label="What it receives">
+              Everything the Hermi servers handle, including location points and check-ins.
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">MongoDB Atlas</th>
+            <td data-label="What it does">Hosts our main database.</td>
+            <td data-label="What it receives">
+              Profiles, plans, posts, friendships, preferences and the rest of what Hermi stores.
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">Open-Meteo</th>
+            <td data-label="What it does">
+              Backup weather forecasts, used only if Apple’s forecast is not available.
+            </td>
+            <td data-label="What it receives">
+              The coordinates of the point the forecast is for. No account information.
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">OpenFreeMap</th>
+            <td data-label="What it does">Serves the map tiles your app shows.</td>
+            <td data-label="What it receives">
+              Your device’s IP address and which map tiles you view. Hermi sends it no account
+              information.
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">Tally</th>
+            <td data-label="What it does">Runs the waitlist form on this website.</td>
+            <td data-label="What it receives">
+              What you type into the form. We use your email only to tell you when Hermi launches.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <!-- Reality Defender is supported by the code (profile-photo and reported-media scanning, REALITY_DEFENDER_KEY)
+           but is off for v1 (DEPLOYMENT.md T13). If it is ever switched on, add it to this table. -->
+      <p>
+        Each company has its own privacy policy, which governs what it does with the information.
+      </p>
+
+      <h3>Safety and the law</h3>
+      <p>
+        We may share information when the law requires it, to answer a valid legal request, to
+        protect someone’s safety, or to enforce our <a href="/terms/">Terms</a>. If Hermi is ever
+        sold or merged, your information may move to the new owner, which must follow this policy,
+        and we will tell you in the app first.
+      </p>
+
+      <h2 id="ai">6. AI features</h2>
+      <p>
+        Hermi uses Google’s Gemini models, through Google’s paid Gemini API, in these places. When a
+        feature runs, Hermi sends Google the information listed. Our code decides what is allowed,
+        and the AI only proposes.
+      </p>
+      <ul>
+        <li>
+          <strong>The planning assistant (the AI button).</strong> What you type or the suggestion
+          you tap; earlier turns of that conversation; the time in New York; your plan’s travel
+          mode, start time and every stop with its name, category, tags and times; details about
+          places on your plan, such as opening hours and our review summary; and the short notes
+          Hermi saved about your preferences.
+        </li>
+        <li>
+          <strong>Questions about places.</strong> When you ask about a place, Gemini can use
+          Grounding with Google Maps. We send your question and the coordinates of one of your
+          plan’s stops (or a point in Manhattan if the plan is empty). Hermi shows the Google Maps
+          sources it used.
+        </li>
+        <li>
+          <strong>Next-stop suggestions.</strong> A short list of nearby candidate places (name,
+          category, tags and walking time), when you would leave, sunset time, a one-line weather
+          summary, and the stops of your plan so far.
+        </li>
+        <li>
+          <strong>Stay lengths and plan names.</strong> Stop names, categories and arrival times.
+        </li>
+        <li>
+          <strong>Review summaries.</strong> A place’s name and the text of its recent reviews, each
+          shortened, with their “would go again” answers. No names or usernames.
+        </li>
+        <li>
+          <strong>Safety checks on posts.</strong> Before a post goes live, its caption or review
+          text and up to three images (your photos, or frames from a clip) are sent to Gemini to
+          decide whether the post is allowed. A post is checked again if someone reports it.
+        </li>
+        <li>
+          <strong>Text Hermi.</strong> If you use it, the messages Hermi reads to find a plan, with
+          the sender’s phone number or address.
+        </li>
+      </ul>
+      <p>
+        <strong>What is not sent:</strong> your name, username, school email, Apple identifier, or
+        profile photo. But whatever you type to the AI, or put in a caption, review or photo, is
+        sent, so please keep sensitive details out of them.
+      </p>
+      <p>
+        <strong>How Google handles it.</strong> We use the paid tier of the Gemini API. Under
+        Google’s terms for paid services, Google does not use our prompts or the responses to
+        improve its products. It logs them for a limited time, only to detect and prevent misuse of
+        its service, and may store or cache them in any country where it has facilities. We do not
+        use your information to train AI models.
+        <!-- REVIEW: wording follows https://ai.google.dev/gemini-api/terms (checked Oct 15, 2026,
+             Paid Services). Hermi must really be on the paid tier before this is published
+             (DEPLOYMENT.md T13: full billing, not the free-trial credit). Re-read the terms then. -->
+      </p>
+      <p>
+        <strong>You stay in control.</strong> The assistant shows its changes as suggestions, and
+        nothing changes your plan until you accept it. It can be wrong, so check opening hours and
+        addresses. Safety checks are automatic, and a person reads every report and reviews posts
+        the automatic check could not decide.
+      </p>
+      <p>
+        <strong>Consent.</strong> Hermi asks you to agree to this before you use it. If you do not
+        agree to your information going to Google’s Gemini API as described, do not use Hermi’s AI
+        features. Because every post is checked this way before it goes live, you could not post
+        either.
+      </p>
+
+      <h2 id="keep">7. How long we keep it</h2>
+      <table>
+        <caption class="muted">
+          Retention
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">What</th>
+            <th scope="col">How long</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">Raw location points from outings</th>
+            <td data-label="How long">90 days, then deleted automatically.</td>
+          </tr>
+          <tr>
+            <th scope="row">Check-ins (with coordinates), outing summaries, hangouts, XP history</th>
+            <td data-label="How long">Until you delete your account.</td>
+          </tr>
+          <tr>
+            <th scope="row">Photos, posts, reviews, plans, saves, friends, taste and AI notes</th>
+            <td data-label="How long">
+              Until you delete them or your account. Deleting a post removes it from view.
+              <!-- REVIEW: DELETE /posts/:id only sets status 'removed' (posts.ts). Confirm the account
+                   deletion work erases these documents before promising more here. -->
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">School email</th>
+            <td data-label="How long">
+              The address itself is not stored. Its hash stays until you delete your account.
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">School verification code</th>
+            <td data-label="How long">10 minutes.</td>
+          </tr>
+          <tr>
+            <th scope="row">Apple sign-in token</th>
+            <td data-label="How long">
+              Until you delete your account, when we use it to disconnect Hermi from your Apple
+              account and then remove it.
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">Push token</th>
+            <td data-label="How long">
+              Until Apple says it no longer works, another account signs in on that device, or you
+              delete your account.
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">“Already seen” Feed markers</th>
+            <td data-label="How long">A few days.</td>
+          </tr>
+          <tr>
+            <th scope="row">Abuse counters</th>
+            <td data-label="How long">About an hour.</td>
+          </tr>
+          <tr>
+            <th scope="row">Text Hermi group chat lines</th>
+            <td data-label="How long">About two days.</td>
+          </tr>
+          <tr>
+            <th scope="row">Technical logs</th>
+            <td data-label="How long">[N days: founders to set and apply a log retention period].</td>
+          </tr>
+          <tr>
+            <th scope="row">Reports and our decisions</th>
+            <td data-label="How long">
+              [N months: founders to decide]. We keep them to enforce our rules and to show we acted.
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">Waitlist email</th>
+            <td data-label="How long">
+              Until we have told you about launch plus [N days]. Ask us to remove it any time.
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">Backups</th>
+            <td data-label="How long">
+              Our databases and servers are backed up on a rolling schedule. Deleted information can
+              stay in a backup until it is overwritten, which is [N days: confirm the Atlas snapshot
+              and DigitalOcean backup retention].
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2 id="deleting">8. Deleting your account</h2>
+      <!-- REVIEW: full deletion is being built in parallel (launch/m2-delete; DEPLOYMENT.md T6). Before
+           publishing, check that it covers every store named in web/README.md ("What account deletion must cover")
+           and that /p share links of a deleted host return not-found. -->
+      <p>
+        In the app, go to <strong>Settings → Account → Delete account</strong>. This deletes your
+        account and personal data, including photos, location history and check-ins. We also tell
+        Apple to disconnect Hermi from your Sign in with Apple.
+      </p>
+      <ul>
+        <li>Your plan share links stop working.</li>
+        <li>
+          Numbers that do not identify you, such as how many people have been to a place, may not
+          change.
+        </li>
+        <li>
+          Copies in backups age out on their schedule, as described above.
+        </li>
+        <li>
+          We may keep a limited record where the law requires it, or where we need it to handle a
+          safety report.
+        </li>
+      </ul>
+      <p>
+        If you cannot open the app, email <a href="mailto:support@hermi.world">support@hermi.world</a>.
+      </p>
+
+      <h2 id="choices">9. Your choices</h2>
+      <ul>
+        <li>
+          <strong>Location.</strong> You choose in iOS Settings whether Hermi may use your location,
+          and whether it may keep doing so in the background. Without it, check-ins do not work,
+          because Hermi has to confirm you are at the place. You can still browse and plan.
+        </li>
+        <li>
+          <strong>Ghost mode and Open to plans.</strong> Turn either on or off in the app.
+        </li>
+        <li>
+          <strong>Notifications.</strong> Turn them off in iOS Settings.
+        </li>
+        <li>
+          <strong>Text Hermi.</strong> Unlink your phone in the app to stop it acting on your
+          messages.
+        </li>
+        <li>
+          <strong>Report and block.</strong> You can report any post or person and block anyone,
+          from the app.
+        </li>
+        <li>
+          <strong>Your data.</strong> Email us to ask for a copy of what we hold about you, or to
+          correct it. We will reply within 30 days.
+        </li>
+      </ul>
+
+      <h2 id="more">10. Security, age, location and changes</h2>
+      <p>
+        <strong>Security.</strong> The Hermi app and our servers talk over encrypted connections
+        (HTTPS). We keep your school email only as a hash. No system is perfectly secure, so we
+        cannot promise that nothing will ever go wrong.
+      </p>
+      <p>
+        <strong>Age.</strong> Hermi is for people 18 or older. We do not knowingly collect
+        information from anyone younger. If you think someone under 18 has an account, tell us and
+        we will delete it.
+      </p>
+      <p>
+        <strong>United States only.</strong> Hermi is offered in the United States. Our service
+        providers may handle information in the United States and in other countries.
+      </p>
+      <p>
+        <strong>Changes.</strong> If we change this policy in a way that matters, we will tell you
+        in the app before it takes effect. The date at the top shows when the current version
+        started.
+      </p>
+
+      <h2 id="contact">11. Contact</h2>
+      <p>
+        Questions, requests or concerns: <a href="mailto:support@hermi.world">support@hermi.world</a>.
+      </p>
+    </main>
+    <footer class="site-footer">
+      <div class="wrap">
+        <nav aria-label="Footer">
+          <ul class="foot-links">
+            <li><a href="/privacy/">Privacy</a></li>
+            <li><a href="/terms/">Terms</a></li>
+            <li><a href="/support/">Support</a></li>
+            <li><a href="/acknowledgements/">Acknowledgements</a></li>
+            <li><a href="/download/">Waitlist</a></li>
+          </ul>
+        </nav>
+        <p>
+          Hermi is an independent project. It is not affiliated with, endorsed by or sponsored by
+          Columbia University or Barnard College.
+        </p>
+        <p>© 2026 Hermi · <a href="mailto:support@hermi.world">support@hermi.world</a></p>
+      </div>
+    </footer>
+  </body>
+</html>
